@@ -109,14 +109,14 @@ done through a *global operator*.
 in the `Market` struct in `Storage.sol`. This helps alleviate risk for assets that could be deposited in large quantity
 into `DolomiteMargin` such that there isn't enough liquidity to perform timely liquidations. For example, if the current
 market size were $50M in TVL, and a whale deposited $1B in UST, it would put too much stress on the system, since that
-much LINK would outweigh every other asset deposited by orders of magnitude. If a `maxWei` is set that is higher than
-the current TVL, all new actions involving that currency must lower the TVL or keep it the same.
-- Added `maxNumberOfMarketsWithBalancesAndDebt` to `RiskParams` which limits how many assets a user can hold in the same
-account index, if the user has any active debt. This number was initialized to be sufficiently high, at `32`, meaning
-a user could use up to 31 assets as collateral when borrowing one asset, or conversely, 1 asset as collateral and borrow
-up to 31 different assets. This limits the stress that can be put on the system gas-wise, whereby a user could add many
-unique assets to the same account index that has an active position, causing maintenance gas costs for any action that
-interacts with that user's account index to increase.
+much UST would outweigh every other asset deposited by orders of magnitude. If a `maxWei` is set that is higher than
+the current TVL, all new actions involving that currency must lower the TVL or keep it the same (not accounting for any 
+increase in `Wei` value that occurs from users paying the borrow rate on that asset).
+- Added `accountMaxNumberOfMarketsWithBalances` to `RiskParams` which limits how many assets a user can hold in the same
+account index. This number was initialized to be sufficiently high, at `32`, meaning a user could use up to 32 unique 
+assets within the same margin account. This risk param limits the stress that can be put on the system gas-wise, whereby 
+a user could add many unique assets to the same account index that has an active position, causing maintenance gas costs 
+for any action that interacts with that user's account index to increase.
 
 ## Documentation
 
