@@ -5,9 +5,15 @@ import contracts from './Artifacts';
 import testContracts from './TestArtifacts';
 import deployed from '../migrations/deployed.json';
 import externalDeployed from '../migrations/external-deployed.json';
-import { abi as operationAbi } from '../build/contracts/Events.json';
+import { abi as eventsAbi } from '../build/contracts/Events.json';
 import { abi as adminAbi } from '../build/contracts/AdminImpl.json';
+import { abi as callAbi } from '../build/contracts/CallImpl.json';
+import { abi as depositAbi } from '../build/contracts/DepositImpl.json';
 import { abi as liquidateOrVaporizeAbi } from '../build/contracts/LiquidateOrVaporizeImpl.json';
+import { abi as operationAbi } from '../build/contracts/OperationImpl.json';
+import { abi as tradeAbi } from '../build/contracts/TradeImpl.json';
+import { abi as transferAbi } from '../build/contracts/TransferImpl.json';
+import { abi as withdrawAbi } from '../build/contracts/WithdrawalImpl.json';
 import { abi as safeLiquidationCallbackAbi } from '../build/contracts/SafeLiquidationCallback.json';
 import { abi as permissionAbi } from '../build/contracts/Permission.json';
 
@@ -60,10 +66,17 @@ async function clean(): Promise<void> {
     }
 
     if (contractName === 'DolomiteMargin' || contractName === 'TestDolomiteMargin') {
+      // Some of these may have empty ABIs in production, but that's okay. When running coverage, they're non-empty.
       cleaned.abi = cleaned.abi
-        .concat(getAllEvents(operationAbi))
-        .concat(getAllEvents(adminAbi))
+        .concat(getAllEvents(callAbi))
+        .concat(getAllEvents(depositAbi))
         .concat(getAllEvents(liquidateOrVaporizeAbi))
+        .concat(getAllEvents(operationAbi))
+        .concat(getAllEvents(tradeAbi))
+        .concat(getAllEvents(transferAbi))
+        .concat(getAllEvents(withdrawAbi))
+        .concat(getAllEvents(eventsAbi))
+        .concat(getAllEvents(adminAbi))
         .concat(getAllEvents(safeLiquidationCallbackAbi))
         .concat(getAllEvents(permissionAbi));
     } else if (contractName.includes('Expiry')) {

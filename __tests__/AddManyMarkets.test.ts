@@ -1,12 +1,13 @@
 import BigNumber from 'bignumber.js';
-import { getDolomiteMargin } from './helpers/DolomiteMargin';
-import { TestDolomiteMargin } from './modules/TestDolomiteMargin';
-import { resetEVM, snapshot } from './helpers/EVM';
-import { setupMarkets } from './helpers/DolomiteMarginHelpers';
-import { address, AmountDenomination, AmountReference, Integer, INTEGERS } from '../src';
+import TestTokenJSON from '../build/contracts/TestToken.json';
 import { TestToken } from '../build/testing_wrappers/TestToken';
-import { abi as TestTokenAbi, bytecode as TestTokenBytecode } from '../build/contracts/TestToken.json';
+import { address, AmountDenomination, AmountReference, Integer, INTEGERS } from '../src';
 import { expectThrow } from '../src/lib/Expect';
+import { deployContract } from './helpers/Deploy';
+import { getDolomiteMargin } from './helpers/DolomiteMargin';
+import { setupMarkets } from './helpers/DolomiteMarginHelpers';
+import { resetEVM, snapshot } from './helpers/EVM';
+import { TestDolomiteMargin } from './modules/TestDolomiteMargin';
 
 let user: address;
 let admin: address;
@@ -42,10 +43,10 @@ describe('AddManyMarkets', () => {
   it('should work for many markets without crazy gas prices', async () => {
     console.log('\tNumber of markets before:', (await dolomiteMargin.getters.getNumMarkets()).toFixed());
 
-    const tokens: address[] = [];
+    const tokens: TestToken[] = [];
     const marketIds: Integer[] = [];
 
-    const numberOfMarkets = 512;
+    const numberOfMarkets = 257;
     for (let i = 0; i < numberOfMarkets; i += 1) {
       const priceOracle = dolomiteMargin.testing.priceOracle.address;
       const interestSetter = dolomiteMargin.testing.interestSetter.address;
@@ -56,18 +57,11 @@ describe('AddManyMarkets', () => {
       const isClosing = false;
       const isRecyclable = false;
 
-      const testTokenContract = new dolomiteMargin.web3.eth.Contract(TestTokenAbi) as TestToken;
-      const testToken = (await testTokenContract
-        .deploy({
-          data: TestTokenBytecode,
-          arguments: [],
-        })
-        .send({ from: admin, gas: 6000000 })) as TestToken;
-      tokens[i] = testToken.options.address;
+      tokens[i] = (await deployContract(dolomiteMargin, TestTokenJSON)) as TestToken;
 
-      await dolomiteMargin.testing.priceOracle.setPrice(tokens[i], price);
+      await dolomiteMargin.testing.priceOracle.setPrice(tokens[i].options.address, price);
       const txResult = await dolomiteMargin.admin.addMarket(
-        tokens[i],
+        tokens[i].options.address,
         priceOracle,
         interestSetter,
         marginPremium,
@@ -80,23 +74,27 @@ describe('AddManyMarkets', () => {
       if (i === numberOfMarkets - 1) {
         console.log('\tAdd market gas cost for last market:', txResult.gasUsed);
       }
-      marketIds[i] = await dolomiteMargin.getters.getMarketIdByTokenAddress(tokens[i]);
+      marketIds[i] = await dolomiteMargin.getters.getMarketIdByTokenAddress(tokens[i].options.address);
     }
     console.log('\tNumber of markets after:', (await dolomiteMargin.getters.getNumMarkets()).toFixed());
 
     await performDeposit(accountOne, 0, tokens, marketIds, true);
+    await performDeposit(accountOne, 49, tokens, marketIds, true);
     await performDeposit(accountOne, 99, tokens, marketIds, true);
+    await performDeposit(accountOne, 149, tokens, marketIds, true);
     await performDeposit(accountOne, 199, tokens, marketIds, true);
-    await performDeposit(accountOne, 299, tokens, marketIds, true);
-    await performDeposit(accountOne, 399, tokens, marketIds, true);
-    await performDeposit(accountOne, 499, tokens, marketIds, true);
+    await performDeposit(accountOne, numberOfMarkets - 1, tokens, marketIds, true);
 
-    let gasUsed = 0;
+    let cumulativeGasUsed = 0;
     const numberOfDeposits = 32;
     for (let i = 0; i < numberOfDeposits; i += 1) {
-      gasUsed += await performDeposit(accountTwo, i * 2, tokens, marketIds, i > numberOfDeposits - 6);
+      const logGasUsage = i > numberOfDeposits - 6;
+      cumulativeGasUsed += await performDeposit(accountTwo, i * 2, tokens, marketIds, logGasUsage);
     }
-    console.log(`\tAveraged gas used for deposit into account ${accountTwo.toFixed()}:`, gasUsed / numberOfDeposits);
+    console.log(
+      `\tAveraged gas used for deposit into account ${accountTwo.toFixed()}:`,
+      cumulativeGasUsed / numberOfDeposits,
+    );
 
     const numberOfMarketsWithBalances = await dolomiteMargin.getters.getAccountNumberOfMarketsWithBalances(
       user,
@@ -106,7 +104,7 @@ describe('AddManyMarkets', () => {
 
     // The 33rd one should throw
     await expectThrow(
-      performDeposit(accountTwo, 100, tokens, marketIds),
+      performDeposit(accountTwo, numberOfMarkets - 1, tokens, marketIds),
       `OperationImpl: Too many non-zero balances <${user.toLowerCase()}, ${accountTwo.toFixed()}>`,
     );
   });
@@ -114,13 +112,17 @@ describe('AddManyMarkets', () => {
   const performDeposit = async (
     primaryAccountId: Integer,
     index: number,
-    tokens: address[],
+    tokens: TestToken[],
     marketIds: Integer[],
     shouldLogGasUsage: boolean = false,
   ) => {
-    const testTokenContract = new dolomiteMargin.web3.eth.Contract(TestTokenAbi, tokens[index]) as TestToken;
-    await testTokenContract.methods.issueTo(user, amount.toFixed(0)).send({ from: user });
-    await testTokenContract.methods.approve(dolomiteMargin.address, INTEGERS.ONES_255.toFixed(0)).send({ from: user });
+    await dolomiteMargin.contracts.callContractFunction(tokens[index].methods.issueTo(user, amount.toFixed(0)), {
+      from: user,
+    });
+    await dolomiteMargin.contracts.callContractFunction(
+      tokens[index].methods.approve(dolomiteMargin.address, INTEGERS.ONES_255.toFixed(0)),
+      { from: user },
+    );
     const txResult = await dolomiteMargin.operation
       .initiate()
       .deposit({

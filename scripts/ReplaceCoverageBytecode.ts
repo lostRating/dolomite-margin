@@ -4,8 +4,8 @@ import { promisify } from 'es6-promisify';
 const readFileAsync = promisify(fs.readFile);
 const writeFileAsync = promisify(fs.writeFile);
 
-const dolomiteAmmLibraryPath = '.coverage_contracts/external/lib/DolomiteAmmLibrary.sol';
-const uniswapV2LibraryPath = '.coverage_contracts/external/uniswap-v2/libraries/UniswapV2Library.sol';
+const dolomiteAmmLibraryPath = 'contracts/external/lib/DolomiteAmmLibrary.sol';
+const uniswapV2LibraryPath = 'contracts/external/uniswap-v2/libraries/UniswapV2Library.sol';
 
 async function replaceBytecode(): Promise<void> {
   const dolomiteAmmInitCodeHash = '0x0000000000000000000000000000000000000000000000000000000000000000';

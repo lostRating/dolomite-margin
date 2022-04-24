@@ -98,7 +98,7 @@ const TestInterestSetter = artifacts.require('TestInterestSetter');
 const TestPolynomialInterestSetter = artifacts.require('TestPolynomialInterestSetter');
 const TestDoubleExponentInterestSetter = artifacts.require('TestDoubleExponentInterestSetter');
 const TestExchangeWrapper = artifacts.require('TestExchangeWrapper');
-const WETH9 = artifacts.require('WETH9');
+const TestWETH = artifacts.require('TestWETH');
 
 // Second-Layer Contracts
 const AmmRebalancerProxyV1 = artifacts.require('AmmRebalancerProxyV1');
@@ -148,7 +148,7 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(TokenD),
       deployer.deploy(TokenE),
       deployer.deploy(TokenF),
-      deployer.deploy(WETH9),
+      deployer.deploy(TestWETH, 'Wrapped Ether', 'WETH'),
       deployer.deploy(ErroringToken),
       deployer.deploy(OmiseToken),
       deployer.deploy(TestLib),
@@ -296,7 +296,7 @@ async function deployPriceOracles(deployer, network) {
     TokenD,
     TokenE,
     TokenF,
-    WETH9,
+    TestWETH,
   };
 
   const aggregators = {
@@ -340,7 +340,7 @@ async function deploySecondLayer(deployer, network, accounts) {
       deployer.deploy(UniswapV2Factory, getSenderAddress(network, accounts)),
     ]);
 
-    const weth = getWethAddress(network, WETH9);
+    const weth = getWethAddress(network, TestWETH);
     const uniswapV2Factory = await UniswapV2Factory.deployed();
     await deployer.deploy(UniswapV2Router02, uniswapV2Factory.address, weth);
     await UniswapV2Router02.deployed();
@@ -497,7 +497,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     await deployer.deploy(
       payableProxy,
       dolomiteMargin.address,
-      getWrappedCurrencyAddress(network, WETH9),
+      getWrappedCurrencyAddress(network, TestWETH),
     );
   } else {
     await deployer.deploy(

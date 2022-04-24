@@ -19,12 +19,14 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { WETH9 } from "canonical-weth/contracts/WETH9.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { IWETH } from "../interfaces/IWETH.sol";
 
 
 /**
@@ -34,6 +36,7 @@ import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
  * Contract for wrapping/unwrapping ETH before/after interacting with DolomiteMargin
  */
 contract PayableProxy is OnlyDolomiteMargin, ReentrancyGuard {
+    using Address for address payable;
 
     // ============ Constants ============
 
@@ -41,7 +44,7 @@ contract PayableProxy is OnlyDolomiteMargin, ReentrancyGuard {
 
     // ============ Storage ============
 
-    WETH9 public WETH;
+    IWETH public WETH;
 
     // ============ Constructor ============
 
@@ -52,7 +55,7 @@ contract PayableProxy is OnlyDolomiteMargin, ReentrancyGuard {
         public
         OnlyDolomiteMargin(dolomiteMargin)
     {
-        WETH = WETH9(weth);
+        WETH = IWETH(weth);
         WETH.approve(dolomiteMargin, uint256(-1));
     }
 
@@ -81,7 +84,7 @@ contract PayableProxy is OnlyDolomiteMargin, ReentrancyGuard {
         payable
         nonReentrant
     {
-        WETH9 weth = WETH;
+        IWETH weth = WETH;
 
         // create WETH from ETH
         if (msg.value != 0) {
@@ -141,7 +144,7 @@ contract PayableProxy is OnlyDolomiteMargin, ReentrancyGuard {
             );
 
             weth.withdraw(remainingWeth);
-            sendEthTo.transfer(remainingWeth);
+            sendEthTo.sendValue(remainingWeth);
         }
     }
 }

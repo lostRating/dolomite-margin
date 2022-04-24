@@ -40,15 +40,14 @@ export class Logs {
       logs = logs.filter((log: any) => !this.logIsFrom(log, permissionAbi));
     }
     if (options.skipSignedOperationProxyLogs) {
-      logs = logs.filter(
-        (log: any) => !this.logIsFrom(log, signedOperationProxyAbi),
-      );
+      logs = logs.filter((log: any) => !this.logIsFrom(log, signedOperationProxyAbi));
     }
     if (options.skipExpiryLogs) {
-      logs = logs.filter(
-        (log: any) => !this.logIsFrom(log, expiryAbi),
-      );
+      logs = logs.filter((log: any) => !this.logIsFrom(log, expiryAbi));
     }
+
+    const coveragePrefix = '__';
+    logs = logs.filter(log => !log.name.startsWith(coveragePrefix));
 
     return logs;
   }
@@ -131,8 +130,10 @@ export class Logs {
       (e: any) => e.signature.toLowerCase() === log.topics[0].toLowerCase(),
     );
 
-    if (!eventJson) {
-      throw new Error('Event type not found');
+    if (!eventJson && process.env.COVERAGE !== 'true') {
+      throw new Error(`Event with topic not found: ${log.topics[0]}`);
+    } else if (!eventJson) {
+      return null;
     }
 
     const eventArgs = this.web3.eth.abi.decodeLog(

@@ -261,7 +261,8 @@ contract Expiry is
             owedMarketId
         );
 
-        uint256 expiryAge = Time.currentTime().sub(expiry);
+        uint32 currentTimestamp = Time.currentTime();
+        uint256 expiryAge = currentTimestamp <= expiry ? 0 : Time.currentTime().sub(expiry);
 
         if (expiryAge < g_expiryRampTime) {
             spread.value = Math.getPartial(spread.value, expiryAge, g_expiryRampTime);

@@ -269,4 +269,12 @@ export class TestContracts extends Contracts {
     this.testUniswapV2Router.options.from = account;
     this.testUniswapV3MultiRouter.options.from = account;
   }
+
+  public getDefaultGasLimit(): string | number {
+    return this.defaultGas;
+  }
+
+  public getDefaultGasPrice(): string | number {
+    return this.defaultGasPrice;
+  }
 }

@@ -97,7 +97,7 @@ library Storage {
         Decimal.D256 spreadPremium;
 
         // The maximum amount that can be held by the protocol. This allows the protocol to cap any additional risk
-        // that is inferred by allowing borrowing against low-cap or assets with increased volatility. Settings this
+        // that is inferred by allowing borrowing against low-cap or assets with increased volatility. Setting this
         // value to 0 is analogous to having no limit. This value can never be below 0.
         Types.Wei maxWei;
     }

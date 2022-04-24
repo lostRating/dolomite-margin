@@ -1,5 +1,11 @@
+import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
+
 // eslint-disable-next-line import/prefer-default-export
-export async function deployContract(dolomiteMargin: any, json: any, args?: any[]) {
+export async function deployContract(
+  dolomiteMargin: TestDolomiteMargin,
+  json: any,
+  args?: any[]
+) {
   const contract = new dolomiteMargin.web3.eth.Contract(json.abi);
   const receipt = await contract
     .deploy({
@@ -8,10 +14,10 @@ export async function deployContract(dolomiteMargin: any, json: any, args?: any[
     })
     .send({
       from: dolomiteMargin.web3.eth.defaultAccount,
-      gas: '6500000',
-      gasPrice: '1',
+      gas: dolomiteMargin.contracts.getDefaultGasLimit(),
+      gasPrice: dolomiteMargin.contracts.getDefaultGasPrice(),
     });
-  contract.options.address = receipt._address;
+  contract.options.address = (receipt as any)._address;
   contract.options.from = dolomiteMargin.web3.eth.defaultAccount;
   return contract;
 }

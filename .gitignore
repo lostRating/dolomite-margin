@@ -36,3 +36,5 @@ bfg-1.14.0.jar
 .env.production
 
 **/artifacts
+
+scTopics

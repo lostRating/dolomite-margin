@@ -22,7 +22,7 @@ npm i -s @dolomite-exchange/dolomite
 ### Initialize
 
 You will need to initialize DolomiteMargin using
-a [Web3 provider](https://web3js.readthedocs.io/en/v1.2.1/web3.html#providers) / Ethereum node endpoint and Network.
+a [Web3 provider](https://web3js.readthedocs.io/en/v1.2.1/web3.html#providers) / Web3 node endpoint and Network.
 
 ```javascript
 import { DolomiteMargin, Networks } from '@dolomite-exchange/dolomite-margin';
@@ -42,7 +42,7 @@ const dolomiteMargin = new DolomiteMargin(
   }, // Optional
 );
 
-// --- OR Initialize with Ethereum node endpoint ---
+// --- OR Initialize with Web3 Provider node endpoint ---
 const dolomiteMargin = new DolomiteMargin(
   'https://arbitrum-mainnet.infura.io/v3/YOUR-PROJECT-ID',
   Networks.ARBITRUM,

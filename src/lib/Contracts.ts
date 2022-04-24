@@ -123,13 +123,14 @@ export class Contracts {
   public arbitrumMultiCall: ArbitrumMultiCall;
   public weth: Weth;
   public testUniswapAmmRebalancer: TestUniswapAmmRebalancerProxy;
+  protected provider: Provider;
   protected web3: Web3;
-  private blockGasLimit: number;
-  private readonly autoGasMultiplier: number;
-  private readonly defaultConfirmations: number;
-  private readonly confirmationType: ConfirmationType;
-  private readonly defaultGas: string | number;
-  private readonly defaultGasPrice: string | number;
+  protected blockGasLimit: number;
+  protected readonly autoGasMultiplier: number;
+  protected readonly defaultConfirmations: number;
+  protected readonly confirmationType: ConfirmationType;
+  protected readonly defaultGas: string | number;
+  protected readonly defaultGasPrice: string | number;
 
   constructor(
     provider: Provider,
@@ -137,6 +138,7 @@ export class Contracts {
     web3: Web3,
     options: DolomiteMarginOptions,
   ) {
+    this.provider = provider;
     this.web3 = web3;
     this.defaultConfirmations = options.defaultConfirmations;
     this.autoGasMultiplier = options.autoGasMultiplier || 1.5;
@@ -222,16 +224,8 @@ export class Contracts {
     tokenA: address,
     tokenB: address,
   ): Promise<DolomiteAmmPair> {
-    const contractAddress = await this.getDolomiteLpTokenAddress(
-      tokenA,
-      tokenB,
-    );
-    const pair = new this.web3.eth.Contract(
-      dolomiteAmmPairJson.abi,
-      contractAddress,
-    ) as DolomiteAmmPair;
-    pair.options.from = this.dolomiteAmmFactory.options.from;
-    return pair;
+    const contractAddress = await this.getDolomiteLpTokenAddress(tokenA, tokenB);
+    return this.getDolomiteAmmPair(contractAddress);
   }
 
   public getDolomiteAmmPair(contractAddress: address): DolomiteAmmPair {
@@ -239,12 +233,14 @@ export class Contracts {
       dolomiteAmmPairJson.abi,
       contractAddress,
     ) as DolomiteAmmPair;
+    pair.setProvider(this.provider);
     pair.options.from = this.dolomiteAmmFactory.options.from;
     return pair;
   }
 
   public setProvider(provider: Provider, networkId: number): void {
     this.dolomiteMargin.setProvider(provider);
+    this.provider = provider;
 
     const contracts = [
       // contracts

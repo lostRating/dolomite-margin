@@ -42,8 +42,7 @@ export const MarketId = {
   USDC: new BigNumber(1),
   DAI: new BigNumber(2),
 
-  // This market number does not exist on the protocol,
-  // but can be used for standard actions
+  // This market number does not exist on the protocol, but can be used for standard actions
   ETH: new BigNumber(-1),
 };
 

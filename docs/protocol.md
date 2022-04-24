@@ -5,21 +5,21 @@
   <img src='https://img.shields.io/badge/GitHub-dolomite--exchange%2Fdolomite--margin-lightgrey' alt='GitHub'/>
 </a>
 
-The Dolomite Margin protocol (A.K.A. "DolomiteMargin") consists of smart contracts that run on the Ethereum blockchain.
-These contracts support margin trading, borrowing, and lending.
+The Dolomite Margin protocol (A.K.A. "DolomiteMargin") consists of smart contracts that run on the 
+[Arbitrum](https://arbitrum.io) L2. These contracts support margin trading, borrowing, and lending.
 
 DolomiteMargin is used by [app.dolomite.io](https://app.dolomite.io).
 
 ## Accounts
 
-DolomiteMargin is Account based. Each Account is referenced by its owner Ethereum address and an account number unique
+DolomiteMargin is Account based. Each Account is referenced by its owner wallet address and an account number unique
 to that owner address. Accounts have balances on each asset supported by DolomiteMargin, which can be either positive (
 indicating a net supply of the asset) or negative (indicating a net borrow of an asset). Accounts must maintain a
 certain level of collateralization, or they will be liquidated.
 
 ### Example
 
-Ethereum Address `0x6b5Bb4E60821eCE7363CaFf836Be1A4f9e3559B3` has the following balances in its account number `123456`:
+Wallet address `0x6b5Bb4E60821eCE7363CaFf836Be1A4f9e3559B3` has the following balances in its account number `123456`:
 
 - ETH: 1,000
 - DAI: -10,000
@@ -51,8 +51,8 @@ will be added over time:
 ## Interest
 
 Interest rates in DolomiteMargin are dynamic and set per Market. Each interest rate is automatically and algorithmically
-set based on the ratio of `(total borrow) / (total supply)` of that Market. Account balances either continuously earn (
-if positive) or pay (if negative) interest.
+set based on the ratio of `(total borrow) / (total supply)` of that Market. Account balances either continuously earn
+(if positive) or pay (if negative) interest.
 
 Interest is earned / paid continuously (down to the second). Rates on the protocol are denominated yearly in APR.
 

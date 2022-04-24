@@ -162,7 +162,7 @@ function getWbtcAddress(network, TokenD) {
   throw new Error('Cannot find WBTC');
 }
 
-function getWethAddress(network, WETH9) {
+function getWethAddress(network, WETH) {
   if (isMatic(network)) {
     return '0x7ceB23fD6bC0adD59E62ac25578270cFf1b9f619';
   }
@@ -170,7 +170,7 @@ function getWethAddress(network, WETH9) {
     return '0xa38eF095D071ebBAFeA5E7D1Ce02BE79fc376793';
   }
   if (isDevNetwork(network)) {
-    return WETH9.address;
+    return WETH.address;
   }
   if (isMainNet(network)) {
     return '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
@@ -187,13 +187,13 @@ function getWethAddress(network, WETH9) {
   throw new Error('Cannot find WETH');
 }
 
-function getWrappedCurrencyAddress(network, WETH9) {
+function getWrappedCurrencyAddress(network, WETH) {
   if (isMatic(network) || isMaticTest(network)) {
     return getMaticAddress(network)
   }
 
   // fall through case
-  return getWethAddress(network, WETH9)
+  return getWethAddress(network, WETH)
 }
 
 module.exports = {

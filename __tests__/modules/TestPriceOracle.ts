@@ -30,9 +30,9 @@ export class TestPriceOracle {
   }
 
   public async getPrice(token: address): Promise<Integer> {
-    const price = await this.contracts.testPriceOracle.methods
-      .getPrice(token)
-      .call();
+    const price = await this.contracts.callConstantContractFunction(
+      this.contracts.testPriceOracle.methods.getPrice(token),
+    );
     return new BigNumber(price.value);
   }
 }

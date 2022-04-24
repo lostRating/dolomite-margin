@@ -156,6 +156,14 @@ audit of the system before the new *Recyclable* feature is used in production.
 
 All production smart contracts are tested and have the vast majority of line and branch coverage.
 
+This repository uses an older version of [solidity-coverage](https://github.com/sc-forks/solidity-coverage/tree/v0.6.4) 
+to match the needs of using older versions of Truffle + Ganache.
+
+To run code coverage, first start an instance of the local RPC using `npm run coverage_node`
+
+Then, run test coverage script in a separate terminal instance: `npm run coverage`. Note, this script takes a long time
+to execute!
+
 ### Vulnerability Disclosure Policy
 
 The disclosure of security vulnerabilities helps us ensure the security of all DolomiteMargin users.

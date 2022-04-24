@@ -402,7 +402,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
             );
         } else {
             // check the expiration is valid; to get here we already know constants.expiry != 0
-            uint expiry = constants.expiryProxy.getExpiry(constants.liquidAccount, owedMarket);
+            uint32 expiry = constants.expiryProxy.getExpiry(constants.liquidAccount, owedMarket);
             Require.that(
                 expiry == constants.expiry,
                 FILE,

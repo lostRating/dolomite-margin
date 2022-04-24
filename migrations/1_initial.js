@@ -18,7 +18,7 @@
 
 const { shouldOverwrite, getNoOverwriteParams } = require('./helpers');
 
-const Migrations = artifacts.require('./Migrations.sol');
+const Migrations = artifacts.require('Migrations');
 
 const migration = async (deployer, network) => {
   if (shouldOverwrite(Migrations, network)) {

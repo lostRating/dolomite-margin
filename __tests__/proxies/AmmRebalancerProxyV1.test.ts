@@ -5,7 +5,6 @@ import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { address, INTEGERS } from '../../src';
-import { TestToken } from '../modules/TestToken';
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
@@ -81,7 +80,7 @@ describe('AmmRebalancerProxyV1', () => {
     snapshotId = await snapshot();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await resetEVM(snapshotId);
   });
 
@@ -105,16 +104,10 @@ describe('AmmRebalancerProxyV1', () => {
           dolomiteMargin.testing.tokenB.address,
         );
 
-        const accountWeiA = await dolomiteMargin.getters.getAccountWei(
-          owner1,
-          INTEGERS.ZERO,
-          new BigNumber(await getMarketId(dolomiteMargin.testing.tokenA)),
-        );
-        const accountWeiB = await dolomiteMargin.getters.getAccountWei(
-          owner1,
-          INTEGERS.ZERO,
-          new BigNumber(await getMarketId(dolomiteMargin.testing.tokenB)),
-        );
+        const marketIdA = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenA.address);
+        const accountWeiA = await dolomiteMargin.getters.getAccountWei(owner1, INTEGERS.ZERO, new BigNumber(marketIdA));
+        const marketIdB = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenB.address);
+        const accountWeiB = await dolomiteMargin.getters.getAccountWei(owner1, INTEGERS.ZERO, marketIdB);
 
         // converge the prices of the two on ~0.5025 (0.5% away from the "real" price of 0.5)
         // true price needs to be calculated assuming the correct number of decimals, per asset
@@ -128,17 +121,13 @@ describe('AmmRebalancerProxyV1', () => {
         );
         console.log('\tperformRebalance gas used', txResult.gasUsed.toString());
 
-        const accountWeiANew = await dolomiteMargin.getters.getAccountWei(
-          owner1,
-          INTEGERS.ZERO,
-          new BigNumber(await getMarketId(dolomiteMargin.testing.tokenA)),
-        );
+        const accountWeiANew = await dolomiteMargin.getters.getAccountWei(owner1, INTEGERS.ZERO, marketIdA);
         expect(accountWeiA.lt(accountWeiANew)).toEqual(true);
         expect(accountWeiB).toEqual(
           await dolomiteMargin.getters.getAccountWei(
             owner1,
             INTEGERS.ZERO,
-            new BigNumber(await getMarketId(dolomiteMargin.testing.tokenB)),
+            marketIdB,
           ),
         );
 
@@ -221,15 +210,9 @@ async function addUniswapLiquidity(
   return result;
 }
 
-async function getMarketId(token: TestToken): Promise<string> {
-  return dolomiteMargin.contracts.dolomiteMargin.methods
-    .getMarketIdByTokenAddress(token.address)
-    .call();
-}
-
 async function setUpBasicBalances() {
-  const marketA = new BigNumber(await getMarketId(dolomiteMargin.testing.tokenA));
-  const marketB = new BigNumber(await getMarketId(dolomiteMargin.testing.tokenB));
+  const marketA = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenA.address);
+  const marketB = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenB.address);
 
   const dolomiteMarginAddress = dolomiteMargin.address;
 

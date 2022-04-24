@@ -1,12 +1,10 @@
 import BigNumber from 'bignumber.js';
-import {
-  abi as TestLiquidationCallbackABI,
-  bytecode as TestLiquidationCallbackBytecode,
-} from '../../build/contracts/TestLiquidationCallback.json';
+import TestLiquidationCallbackJSON from '../../build/contracts/TestLiquidationCallback.json';
 import { TestLiquidationCallback } from '../../build/testing_wrappers/TestLiquidationCallback';
 import { address, AmountDenomination, AmountReference, Integer, INTEGERS, Trade, TxResult } from '../../src';
 import { toBytes } from '../../src/lib/BytesHelper';
 import { expectThrow } from '../../src/lib/Expect';
+import { deployContract } from '../helpers/Deploy';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { fastForward, mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
@@ -1533,7 +1531,7 @@ describe('Expiry', () => {
       const revertMessage =
         'This is a long revert message that will get cut off before the vertical bar character. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur eget tempus nisi, quis volutpat nulla. Proin tempus nisl id rutrum scelerisque. Praesent id magna eget lorem dictum interdum nec ac lorem. Aliquam ornare iaculis lectus ut pellentesque. Maecenas id tellus facilisis est finibus convallis id tempus odio. Sed risus nibh.';
       // tslint:enable:max-line-length
-      await liquidContract.methods.setRevertMessage(revertMessage).send();
+      await dolomiteMargin.contracts.callContractFunction(liquidContract.methods.setRevertMessage(revertMessage));
 
       await Promise.all([
         dolomiteMargin.testing.setAccountBalance(
@@ -1786,8 +1784,10 @@ async function setExpiryForCallbackContract(
   forceUpdate: boolean,
   options?: any,
 ) {
-  await callbackContract.methods.setLocalOperator()
-    .send({ ...options, from: owner2 });
+  await dolomiteMargin.contracts.callContractFunction(
+    callbackContract.methods.setLocalOperator(),
+    { from: owner2 },
+  );
 
   return dolomiteMargin.operation
     .initiate()
@@ -1892,20 +1892,18 @@ async function deployCallbackContract(
   shouldConsumeTonsOfGas: boolean,
   shouldReturnBomb: boolean,
 ): Promise<TestLiquidationCallback> {
-  const liquidContract = (await new dolomiteMargin.web3.eth.Contract(TestLiquidationCallbackABI)
-    .deploy({
-      data: TestLiquidationCallbackBytecode,
-      arguments: [
-        dolomiteMargin.address,
-        shouldRevert,
-        shouldRevertWithMessage,
-        shouldConsumeTonsOfGas,
-        shouldReturnBomb,
-      ],
-    })
-    .send({ from: accounts[0], gas: '6000000' })) as TestLiquidationCallback;
+  const liquidContract = await deployContract(
+    dolomiteMargin,
+    TestLiquidationCallbackJSON,
+    [
+      dolomiteMargin.address,
+      shouldRevert,
+      shouldRevertWithMessage,
+      shouldConsumeTonsOfGas,
+      shouldReturnBomb,
+    ],
+  ) as TestLiquidationCallback;
 
-  liquidContract.options.gas = 6000000;
   liquidContract.options.from = accounts[0];
   return liquidContract;
 }

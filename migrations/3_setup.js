@@ -51,7 +51,7 @@ const TokenA = artifacts.require('TokenA');
 const TokenB = artifacts.require('TokenB');
 const TokenD = artifacts.require('TokenD');
 const TokenF = artifacts.require('TokenF');
-const WETH9 = artifacts.require('WETH9');
+const TestWETH = artifacts.require('TestWETH');
 const TestPriceOracle = artifacts.require('TestPriceOracle');
 
 // Interest Setters
@@ -81,7 +81,7 @@ async function setupProtocol(deployer, network) {
   await addMarkets(dolomiteMargin, tokens, oracles, setters);
 
   const depositWithdrawalProxy = await DepositWithdrawalProxy.deployed();
-  depositWithdrawalProxy.initializeETHMarket(getWrappedCurrencyAddress(network, WETH9));
+  depositWithdrawalProxy.initializeETHMarket(getWrappedCurrencyAddress(network, TestWETH));
 }
 
 async function addMarkets(dolomiteMargin, tokens, priceOracles, interestSetters) {
@@ -118,7 +118,7 @@ async function getDolomiteMargin(network) {
 function getTokens(network) {
   if (isMatic(network)) {
     return [
-      { address: getWethAddress(network, WETH9) },
+      { address: getWethAddress(network, TestWETH) },
       { address: getDaiAddress(network, TokenB) },
       { address: getMaticAddress(network, TokenD) },
       { address: getUsdcAddress(network, TokenA) },
@@ -126,14 +126,14 @@ function getTokens(network) {
     ];
   } else if (isMaticTest(network)) {
     return [
-      { address: getWethAddress(network, WETH9) },
+      { address: getWethAddress(network, TestWETH) },
       { address: getDaiAddress(network, TokenB) },
       { address: getMaticAddress(network, TokenD) },
       { address: getUsdcAddress(network, TokenA) },
     ];
   } else if (isArbitrum(network) || isArbitrumTest(network)) {
     const tokens = [
-      { address: getWethAddress(network, WETH9) },
+      { address: getWethAddress(network, TestWETH) },
       { address: getDaiAddress(network, TokenB) },
       { address: getUsdcAddress(network, TokenA) },
       { address: getLinkAddress(network, TokenF) },

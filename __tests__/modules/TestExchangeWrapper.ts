@@ -3,7 +3,7 @@ import {
   TestExchangeWrapperOrder,
 } from '../helpers/types';
 import BigNumber from 'bignumber.js';
-import web3Utils from 'web3-utils';
+import Web3 from 'web3';
 import { TestContracts } from './TestContracts';
 
 export class TestExchangeWrapper {
@@ -35,14 +35,14 @@ export class TestExchangeWrapper {
   private static toBytes(val: string | BN | BigNumber): number[] {
     let paddedBytes: string;
     if (val instanceof BigNumber) {
-      paddedBytes = web3Utils.padLeft(web3Utils.toHex(val.toFixed()), 64, '0');
+      paddedBytes = Web3.utils.padLeft(Web3.utils.toHex(val.toFixed()), 64, '0');
     } else if (typeof val === 'string') {
-      paddedBytes = web3Utils.padLeft(web3Utils.toHex(val), 64, '0');
+      paddedBytes = Web3.utils.padLeft(Web3.utils.toHex(val), 64, '0');
     } else {
       // val instanceof BN
-      paddedBytes = web3Utils.padLeft(web3Utils.toHex(val.toString()), 64, '0');
+      paddedBytes = Web3.utils.padLeft(Web3.utils.toHex(val.toString()), 64, '0');
     }
 
-    return web3Utils.hexToBytes(paddedBytes);
+    return Web3.utils.hexToBytes(paddedBytes);
   }
 }

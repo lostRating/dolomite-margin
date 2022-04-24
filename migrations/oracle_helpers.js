@@ -204,7 +204,7 @@ function getChainlinkPriceOracleV1Params(network, tokens, aggregators) {
   } else if (isArbitrumTest(network)) {
     throw new Error('Cannot get Chainlink params for Arbitrum Rinkeby');
   } else if (isDevNetwork(network)) {
-    const { TokenA, TokenB, TokenD, TokenE, TokenF, WETH9 } = tokens;
+    const { TokenA, TokenB, TokenD, TokenE, TokenF, TestWETH } = tokens;
 
     const {
       btcUsdAggregator,
@@ -225,7 +225,7 @@ function getChainlinkPriceOracleV1Params(network, tokens, aggregators) {
         getLrcAddress(network, TokenF),
         getLrcEthAggregatorAddress(network, lrcEthAggregator),
         18,
-        getWethAddress(network, WETH9),
+        getWethAddress(network, TestWETH),
         18,
       ],
       // eslint-disable-next-line max-len
@@ -233,7 +233,7 @@ function getChainlinkPriceOracleV1Params(network, tokens, aggregators) {
       // eslint-disable-next-line max-len
       [getWbtcAddress(network, TokenD), getBtcUsdAggregatorAddress(network, btcUsdAggregator), 8, ADDRESSES.ZERO, 8],
       // eslint-disable-next-line max-len
-      [getWethAddress(network, WETH9), getEthUsdAggregatorAddress(network, ethUsdAggregator), 18, ADDRESSES.ZERO, 8],
+      [getWethAddress(network, TestWETH), getEthUsdAggregatorAddress(network, ethUsdAggregator), 18, ADDRESSES.ZERO, 8],
     ]);
   }
 

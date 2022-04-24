@@ -1,4 +1,5 @@
 import BigNumber from 'bignumber.js';
+import { deployContract } from '../helpers/Deploy';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { resetEVM, snapshot } from '../helpers/EVM';
@@ -15,10 +16,7 @@ import {
   Liquidate,
 } from '../../src';
 import { TestLiquidationCallback } from '../../build/testing_wrappers/TestLiquidationCallback';
-import {
-  abi as TestLiquidationCallbackABI,
-  bytecode as TestLiquidationCallbackBytecode,
-} from '../../build/contracts/TestLiquidationCallback.json';
+import TestLiquidationCallbackJSON from '../../build/contracts/TestLiquidationCallback.json';
 
 let liquidOwner: address;
 let solidOwner: address;
@@ -283,7 +281,10 @@ describe('Liquidate', () => {
     const revertMessage =
       'This is a long revert message that will get cut off before the vertical bar character. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Curabitur eget tempus nisi, quis volutpat nulla. Proin tempus nisl id rutrum scelerisque. Praesent id magna eget lorem dictum interdum nec ac lorem. Aliquam ornare iaculis lectus ut pellentesque. Maecenas id tellus facilisis est finibus convallis id tempus odio. Sed risus nibh.';
     // tslint:enable:max-line-length
-    await liquidContract.methods.setRevertMessage(revertMessage).send({ from: accounts[0], gas: 6000000 });
+    await dolomiteMargin.contracts.callContractFunction(
+      liquidContract.methods.setRevertMessage(revertMessage),
+      { from: accounts[0] },
+    );
     await Promise.all([
       dolomiteMargin.testing.setAccountBalance(liquidContract.options.address, liquidAccountNumber, owedMarket, negPar),
       dolomiteMargin.testing.setAccountBalance(
@@ -410,7 +411,6 @@ describe('Liquidate', () => {
           reference: AmountReference.Delta,
         },
       },
-      { gas: 6000000 },
     );
     console.log(`\tLiquidate with callback reversion with massive gas consumption gas used: ${txResult.gasUsed}`);
 
@@ -676,20 +676,17 @@ async function deployCallbackContract(
   shouldConsumeTonsOfGas: boolean,
   shouldReturnBomb: boolean,
 ): Promise<TestLiquidationCallback> {
-  const liquidContract = (await new dolomiteMargin.web3.eth.Contract(TestLiquidationCallbackABI)
-    .deploy({
-      data: TestLiquidationCallbackBytecode,
-      arguments: [
-        dolomiteMargin.address,
-        shouldRevert,
-        shouldRevertWithMessage,
-        shouldConsumeTonsOfGas,
-        shouldReturnBomb,
-      ],
-    })
-    .send({ from: accounts[0], gas: '6000000' })) as TestLiquidationCallback;
-
-  liquidContract.options.gas = 6000000;
+  const liquidContract = await deployContract(
+    dolomiteMargin,
+    TestLiquidationCallbackJSON,
+    [
+      dolomiteMargin.address,
+      shouldRevert,
+      shouldRevertWithMessage,
+      shouldConsumeTonsOfGas,
+      shouldReturnBomb,
+    ],
+  ) as TestLiquidationCallback;
   liquidContract.options.from = accounts[0];
   return liquidContract;
 }

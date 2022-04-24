@@ -105,7 +105,7 @@ describe('DolomiteAmmRouterProxy', () => {
     snapshotId = await snapshot();
   });
 
-  afterEach(async () => {
+  beforeEach(async () => {
     await resetEVM(snapshotId);
   });
 

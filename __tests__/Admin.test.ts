@@ -1,20 +1,17 @@
 import BigNumber from 'bignumber.js';
-import {
-  abi as customTestTokenABI,
-  bytecode as customTestTokenBytecode,
-} from '../build/contracts/CustomTestToken.json';
 
-import { abi as recyclableABI, bytecode as recyclableBytecode } from '../build/contracts/TestRecyclableToken.json';
+import customTestTokenJSON from '../build/contracts/CustomTestToken.json';
+import recyclableTestTokenJSON from '../build/contracts/TestRecyclableToken.json';
 
 import { CustomTestToken } from '../build/testing_wrappers/CustomTestToken';
 import { TestRecyclableToken } from '../build/testing_wrappers/TestRecyclableToken';
 import { address, ADDRESSES, Decimal, Integer, INTEGERS, MarketWithInfo, RiskLimits, RiskParams } from '../src';
 import { expectThrow } from '../src/lib/Expect';
 import { stringToDecimal } from '../src/lib/Helpers';
+import { deployContract } from './helpers/Deploy';
 import { getDolomiteMargin } from './helpers/DolomiteMargin';
 import { setupMarkets } from './helpers/DolomiteMarginHelpers';
-import { resetEVM, snapshot } from './helpers/EVM';
-import { EVM } from './modules/EVM';
+import { fastForward, resetEVM, snapshot } from './helpers/EVM';
 import { TestDolomiteMargin } from './modules/TestDolomiteMargin';
 
 let txr: any;
@@ -364,25 +361,23 @@ describe('Admin', () => {
       const isClosing = true;
       const isRecyclable = true;
 
-      const underlyingToken = (await new dolomiteMargin.web3.eth.Contract(customTestTokenABI)
-        .deploy({
-          data: customTestTokenBytecode,
-          arguments: ['TestToken', 'TST', '18'],
-        })
-        .send({ from: admin, gas: '6000000' })) as CustomTestToken;
+      const underlyingToken = await deployContract(
+        dolomiteMargin,
+        customTestTokenJSON,
+        ['TestToken', 'TST', '18'],
+      ) as CustomTestToken;
 
       const expirationTimestamp = Math.floor(new Date().getTime() / 1000) + 3600;
-      const recyclableToken = (await new dolomiteMargin.web3.eth.Contract(recyclableABI)
-        .deploy({
-          data: recyclableBytecode,
-          arguments: [
-            dolomiteMargin.address,
-            underlyingToken.options.address,
-            dolomiteMargin.contracts.expiry.options.address,
-            expirationTimestamp,
-          ],
-        })
-        .send({ from: admin, gas: '6000000' })) as TestRecyclableToken;
+      const recyclableToken = await deployContract(
+        dolomiteMargin,
+        recyclableTestTokenJSON,
+        [
+          dolomiteMargin.address,
+          underlyingToken.options.address,
+          dolomiteMargin.contracts.expiry.options.address,
+          expirationTimestamp,
+        ]
+      ) as TestRecyclableToken;
 
       await dolomiteMargin.testing.priceOracle.setPrice(recyclableToken.options.address, defaultPrice);
 
@@ -398,10 +393,14 @@ describe('Admin', () => {
         { from: admin },
       );
 
-      const getIsRecycledResult = await recyclableToken.methods.isRecycled().call();
+      const getIsRecycledResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.isRecycled(),
+      );
       expect(getIsRecycledResult).toEqual(false);
 
-      const marketIdResult = await recyclableToken.methods.MARKET_ID().call();
+      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.MARKET_ID(),
+      );
       expect(new BigNumber(marketIdResult)).toEqual(new BigNumber(2));
 
       const { timestamp } = await dolomiteMargin.web3.eth.getBlock(txResult.blockNumber);
@@ -478,25 +477,23 @@ describe('Admin', () => {
       const isClosing = true;
       const isRecyclable = true;
 
-      const underlyingToken = (await new dolomiteMargin.web3.eth.Contract(customTestTokenABI)
-        .deploy({
-          data: customTestTokenBytecode,
-          arguments: ['TestToken', 'TST', '18'],
-        })
-        .send({ from: admin, gas: '6000000' })) as CustomTestToken;
+      const underlyingToken = await deployContract(
+        dolomiteMargin,
+        customTestTokenJSON,
+        ['TestToken', 'TST', '18'],
+      ) as CustomTestToken;
 
       const expirationTimestamp = Math.floor(new Date().getTime() / 1000) - 60;
-      const recyclableToken = (await new dolomiteMargin.web3.eth.Contract(recyclableABI)
-        .deploy({
-          data: recyclableBytecode,
-          arguments: [
-            dolomiteMargin.address,
-            underlyingToken.options.address,
-            dolomiteMargin.contracts.expiry.options.address,
-            expirationTimestamp,
-          ],
-        })
-        .send({ from: admin, gas: '6000000' })) as TestRecyclableToken;
+      const recyclableToken = await deployContract(
+        dolomiteMargin,
+        recyclableTestTokenJSON,
+        [
+          dolomiteMargin.address,
+          underlyingToken.options.address,
+          dolomiteMargin.contracts.expiry.options.address,
+          expirationTimestamp,
+        ]
+      ) as TestRecyclableToken;
 
       await dolomiteMargin.testing.priceOracle.setPrice(recyclableToken.options.address, defaultPrice);
 
@@ -647,25 +644,23 @@ describe('Admin', () => {
       const isClosing = true;
       const isRecyclable = true;
 
-      const underlyingToken = (await new dolomiteMargin.web3.eth.Contract(customTestTokenABI)
-        .deploy({
-          data: customTestTokenBytecode,
-          arguments: ['TestToken', 'TST', '18'],
-        })
-        .send({ from: admin, gas: '6000000' })) as CustomTestToken;
+      const underlyingToken = await deployContract(
+        dolomiteMargin,
+        customTestTokenJSON,
+        ['TestToken', 'TST', '18'],
+      ) as CustomTestToken;
 
       const expirationTimestamp = Math.floor(new Date().getTime() / 1000) + 3600;
-      const recyclableToken = (await new dolomiteMargin.web3.eth.Contract(recyclableABI)
-        .deploy({
-          data: recyclableBytecode,
-          arguments: [
-            dolomiteMargin.address,
-            underlyingToken.options.address,
-            dolomiteMargin.contracts.expiry.options.address,
-            expirationTimestamp,
-          ],
-        })
-        .send({ from: admin, gas: '6000000' })) as TestRecyclableToken;
+      const recyclableToken = await deployContract(
+        dolomiteMargin,
+        recyclableTestTokenJSON,
+        [
+          dolomiteMargin.address,
+          underlyingToken.options.address,
+          dolomiteMargin.contracts.expiry.options.address,
+          expirationTimestamp,
+        ]
+      ) as TestRecyclableToken;
 
       await dolomiteMargin.testing.priceOracle.setPrice(recyclableToken.options.address, defaultPrice);
 
@@ -688,10 +683,14 @@ describe('Admin', () => {
       const { recyclableToken, underlyingToken } = await addMarket();
       await addMarket();
 
-      const getIsRecycledResult = await recyclableToken.methods.isRecycled().call();
+      const getIsRecycledResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.isRecycled(),
+      );
       expect(getIsRecycledResult).toEqual(false);
 
-      const marketIdResult = await recyclableToken.methods.MARKET_ID().call();
+      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.MARKET_ID(),
+      );
       expect(new BigNumber(marketIdResult)).toEqual(new BigNumber(2));
 
       const numMarkets = await dolomiteMargin.getters.getNumMarkets();
@@ -708,25 +707,28 @@ describe('Admin', () => {
         marketId,
         INTEGERS.ONE,
       );
-      await underlyingToken.methods
-        .setBalance(recyclableToken.options.address, INTEGERS.ONE.toFixed())
-        .send({ from: admin });
-
-      await new EVM(dolomiteMargin.web3.currentProvider).callJsonrpcMethod(
-        'evm_increaseTime',
-        [3601 + 86400 * 7], // 3600 is the expiration; 86400 * 7 is the buffer time
+      await dolomiteMargin.contracts.callContractFunction(
+        underlyingToken.methods.setBalance(recyclableToken.options.address, INTEGERS.ONE.toFixed()),
+        { from: admin },
       );
+
+      await fastForward(3601 + 86400 * 7);
 
       const txResult = await dolomiteMargin.admin.removeMarkets([marketId, marketId.plus(1)], admin, {
         from: admin,
       });
+      console.log('\tRemove markets gas used:', txResult.gasUsed);
 
       expect(await dolomiteMargin.getters.getNumMarkets()).toEqual(numMarkets);
-      expect(await recyclableToken.methods.isRecycled().call()).toEqual(true);
-      expect(await underlyingToken.methods.balanceOf(admin).call()).toEqual(INTEGERS.ONE.toFixed());
+      expect(await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.isRecycled(),
+      )).toEqual(true);
+      expect(await dolomiteMargin.contracts.callConstantContractFunction(
+        underlyingToken.methods.balanceOf(admin)
+      )).toEqual(INTEGERS.ONE.toFixed());
 
       await expectThrow(
-        dolomiteMargin.contracts.dolomiteMargin.methods.getMarket(marketId.toFixed()).call(),
+        dolomiteMargin.getters.getMarket(marketId),
         'Getters: Invalid market',
       );
 
@@ -756,12 +758,18 @@ describe('Admin', () => {
     it('Fails to remove a market that is not expired', async () => {
       const { recyclableToken } = await addMarket();
 
-      const getIsRecycledResult = await recyclableToken.methods.isRecycled().call();
+      const getIsRecycledResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.isRecycled(),
+      );
       expect(getIsRecycledResult).toEqual(false);
 
-      const expirationTimestamp = await recyclableToken.methods.MAX_EXPIRATION_TIMESTAMP().call();
+      const expirationTimestamp = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.MAX_EXPIRATION_TIMESTAMP(),
+      );
 
-      const marketIdResult = await recyclableToken.methods.MARKET_ID().call();
+      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.MARKET_ID(),
+      );
       expect(new BigNumber(marketIdResult)).toEqual(new BigNumber(2));
 
       const numMarkets = await dolomiteMargin.getters.getNumMarkets();
@@ -779,7 +787,7 @@ describe('Admin', () => {
         INTEGERS.ONE,
       );
 
-      await new EVM(dolomiteMargin.web3.currentProvider).callJsonrpcMethod('evm_increaseTime', [100]);
+      await fastForward(100);
 
       await expectThrow(
         dolomiteMargin.admin.removeMarkets([marketId], admin, {
@@ -792,12 +800,18 @@ describe('Admin', () => {
     it('Fails to remove a market that is not past expiration buffer', async () => {
       const { recyclableToken } = await addMarket();
 
-      const getIsRecycledResult = await recyclableToken.methods.isRecycled().call();
+      const getIsRecycledResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.isRecycled(),
+      );
       expect(getIsRecycledResult).toEqual(false);
 
-      const expirationTimestamp = await recyclableToken.methods.MAX_EXPIRATION_TIMESTAMP().call();
+      const expirationTimestamp = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.MAX_EXPIRATION_TIMESTAMP(),
+      );
 
-      const marketIdResult = await recyclableToken.methods.MARKET_ID().call();
+      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+        recyclableToken.methods.MARKET_ID(),
+      );
       expect(new BigNumber(marketIdResult)).toEqual(new BigNumber(2));
 
       const numMarkets = await dolomiteMargin.getters.getNumMarkets();
@@ -815,7 +829,7 @@ describe('Admin', () => {
         INTEGERS.ONE,
       );
 
-      await new EVM(dolomiteMargin.web3.currentProvider).callJsonrpcMethod('evm_increaseTime', [3600 + 1]);
+      await fastForward(3600 + 1);
 
       await expectThrow(
         dolomiteMargin.admin.removeMarkets([marketId], admin, {

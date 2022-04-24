@@ -19,10 +19,14 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/utils/Address.sol";
+
 import "./CustomTestToken.sol";
+import "../external/interfaces/IWETH.sol";
 
 
-contract TestWETH is CustomTestToken {
+contract TestWETH is IWETH, CustomTestToken {
+    using Address for address payable;
 
     event  Deposit(address indexed dst, uint wad);
     event  Withdrawal(address indexed src, uint wad);
@@ -30,8 +34,7 @@ contract TestWETH is CustomTestToken {
     constructor(
         string memory __name,
         string memory __symbol
-    ) CustomTestToken(__name, __symbol, 18) public {
-    }
+    ) CustomTestToken(__name, __symbol, 18) public {}
 
     function() external payable {
         deposit();
@@ -49,8 +52,7 @@ contract TestWETH is CustomTestToken {
         );
 
         balances[msg.sender] -= wad;
-        msg.sender.transfer(wad);
+        msg.sender.sendValue(wad);
         emit Withdrawal(msg.sender, wad);
     }
-
 }

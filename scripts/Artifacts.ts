@@ -21,7 +21,7 @@ import { default as PolynomialInterestSetter }
   from '../build/contracts/PolynomialInterestSetter.json';
 import { default as DoubleExponentInterestSetter }
   from '../build/contracts/DoubleExponentInterestSetter.json';
-import { default as Weth } from '../build/contracts/WETH9.json';
+import { default as Weth } from '../build/contracts/TestWETH.json';
 import { default as Events } from '../build/contracts/Events.json';
 import { default as AdminImpl } from '../build/contracts/AdminImpl.json';
 import { default as OperationImpl } from '../build/contracts/OperationImpl.json';

@@ -182,7 +182,7 @@ export class DolomiteMargin {
     }
   }
 
-  getDolomiteAmmPair(pairAddress: address) {
+  getDolomiteAmmPair(pairAddress: address): DolomiteAmmPair {
     return new DolomiteAmmPair(this.contracts, this.contracts.getDolomiteAmmPair(pairAddress));
   }
 

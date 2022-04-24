@@ -3,13 +3,12 @@ import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { resetEVM, snapshot } from '../helpers/EVM';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
-import { INTEGERS } from '../../src/lib/Constants';
-import { address, Integer, MarketId } from '../../src';
+import { address, Integer, MarketId, INTEGERS } from '../../src';
 
 let dolomiteMargin: TestDolomiteMargin;
 let tokens: address[];
 let accountOwner: address;
-const amount = new BigNumber(123456);
+const amount = new BigNumber('10000000000000000'); // 0.01
 const accountNumber = INTEGERS.ZERO;
 const markets = [MarketId.ETH, MarketId.WETH, MarketId.USDC];
 
@@ -103,7 +102,6 @@ describe('StandardActions', () => {
           accountOwner,
           amount,
           marketId,
-          options: { gasPrice: '0x00' },
         });
         await expectAccountWei(marketId, amount.times(3));
         if (marketId.eq(MarketId.ETH)) {
@@ -127,7 +125,6 @@ describe('StandardActions', () => {
           accountOwner,
           amount,
           marketId,
-          options: { gasPrice: '0x00' },
         });
         await expectAccountWei(marketId, amount);
         if (marketId.eq(MarketId.ETH)) {
@@ -158,7 +155,6 @@ describe('StandardActions', () => {
           accountNumber,
           accountOwner,
           marketId,
-          options: { gasPrice: '0x00' },
         });
         await expectAccountWei(marketId, INTEGERS.ZERO);
         if (marketId.eq(MarketId.ETH)) {

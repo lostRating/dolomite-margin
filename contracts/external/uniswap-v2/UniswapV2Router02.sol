@@ -7,7 +7,7 @@ import "./libraries/SafeETH.sol";
 import "./libraries/UniswapV2Library.sol";
 
 import "./interfaces/IUniswapV2Factory.sol";
-import "./interfaces/IWETH.sol";
+import "../interfaces/IWETH.sol";
 
 
 // solium-disable function-order

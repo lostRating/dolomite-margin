@@ -22,7 +22,6 @@ pragma experimental ABIEncoderV2;
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { WETH9 } from "canonical-weth/contracts/WETH9.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
@@ -34,6 +33,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { IDepositWithdrawalProxy } from "../interfaces/IDepositWithdrawalProxy.sol";
+import { IWETH } from "../interfaces/IWETH.sol";
 
 
 /**
@@ -52,7 +52,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
 
     // ============ Field Variables ============
 
-    WETH9 WETH;
+    IWETH WETH;
     uint256 ETH_MARKET_ID;
     bool g_initialized;
 
@@ -95,7 +95,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
             "already initialized"
         );
         g_initialized = true;
-        WETH = WETH9(_weth);
+        WETH = IWETH(_weth);
         ETH_MARKET_ID = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_weth);
         WETH.approve(address(DOLOMITE_MARGIN), uint(-1));
     }
@@ -346,7 +346,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function _unwrapAndSend() internal {
-        WETH9 _WETH = WETH;
+        IWETH _WETH = WETH;
         uint amount = _WETH.balanceOf(address(this));
         _WETH.withdraw(amount);
         msg.sender.sendValue(amount);

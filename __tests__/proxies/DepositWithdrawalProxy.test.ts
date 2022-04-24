@@ -90,6 +90,7 @@ describe('DepositWithdrawalProxy', () => {
         dolomiteMargin.web3.eth.sendTransaction({
           value: wei.toFixed(),
           to: dolomiteMargin.depositProxy.address,
+          gas: dolomiteMargin.contracts.getDefaultGasLimit(),
         }),
         'DepositWithdrawalProxy: invalid ETH sender',
       );
