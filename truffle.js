@@ -1,6 +1,10 @@
 require('ts-node/register'); // eslint-disable-line
 require('dotenv-flow').config(); // eslint-disable-line
 const HDWalletProvider = require('@truffle/hdwallet-provider'); // eslint-disable-line
+// const path = require('path');
+
+// const covContractsDir = path.join(process.cwd(), '.coverage_contracts');
+// const regContractsDir = path.join(process.cwd(), 'contracts');
 
 module.exports = {
   compilers: {
@@ -18,11 +22,12 @@ module.exports = {
       },
     },
   },
+  // contracts_directory: process.env.COVERAGE ? covContractsDir : regContractsDir,
   networks: {
     test: {
       host: '0.0.0.0',
       port: 8445,
-      gasPrice: 1e9,
+      gasPrice: 1,
       network_id: '1001',
     },
     test_ci: {

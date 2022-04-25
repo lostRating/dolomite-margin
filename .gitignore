@@ -16,6 +16,7 @@ config
 artifacts/
 
 .coverage_contracts/
+.coverage_artifacts/
 
 .coveralls.yml
 

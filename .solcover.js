@@ -1,3 +1,7 @@
+const truffleUtils = require('solidity-coverage/plugins/resources/truffle.utils');
+const resetTestEvm = require('./scripts/reset-test-evm-new');
+const snapshotTestEvm = require('./scripts/snapshot-test-evm-new');
+const childProcess = require('child_process');
 const chainId = 1002;
 const port = 8555;
 
@@ -13,9 +17,6 @@ module.exports = {
     'external/utils/ArbitrumMultiCall.sol',
     'testing/',
   ],
-  deepSkip: false,
-  copyNodeModules: true,
-  testCommand: 'npm run test_cov',
   providerOptions: {
     chainId: chainId,
     network_id: chainId,
@@ -23,8 +24,21 @@ module.exports = {
     keepAliveTimeout: 600000,
   },
   port: port,
-  norpc: true,
-  // testrpcOptions:
-    // '--port 8555 -i 1002 --chainId 1002 --keepAliveTimeout 600000 --allowUnlimitedContractSize --gasLimit 0xfffffffffff --gasPrice 1',
-    // '--port 8555 -i 1002 --keepAliveTimeout 600000 --allowUnlimitedContractSize --gasLimit 0xfffffffffff --gasPrice 1',
+  client: require('ganache-cli'),
+  onCompileComplete: async (config) => {
+    await resetTestEvm.run();
+
+    const truffle = truffleUtils.loadLibrary(config);
+    await truffle.test.performInitialDeploy(config, config.resolver);
+
+    await snapshotTestEvm.run();
+
+    childProcess.execSync('npm run clean_contract_json', { stdio: 'inherit' });
+
+    await new Promise(resolve => {
+      setTimeout(() => resolve(), 1000000);
+    })
+  }
+  // copyNodeModules: true,
+  // testCommand: 'npm run test_cov',
 };

@@ -72,15 +72,17 @@ The contracts are officially deployed to the following networks:
 In the initial stages of the protocol, the admin rights are owned by Dolomite's executive team using a simple multi
 signature wallet (Gnosis Safe) that is stood up behind a delayed multi signature wallet (custom-made by the dYdX team).
 The Gnosis Safe is a 2/3 wallet that is owned by the Dolomite executive team. Meaning, 2 signers are needed out of the 3
-possible to execute a transaction The delayed wallet is solely owned by the Gnosis Safe, which means the security and
-ownership of the delayed wallet falls back on to the Gnosis Safe. On the other hand, the time delay falls completely on
-the delayed wallet; whatever delay is set for the delayed wallet indiscriminately requires that *all* transactions sent
-to it wait the same delay before the transaction can be executed. This means, all admin transactions to
-the `DolomiteMargin` protocol require that `delay` amount of time must be waited before the transaction effectuates.
+owners to execute a transaction. The delayed multi signature wallet is solely owned by the Gnosis Safe, which means the 
+security and ownership of the delayed multi signature wallet falls back on to the Gnosis Safe. On the other hand, the 
+time delay falls completely on the delayed multi signature wallet; what ever delay is set for the delayed multi 
+signature wallet indiscriminately requires that *all* transactions sent to it wait the same delay before the transaction 
+can be executed. This means, all admin transactions involving the `DolomiteMargin` protocol require that 
+`secondsTimeLocked` amount of time must be waited before the transaction effectuates.
 
 
-> At the time of launch, the delay on the delayed multi sig is 1 day (86,400 seconds). The intention is to raise it
-> incrementally until the protocol is more battle-tested and ownership of the protocol becomes much more decentralized.
+> At the time of launch, the delay on the delayed multi signature wallet is 1 day (86,400 seconds). The intention is to 
+> raise it incrementally until the protocol is more battle-tested and ownership of the protocol becomes much more 
+> decentralized.
 
 
 To check the current delay (in case these docs ever go out of sync!) you can convert the `secondsTimeLocked` value from
@@ -276,7 +278,14 @@ function ownerRemoveMarkets(
 These functions are responsible for adding global operators to DolomiteMargin and instances of `IAutoTrader` that are
 only accessible by global operators. When evaluating the riskiness of the DolomiteMargin protocol, is important to
 understand the implications of these two functions, since they likely pose the largest risk to the system from the
-perspective of each user's funds.
+perspective of safeguarding users' funds.
+
+Taking a step back, what is an operator?
+
+An operator is an external address that has the same permissions to manipulate an account within `DolomiteMargin` as the 
+owner of the account. Operators are simply addresses and therefore may either be externally-owned Ethereum accounts 
+(EoAs) OR smart contracts. Operators are also able to act as AutoTrader contracts on behalf of the account owner if the 
+operator is a smart contract and implements the `IAutoTrader` interface.
 
 ---
 
