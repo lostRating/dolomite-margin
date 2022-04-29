@@ -10,7 +10,7 @@
     <img src='https://img.shields.io/npm/v/@dolomite-exchange/dolomite-margin.svg' alt='NPM' />
   </a>
   <a href='https://coveralls.io/github/dolomite-exchange/dolomite-margin?branch=master'>
-    <img src='https://coveralls.io/github/dolomite-exchange/dolomite-margin/badge.svg?branch=master' alt='Coverage Status' />
+    <img src='https://coveralls.io/repos/github/dolomite-exchange/dolomite-margin/badge.svg?branch=master' alt='Coverage Status' />
   </a>
   <a href='https://github.com/dolomite-exchange/dolomite-margin/blob/master/LICENSE' style="text-decoration:none;">
     <img src='https://img.shields.io/badge/Apache--2.0-llicense-red?longCache=true' alt='License' />
