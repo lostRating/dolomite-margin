@@ -41,7 +41,4 @@ module.exports = {
   onCompileComplete: async () => {
     execSync('npm run deploy_coverage', { stdio: 'inherit' });
   },
-  onIstanbulComplete: async () => {
-    execSync('rm -rf .temp_contracts', { stdio: 'inherit' });
-  },
 };
