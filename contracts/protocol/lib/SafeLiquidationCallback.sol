@@ -19,11 +19,13 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
+import { Math } from "@openzeppelin/contracts/math/Math.sol";
 import { Address } from "@openzeppelin/contracts/utils/Address.sol";
+
 import { ILiquidationCallback } from "../interfaces/ILiquidationCallback.sol";
 import { Account } from "../lib/Account.sol";
 import { ExcessivelySafeCall } from "../lib/ExcessivelySafeCall.sol";
-import { Math } from "../lib/Math.sol";
+import { DolomiteMarginMath } from "../lib/DolomiteMarginMath.sol";
 import { Types } from "../lib/Types.sol";
 
 

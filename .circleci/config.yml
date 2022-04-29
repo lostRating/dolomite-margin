@@ -72,7 +72,7 @@ jobs:
           command: rm -rf ./scripts/*.ts
       - run:
           name: Test
-          command: TESTFILES=$(circleci tests glob "__tests__/**/*.test.ts" | circleci tests split --split-by=filesize) && npm run ci_test -- ${TESTFILES}
+          command: TESTFILES=$(circleci tests glob "test/**/*.test.ts" | circleci tests split --split-by=filesize) && npm run ci_test -- ${TESTFILES}
           no_output_timeout: 20m
       - store_test_results:
           path: ~/build/junit
@@ -109,7 +109,7 @@ jobs:
           command: npm run clean_contract_json
       - run:
           name: Remove Development Files
-          command: rm -rf ./migrations ./__tests__ ./scripts/*.ts ./scripts/*.js ./build/contracts
+          command: rm -rf ./migrations ./test ./scripts/*.ts ./scripts/*.js ./build/contracts
       - run:
           name: Compile Typescript
           command: npm run build:js

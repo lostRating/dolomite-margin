@@ -25,7 +25,7 @@ import { IPriceOracle } from "../interfaces/IPriceOracle.sol";
 import { IRecyclable } from "../interfaces/IRecyclable.sol";
 import { Decimal } from "../lib/Decimal.sol";
 import { Interest } from "../lib/Interest.sol";
-import { Math } from "../lib/Math.sol";
+import { DolomiteMarginMath } from "../lib/DolomiteMarginMath.sol";
 import { Monetary } from "../lib/Monetary.sol";
 import { Require } from "../lib/Require.sol";
 import { Storage } from "../lib/Storage.sol";
@@ -40,7 +40,7 @@ import { Types } from "../lib/Types.sol";
  * Administrative functions to keep the protocol updated
  */
 library AdminImpl {
-    using Math for uint256;
+    using DolomiteMarginMath for uint256;
     using Storage for Storage.State;
     using Token for address;
     using Types for Types.Wei;
@@ -277,8 +277,9 @@ library AdminImpl {
                 marketIds[i],
                 expirationTimestamp
             );
+            // Give the expiration timestamp a 7-day buffer to ensure enough time has passed for expirations to occur
             Require.that(
-                (expirationTimestamp + ONE_WEEK) < block.timestamp, // give the expiration timestamp a 7-day buffer
+                (expirationTimestamp + ONE_WEEK) < block.timestamp,
                 FILE,
                 "expiration must pass buffer",
                 marketIds[i],

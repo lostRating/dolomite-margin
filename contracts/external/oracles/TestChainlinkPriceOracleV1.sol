@@ -71,6 +71,15 @@ contract TestChainlinkPriceOracleV1 is ChainlinkPriceOracleV1 {
 
     // ============ Admin Functions ============
 
+    function setChainlinkFlags(
+        address _chainlinkFlags
+    )
+        public
+        onlyOwner
+    {
+        chainlinkFlags = IChainlinkFlags(_chainlinkFlags);
+    }
+
     /**
      * @param token     The token whose price should change
      * @param percent   The percent that should be applied to the current oracle price. Use 0 to unset. A value of 100

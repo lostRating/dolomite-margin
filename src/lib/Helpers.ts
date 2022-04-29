@@ -1,6 +1,6 @@
 import { BigNumber } from 'bignumber.js';
 import { INTEGERS } from './Constants';
-import { Decimal, Integer } from '../types';
+import { AmountDenomination, AmountReference, AssetAmount, Decimal, Integer } from '../types';
 
 export function stringToDecimal(s: string): Decimal {
   return new BigNumber(s).div(INTEGERS.INTEREST_RATE_BASE);
@@ -139,4 +139,20 @@ function partial(
     .times(numerator)
     .div(denominator)
     .integerValue(BigNumber.ROUND_DOWN);
+}
+
+export function assetAmountToContractAssetAmount(
+  assetAmount: AssetAmount,
+): {
+  sign: boolean,
+  denomination: AmountDenomination,
+  ref: AmountReference,
+  value: string | number,
+} {
+  return {
+    sign: assetAmount.sign,
+    denomination: assetAmount.denomination,
+    ref: assetAmount.ref,
+    value: assetAmount.value.toFixed(),
+  };
 }

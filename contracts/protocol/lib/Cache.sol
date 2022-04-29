@@ -164,9 +164,8 @@ library Cache {
         uint marketId
     ) private pure returns (MarketInfo memory) {
         uint len = endExclusive - beginInclusive;
-        if (len == 0 || (len == 1 && data[beginInclusive].marketId != marketId)) {
-            revert("Cache: item not found");
-        }
+        // If length equals 0 OR length equals 1 but the item wasn't found, revert
+        assert(!(len == 0 || (len == 1 && data[beginInclusive].marketId != marketId)));
 
         uint mid = beginInclusive + len / 2;
         uint midMarketId = data[mid].marketId;

@@ -26,7 +26,7 @@ export class WalletLogin extends Signer {
     web3: Web3,
     networkId: number,
     {
-      domain = 'dYdX',
+      domain = 'Dolomite',
       version = '1.0',
     }: {
       domain?: string;
@@ -38,7 +38,7 @@ export class WalletLogin extends Signer {
     this.networkId = networkId;
     this.version = version;
     this.EIP712_WALLET_LOGIN_STRUCT_STRING =
-      'dYdX(' + 'string action,' + 'string expiration' + ')';
+      'Dolomite(' + 'string action,' + 'string expiration' + ')';
   }
 
   public async signLogin(

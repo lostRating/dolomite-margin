@@ -26,7 +26,7 @@ import { Cache } from "./Cache.sol";
 import { Decimal } from "./Decimal.sol";
 import { Interest } from "./Interest.sol";
 import { EnumerableSet } from "./EnumerableSet.sol";
-import { Math } from "./Math.sol";
+import { DolomiteMarginMath } from "./DolomiteMarginMath.sol";
 import { Monetary } from "./Monetary.sol";
 import { Require } from "./Require.sol";
 import { Time } from "./Time.sol";
@@ -46,7 +46,7 @@ import { IPriceOracle } from "../interfaces/IPriceOracle.sol";
 library Storage {
     using Cache for Cache.MarketCache;
     using Storage for Storage.State;
-    using Math for uint256;
+    using DolomiteMarginMath for uint256;
     using Types for Types.Par;
     using Types for Types.Wei;
     using SafeMath for uint256;
@@ -485,9 +485,6 @@ library Storage {
             Monetary.Value memory borrowValue
         ) = state.getAccountValues(account, cache, /* adjustForLiquidity = */ true);
 
-        if (borrowValue.value == 0) {
-            return true;
-        }
         if (requireMinBorrow) {
             Require.that(
                 borrowValue.value >= state.riskParams.minBorrowedValue.value,

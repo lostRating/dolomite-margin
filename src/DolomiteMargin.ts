@@ -53,6 +53,7 @@ import { ArbitrumGasInfo } from './modules/ArbitrumGasInfo';
 import { DepositProxy } from './modules/DepositProxy';
 
 export class DolomiteMargin {
+  public networkId: number;
   public contracts: Contracts;
   public api: SubgraphAPI;
   public interest: Interest;
@@ -100,6 +101,7 @@ export class DolomiteMargin {
       this.web3.eth.defaultAccount = options.defaultAccount;
     }
 
+    this.networkId = networkId;
     this.contracts = this.createContractsModule(
       realProvider,
       networkId,

@@ -30,7 +30,7 @@ import { EnumerableSet } from "../lib/EnumerableSet.sol";
 import { Events } from "../lib/Events.sol";
 import { Exchange } from "../lib/Exchange.sol";
 import { Interest } from "../lib/Interest.sol";
-import { Math } from "../lib/Math.sol";
+import { DolomiteMarginMath } from "../lib/DolomiteMarginMath.sol";
 import { Monetary } from "../lib/Monetary.sol";
 import { Require } from "../lib/Require.sol";
 import { Storage } from "../lib/Storage.sol";
@@ -289,7 +289,8 @@ library OperationImpl {
                     cache,
                     Actions.parseVaporizeArgs(accounts, action)
                 );
-            } else if (actionType == Actions.ActionType.Call) {
+            } else {
+                assert(actionType == Actions.ActionType.Call);
                 CallImpl.call(
                     state,
                     Actions.parseCallArgs(accounts, action)

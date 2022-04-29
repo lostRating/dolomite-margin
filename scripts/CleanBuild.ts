@@ -1,3 +1,4 @@
+/* eslint-disable import/no-extraneous-dependencies */
 import fs from 'fs';
 import { promisify } from 'es6-promisify';
 import mkdirp from 'mkdirp';
@@ -18,7 +19,9 @@ import { abi as safeLiquidationCallbackAbi } from '../build/contracts/SafeLiquid
 import { abi as permissionAbi } from '../build/contracts/Permission.json';
 
 const writeFileAsync = promisify(fs.writeFile);
-const mkdirAsync = promisify(mkdirp);
+
+// eslint-disable-next-line import/no-extraneous-dependencies
+require('dotenv-flow').config();
 
 const TEST_NETWORK_ID: string = '1001';
 const COVERAGE_NETWORK_ID: string = '1002';
@@ -26,8 +29,8 @@ const COVERAGE_NETWORK_ID: string = '1002';
 async function clean(): Promise<void> {
   const directory = `${__dirname}/../build/published_contracts/`;
   const testDirectory = `${__dirname}/../build/testing_contracts/`;
-  await mkdirAsync(directory);
-  await mkdirAsync(testDirectory);
+  mkdirp.sync(directory);
+  mkdirp.sync(testDirectory);
 
   const allContractNames = Object.keys(contracts).concat(Object.keys(testContracts));
 

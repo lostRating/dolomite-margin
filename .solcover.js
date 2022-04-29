@@ -1,13 +1,16 @@
-const truffleUtils = require('solidity-coverage/plugins/resources/truffle.utils');
-const resetTestEvm = require('./scripts/reset-test-evm-new');
-const snapshotTestEvm = require('./scripts/snapshot-test-evm-new');
-const childProcess = require('child_process');
+// const { Typechain } = require('typechain');
+// const { tsGenerator } = require('ts-generator');
+// const truffleUtils = require('solidity-coverage/plugins/resources/truffle.utils');
+// const resetTestEvm = require('./scripts/reset-test-evm-runnable');
+// const snapshotTestEvm = require('./scripts/snapshot-test-evm-runnable');
+const { execSync } = require('child_process');
 const chainId = 1002;
 const port = 8555;
 
 module.exports = {
   skipFiles: [
     'Migrations.sol',
+    'external/amm/SimpleFeeOwner.sol',
     'external/oracles/TestChainlinkPriceOracleV1.sol',
     'external/multisig/MultiSig.sol',
     'external/multisig/DelayedMultiSig.sol',
@@ -19,26 +22,26 @@ module.exports = {
   ],
   providerOptions: {
     chainId: chainId,
+    keepAliveTimeout: 600000,
+    mnemonic: 'myth like bonus scare over problem client lizard pioneer submit female collect',
     network_id: chainId,
     port: port,
-    keepAliveTimeout: 600000,
   },
   port: port,
+  mocha: {
+    parallel: false, // DO NOT CHANGE
+    slow: 15000, // 15 seconds
+    timeout: 3600000, // 1 hour
+  },
   client: require('ganache-cli'),
-  onCompileComplete: async (config) => {
-    await resetTestEvm.run();
-
-    const truffle = truffleUtils.loadLibrary(config);
-    await truffle.test.performInitialDeploy(config, config.resolver);
-
-    await snapshotTestEvm.run();
-
-    childProcess.execSync('npm run clean_contract_json', { stdio: 'inherit' });
-
-    await new Promise(resolve => {
-      setTimeout(() => resolve(), 1000000);
-    })
-  }
-  // copyNodeModules: true,
-  // testCommand: 'npm run test_cov',
+  onServerReady: async () => {
+    execSync('rm -rf .temp_contracts && cp -r contracts/ .temp_contracts/', { stdio: 'inherit' });
+    execSync('python util/fix_contracts_for_coverage.py', { stdio: 'inherit' });
+  },
+  onCompileComplete: async () => {
+    execSync('npm run deploy_coverage', { stdio: 'inherit' });
+  },
+  onIstanbulComplete: async () => {
+    execSync('rm -rf .temp_contracts', { stdio: 'inherit' });
+  },
 };

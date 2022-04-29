@@ -45,6 +45,7 @@ import liquidatorV1Json from '../../build/published_contracts/LiquidatorProxyV1.
 import liquidatorV1WithAmmJson from '../../build/published_contracts/LiquidatorProxyV1WithAmm.json';
 import payableProxyJson from '../../build/published_contracts/PayableProxy.json';
 import polynomialInterestSetterJson from '../../build/published_contracts/PolynomialInterestSetter.json';
+import recyclableTokenProxyJson from '../../build/published_contracts/RecyclableTokenProxy.json';
 import signedOperationProxyJson from '../../build/published_contracts/SignedOperationProxy.json';
 import simpleFeeOwnerJson from '../../build/published_contracts/SimpleFeeOwner.json';
 import transferProxyJson from '../../build/published_contracts/TransferProxy.json';
@@ -75,6 +76,7 @@ import { PolynomialInterestSetter } from '../../build/wrappers/PolynomialInteres
 import { SignedOperationProxy } from '../../build/wrappers/SignedOperationProxy';
 import { SimpleFeeOwner } from '../../build/wrappers/SimpleFeeOwner';
 import { DepositWithdrawalProxy } from '../../build/wrappers/DepositWithdrawalProxy';
+import { RecyclableTokenProxy } from '../../build/wrappers/RecyclableTokenProxy';
 import { TransferProxy } from '../../build/wrappers/TransferProxy';
 import { Weth } from '../../build/wrappers/Weth';
 import { TestUniswapAmmRebalancerProxy } from '../../build/wrappers/TestUniswapAmmRebalancerProxy';
@@ -142,8 +144,7 @@ export class Contracts {
     this.web3 = web3;
     this.defaultConfirmations = options.defaultConfirmations;
     this.autoGasMultiplier = options.autoGasMultiplier || 1.5;
-    this.confirmationType =
-      options.confirmationType || ConfirmationType.Confirmed;
+    this.confirmationType = options.confirmationType || ConfirmationType.Confirmed;
     this.defaultGas = options.defaultGas;
     this.defaultGasPrice = options.defaultGasPrice;
     this.blockGasLimit = options.blockGasLimit;
@@ -234,7 +235,17 @@ export class Contracts {
       contractAddress,
     ) as DolomiteAmmPair;
     pair.setProvider(this.provider);
-    pair.options.from = this.dolomiteAmmFactory.options.from;
+    pair.options.from = this.dolomiteMargin.options.from;
+    return pair;
+  }
+
+  public getRecyclableToken(contractAddress: address): RecyclableTokenProxy {
+    const pair = new this.web3.eth.Contract(
+      recyclableTokenProxyJson.abi,
+      contractAddress,
+    ) as RecyclableTokenProxy;
+    pair.setProvider(this.provider);
+    pair.options.from = this.dolomiteMargin.options.from;
     return pair;
   }
 
@@ -361,8 +372,7 @@ export class Contracts {
 
         const multiplier = autoGasMultiplier || this.autoGasMultiplier;
         const totalGas: number = Math.floor(gasEstimate * multiplier);
-        txOptions.gas =
-          totalGas < this.blockGasLimit ? totalGas : this.blockGasLimit;
+        txOptions.gas = totalGas < this.blockGasLimit ? totalGas : this.blockGasLimit;
       }
 
       if (confirmationType === ConfirmationType.Simulate) {
@@ -387,8 +397,7 @@ export class Contracts {
     let hashOutcome = OUTCOMES.INITIAL;
     let confirmationOutcome = OUTCOMES.INITIAL;
 
-    const t =
-      confirmationType !== undefined ? confirmationType : this.confirmationType;
+    const t = confirmationType !== undefined ? confirmationType : this.confirmationType;
 
     if (!Object.values(ConfirmationType)
       .includes(t)) {
@@ -498,9 +507,7 @@ export class Contracts {
   ): void {
     contract.setProvider(provider);
 
-    const contractAddress =
-      contractJson.networks[networkId] &&
-      contractJson.networks[networkId].address;
+    const contractAddress = contractJson.networks[networkId] && contractJson.networks[networkId].address;
     const overrideAddress = overrides && overrides[networkId];
 
     contract.options.address = overrideAddress || contractAddress;

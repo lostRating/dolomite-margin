@@ -19,9 +19,9 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
+import { Math } from "@openzeppelin/contracts/math/Math.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20Detailed } from "../protocol/interfaces/IERC20Detailed.sol";
-import { Math } from "../protocol/lib/Math.sol";
 
 
 /**

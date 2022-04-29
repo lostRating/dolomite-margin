@@ -19,9 +19,11 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
+import { AdvancedMath } from "../external/lib/AdvancedMath.sol";
 import { TypedSignature } from "../external/lib/TypedSignature.sol";
 import { IERC20Detailed } from "../protocol/interfaces/IERC20Detailed.sol";
-import { Math } from "../protocol/lib/Math.sol";
+import { DolomiteMarginMath } from "../protocol/lib/DolomiteMarginMath.sol";
+import { EnumerableSet } from "../protocol/lib/EnumerableSet.sol";
 import { Require } from "../protocol/lib/Require.sol";
 import { Time } from "../protocol/lib/Time.sol";
 import { Token } from "../protocol/lib/Token.sol";
@@ -35,10 +37,53 @@ import { Types } from "../protocol/lib/Types.sol";
  * Contract for testing pure library functions
  */
 contract TestLib {
+    using EnumerableSet for EnumerableSet.Set;
 
     // ============ Constants ============
 
     bytes32 constant FILE = "TestLib";
+
+    // ============ Field Values ============
+
+    EnumerableSet.Set internal enumerableSet;
+
+    // ============ Enumerable Set Functions ============
+
+    function EnumerableSetAdd(
+        uint256 value
+    )
+        external
+    returns (bool)
+    {
+        return enumerableSet.add(value);
+    }
+
+    function EnumerableSetRemove(
+        uint256 value
+    )
+        external
+    returns (bool)
+    {
+        return enumerableSet.remove(value);
+    }
+
+    function EnumerableSetContains(
+        uint256 value
+    )
+        external
+        view
+        returns (bool)
+    {
+        return enumerableSet.contains(value);
+    }
+
+    function EnumerableSetLength()
+        external
+        view
+        returns (uint256)
+    {
+        return enumerableSet.length();
+    }
 
     // ============ TypedSignature Functions ============
 
@@ -55,6 +100,16 @@ contract TestLib {
 
     // ============ Math Functions ============
 
+    function MathSqrt(
+        uint256 value
+    )
+        external
+        pure
+        returns (uint256)
+    {
+        return AdvancedMath.sqrt(value);
+    }
+
     function MathGetPartial(
         uint256 target,
         uint256 numerator,
@@ -64,7 +119,7 @@ contract TestLib {
         pure
         returns (uint256)
     {
-        return Math.getPartial(target, numerator, denominator);
+        return DolomiteMarginMath.getPartial(target, numerator, denominator);
     }
 
     function MathGetPartialRoundHalfUp(
@@ -76,7 +131,7 @@ contract TestLib {
         pure
         returns (uint256)
     {
-        return Math.getPartialRoundHalfUp(target, numerator, denominator);
+        return DolomiteMarginMath.getPartialRoundHalfUp(target, numerator, denominator);
     }
 
     function MathGetPartialRoundUp(
@@ -88,7 +143,7 @@ contract TestLib {
         pure
         returns (uint256)
     {
-        return Math.getPartialRoundUp(target, numerator, denominator);
+        return DolomiteMarginMath.getPartialRoundUp(target, numerator, denominator);
     }
 
     function MathTo128(
@@ -98,7 +153,7 @@ contract TestLib {
         pure
         returns (uint128)
     {
-        return Math.to128(x);
+        return DolomiteMarginMath.to128(x);
     }
 
     function MathTo96(
@@ -108,7 +163,7 @@ contract TestLib {
         pure
         returns (uint96)
     {
-        return Math.to96(x);
+        return DolomiteMarginMath.to96(x);
     }
 
     function MathTo32(
@@ -118,7 +173,7 @@ contract TestLib {
         pure
         returns (uint32)
     {
-        return Math.to32(x);
+        return DolomiteMarginMath.to32(x);
     }
 
     // ============ Require Functions ============
@@ -245,6 +300,25 @@ contract TestLib {
     {
         Require.that(
             false,
+            FILE,
+            reason,
+            payloadA,
+            payloadB,
+            payloadC
+        );
+    }
+
+    function RequireNotThatB2(
+        bytes32 reason,
+        bytes32 payloadA,
+        uint256 payloadB,
+        uint256 payloadC
+    )
+        external
+        pure
+    {
+        Require.that(
+            true,
             FILE,
             reason,
             payloadA,

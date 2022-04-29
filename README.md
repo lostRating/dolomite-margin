@@ -156,8 +156,8 @@ audit of the system before the new *Recyclable* feature is used in production.
 
 All production smart contracts are tested and have the vast majority of line and branch coverage.
 
-This repository uses an older version of [solidity-coverage](https://github.com/sc-forks/solidity-coverage/tree/v0.6.4) 
-to match the needs of using older versions of Truffle + Ganache.
+This repository uses [solidity-coverage](https://github.com/sc-forks/solidity-coverage) to generate code coverage 
+reports.
 
 To run code coverage, first start an instance of the local RPC using `npm run coverage_node`
 

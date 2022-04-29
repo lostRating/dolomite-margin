@@ -2,10 +2,7 @@
 
 import { BigNumber } from 'bignumber.js';
 import { Contracts } from '../lib/Contracts';
-import {
-  stringToDecimal,
-  valueToInteger,
-} from '../lib/Helpers';
+import { stringToDecimal, valueToInteger, } from '../lib/Helpers';
 import {
   AccountStatus,
   address,
@@ -561,6 +558,25 @@ export class Getters {
         owner: accountOwner,
         number: accountNumber.toFixed(0),
       }),
+      options,
+    );
+    return new BigNumber(result);
+  }
+
+  public async getAccountMarketWithBalanceAtIndex(
+    accountOwner: address,
+    accountNumber: Integer,
+    index: Integer,
+    options?: ContractConstantCallOptions,
+  ): Promise<Integer> {
+    const result = await this.contracts.callConstantContractFunction(
+      this.contracts.dolomiteMargin.methods.getAccountMarketWithBalanceAtIndex(
+        {
+          owner: accountOwner,
+          number: accountNumber.toFixed(0),
+        },
+        index.toFixed()
+      ),
       options,
     );
     return new BigNumber(result);

@@ -167,7 +167,7 @@ function getChainlinkPriceOracleContract(network, artifacts) {
   } else if (isMaticTest(network)) {
     return TestChainlinkPriceOracleV1;
   } else if (isDevNetwork(network)) {
-    return ChainlinkPriceOracleV1;
+    return TestChainlinkPriceOracleV1;
   } else {
     throw new Error('Invalid network!');
   }

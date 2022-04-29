@@ -24,6 +24,18 @@ import { TestToken } from "./TestToken.sol";
 
 contract ErroringToken is TestToken {
 
+    function name() public view returns (string memory) {
+        revert("ERROR");
+    }
+
+    function symbol() public view returns (string memory) {
+        revert("ERROR");
+    }
+
+    function decimals() public view returns (uint8) {
+        revert("ERROR");
+    }
+
     function transfer(address, uint256) public returns (bool) {
         return false;
     }

@@ -28,7 +28,7 @@ import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 import { ILiquidationCallback } from "../../protocol/interfaces/ILiquidationCallback.sol";
 import { Account } from "../../protocol/lib/Account.sol";
 import { Decimal } from "../../protocol/lib/Decimal.sol";
-import { Math } from "../../protocol/lib/Math.sol";
+import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
 import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { SafeLiquidationCallback } from "../../protocol/lib/SafeLiquidationCallback.sol";
@@ -52,7 +52,7 @@ contract Expiry is
     IAutoTrader
 {
     using Address for address;
-    using Math for uint256;
+    using DolomiteMarginMath for uint256;
     using SafeMath for uint32;
     using SafeMath for uint256;
     using Types for Types.Par;
@@ -265,7 +265,7 @@ contract Expiry is
         uint256 expiryAge = currentTimestamp <= expiry ? 0 : Time.currentTime().sub(expiry);
 
         if (expiryAge < g_expiryRampTime) {
-            spread.value = Math.getPartial(spread.value, expiryAge, g_expiryRampTime);
+            spread.value = DolomiteMarginMath.getPartial(spread.value, expiryAge, g_expiryRampTime);
         }
 
         Monetary.Price memory heldPrice = dolomiteMargin.getMarketPrice(heldMarketId);
@@ -482,7 +482,7 @@ contract Expiry is
             expiry
         );
 
-        uint256 owedAmount = Math.getPartialRoundUp(
+        uint256 owedAmount = DolomiteMarginMath.getPartialRoundUp(
             heldWei.value,
             heldPrice.value,
             owedPrice.value
@@ -517,7 +517,7 @@ contract Expiry is
             expiry
         );
 
-        uint256 heldAmount = Math.getPartial(
+        uint256 heldAmount = DolomiteMarginMath.getPartial(
             owedWei.value,
             owedPrice.value,
             heldPrice.value

@@ -28,7 +28,7 @@ import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
 import { Decimal } from "../../protocol/lib/Decimal.sol";
 import { Interest } from "../../protocol/lib/Interest.sol";
-import { Math } from "../../protocol/lib/Math.sol";
+import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
 import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Time } from "../../protocol/lib/Time.sol";
@@ -48,7 +48,7 @@ import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
  * markets.
  */
 contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
-    using Math for uint256;
+    using DolomiteMarginMath for uint256;
     using SafeMath for uint256;
     using Types for Types.Par;
     using Types for Types.Wei;
@@ -323,9 +323,9 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         if (liquidHeldValue <= liquidOwedValue) {
             // The user is under-collateralized; there is no reward left to give
             cache.solidHeldUpdateWithReward = cache.liquidHeldWei.value;
-            cache.toLiquidate = Math.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
+            cache.toLiquidate = DolomiteMarginMath.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
         } else {
-            cache.solidHeldUpdateWithReward = Math.getPartial(
+            cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
                 cache.liquidOwedWei.value,
                 cache.owedPriceAdj,
                 cache.heldPrice

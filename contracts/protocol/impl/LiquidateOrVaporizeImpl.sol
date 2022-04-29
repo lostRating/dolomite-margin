@@ -28,7 +28,7 @@ import { Cache } from "../lib/Cache.sol";
 import { Decimal } from "../lib/Decimal.sol";
 import { Events } from "../lib/Events.sol";
 import { Interest } from "../lib/Interest.sol";
-import { Math } from "../lib/Math.sol";
+import { DolomiteMarginMath } from "../lib/DolomiteMarginMath.sol";
 import { Monetary } from "../lib/Monetary.sol";
 import { Require } from "../lib/Require.sol";
 import { SafeLiquidationCallback } from "../lib/SafeLiquidationCallback.sol";
@@ -370,7 +370,7 @@ library LiquidateOrVaporizeImpl {
     {
         return Types.Wei({
         sign: true,
-        value: Math.getPartialRoundUp(heldWei.value, heldPrice.value, owedPrice.value)
+        value: DolomiteMarginMath.getPartialRoundUp(heldWei.value, heldPrice.value, owedPrice.value)
         });
     }
 
@@ -389,7 +389,7 @@ library LiquidateOrVaporizeImpl {
     {
         return Types.Wei({
         sign: false,
-        value: Math.getPartial(owedWei.value, owedPrice.value, heldPrice.value)
+        value: DolomiteMarginMath.getPartial(owedWei.value, owedPrice.value, heldPrice.value)
         });
     }
 

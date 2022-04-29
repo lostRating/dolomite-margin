@@ -180,10 +180,6 @@ contract LiquidatorProxyHelper {
 
         for (uint256 i = 0; i < marketIds.length; i++) {
             Types.Par memory par = dolomiteMargin.getAccountPar(account, marketIds[i]);
-            if (par.isZero()) {
-                // This if statement should never fire
-                continue;
-            }
             MarketInfo memory marketInfo = binarySearch(marketInfos, marketIds[i]);
             Types.Wei memory userWei = Interest.parToWei(par, marketInfo.index);
             uint256 assetValue = userWei.value.mul(marketInfo.price.value);

@@ -175,19 +175,19 @@ contract TransferProxy is ITransferProxy, OnlyDolomiteMargin, ReentrancyGuard {
         for (uint i = 0; i < markets.length; i++) {
             Types.AssetAmount memory assetAmount;
             if (amounts[i] == uint(- 1)) {
-                assetAmount = Types.AssetAmount(
-                    true,
-                    Types.AssetDenomination.Wei,
-                    Types.AssetReference.Target,
-                    0
-                );
+                assetAmount = Types.AssetAmount({
+                    sign: true,
+                    denomination: Types.AssetDenomination.Wei,
+                    ref: Types.AssetReference.Target,
+                    value: 0
+                });
             } else {
-                assetAmount = Types.AssetAmount(
-                    false,
-                    Types.AssetDenomination.Wei,
-                    Types.AssetReference.Delta,
-                    amounts[i]
-                );
+                assetAmount = Types.AssetAmount({
+                    sign: false,
+                    denomination: Types.AssetDenomination.Wei,
+                    ref: Types.AssetReference.Delta,
+                    value: amounts[i]
+                });
             }
 
             actions[i] = Actions.ActionArgs({

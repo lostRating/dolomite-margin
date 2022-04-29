@@ -19,9 +19,12 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
+import "@openzeppelin/contracts/math/Math.sol";
+
 import "../../protocol/interfaces/IAutoTrader.sol";
 import "../../protocol/interfaces/IDolomiteMargin.sol";
-import "../../protocol/lib/Math.sol";
+import "../../protocol/lib/DolomiteMarginMath.sol";
+import "../../protocol/lib/ExcessivelySafeCall.sol";
 import "../../protocol/lib/Require.sol";
 
 import "../interfaces/IDolomiteAmmFactory.sol";
@@ -36,7 +39,8 @@ import "./DolomiteAmmERC20.sol";
 
 
 contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
-    using Math for uint;
+    using ExcessivelySafeCall for address;
+    using DolomiteMarginMath for uint;
     using SafeMath  for uint;
     using UQ112x112 for uint224;
 
@@ -469,10 +473,10 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         );
 
         return Types.AssetAmount({
-        sign : false,
-        denomination : Types.AssetDenomination.Wei,
-        ref : Types.AssetReference.Delta,
-        value : amount0OutWei > 0 ? amount0OutWei : amount1OutWei
+            sign : false,
+            denomination : Types.AssetDenomination.Wei,
+            ref : Types.AssetReference.Delta,
+            value : amount0OutWei > 0 ? amount0OutWei : amount1OutWei
         });
     }
 
@@ -488,7 +492,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         // 3. The return value is decoded, which in turn checks the size of the returned data.
 
         // solhint-disable-next-line avoid-low-level-calls
-        (bool success, bytes memory returnData) = token.staticcall(data);
+        (bool success, bytes memory returnData) = token.excessivelySafeStaticCall(gasleft(), 256, data);
 
         if (success && returnData.length > 0) {
             // Return data is optional
@@ -496,25 +500,6 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         } else {
             return "";
         }
-    }
-
-    function _encodeTransferAction(
-        uint fromAccountIndex,
-        uint toAccountIndex,
-        uint marketId,
-        uint amount
-    ) internal pure returns (Actions.ActionArgs memory) {
-        return Actions.ActionArgs({
-        actionType : Actions.ActionType.Transfer,
-        accountId : fromAccountIndex,
-        /* solium-disable-next-line arg-overflow */
-        amount : Types.AssetAmount(false, Types.AssetDenomination.Par, Types.AssetReference.Delta, amount),
-        primaryMarketId : marketId,
-        secondaryMarketId : uint(- 1),
-        otherAddress : address(0),
-        otherAccountId : toAccountIndex,
-        data : bytes("")
-        });
     }
 
     /// @dev Updates reserves and, on the first call per block, price accumulators. THESE SHOULD ALL BE IN PAR
@@ -544,7 +529,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         emit Sync(reserve0Par, reserve1Par);
     }
 
-    // if fee is on, mint liquidity equivalent to 1/6th of the growth in sqrt(k)
+    // if fee is on, mint liquidity equivalent to 1/3rd of the growth in sqrt(k)
     function _mintFee(
         uint112 reserve0,
         uint112 reserve1

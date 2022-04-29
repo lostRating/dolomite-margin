@@ -1,28 +1,44 @@
 require('ts-node/register'); // eslint-disable-line
 require('dotenv-flow').config(); // eslint-disable-line
 const HDWalletProvider = require('@truffle/hdwallet-provider'); // eslint-disable-line
-// const path = require('path');
+const path = require('path');
 
-// const covContractsDir = path.join(process.cwd(), '.coverage_contracts');
-// const regContractsDir = path.join(process.cwd(), 'contracts');
+const covReplicaContractsDir = path.join(process.cwd(), '.coverage_contracts');
+const covContractsDir = path.join(process.cwd(), '.temp_contracts');
+const regContractsDir = path.join(process.cwd(), 'contracts');
 
 module.exports = {
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_API_KEY,
+    arbiscan: process.env.ARBISCAN_API_KEY,
+    optimistic_etherscan: process.env.OPTIMISTIC_ETHERSCAN_API_KEY,
+    polygonscan: process.env.POLYGONSCAN_API_KEY,
+  },
   compilers: {
     solc: {
       version: '0.5.16',
-      docker: process.env.DOCKER_COMPILER !== undefined
-        ? process.env.DOCKER_COMPILER === 'true' : true,
+      docker: process.env.DOCKER_COMPILER === 'true',
       parser: 'solcjs',
       settings: {
         optimizer: {
-          enabled: true,
+          // turn off optimizations if we're running coverage tests. Coverage won't work otherwise
+          enabled: !(process.env.COVERAGE_REPLICA_DEPLOY === 'true' || process.env.COVERAGE === 'true'),
           runs: 10000,
         },
         evmVersion: 'istanbul',
       },
     },
   },
-  // contracts_directory: process.env.COVERAGE ? covContractsDir : regContractsDir,
+  contracts_directory: process.env.COVERAGE_REPLICA_DEPLOY === 'true'
+    ? covReplicaContractsDir
+    : process.env.COVERAGE === 'true'
+      ? covContractsDir
+      : regContractsDir,
+  mocha: {
+    parallel: false, // DO NOT CHANGE
+    slow: 15000, // 15 seconds
+    timeout: 3600000, // 1 hour
+  },
   networks: {
     test: {
       host: '0.0.0.0',
@@ -69,6 +85,15 @@ module.exports = {
       host: '127.0.0.1',
       network_id: '1002',
       port: 8555,
+      gas: 0xffffffffff,
+      gasPrice: 1,
+      networkCheckTimeout: 60000,
+    },
+    // used for "replicating" the "coverage" network to get the contract addresses for running tests
+    coverage_replica: {
+      host: '127.0.0.1',
+      network_id: '1002',
+      port: 8545,
       gas: 0xffffffffff,
       gasPrice: 1,
       networkCheckTimeout: 60000,
@@ -138,10 +163,4 @@ module.exports = {
     }
   },
   plugins: ['truffle-plugin-verify', 'solidity-coverage'],
-  api_keys: {
-    etherscan: process.env.ETHERSCAN_API_KEY,
-    arbiscan: process.env.ARBISCAN_API_KEY,
-    optimistic_etherscan: process.env.OPTIMISTIC_ETHERSCAN_API_KEY,
-    polygonscan: process.env.POLYGONSCAN_API_KEY,
-  }
 };

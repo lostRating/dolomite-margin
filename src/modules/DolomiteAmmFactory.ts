@@ -77,6 +77,26 @@ export class DolomiteAmmFactory {
 
   // ============ Write Functions ============
 
+  public async setFeeTo(
+    feeTo: address,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.dolomiteAmmFactory.methods.setFeeTo(feeTo),
+      options,
+    );
+  }
+
+  public async setFeeToSetter(
+    feeToSetter: address,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.dolomiteAmmFactory.methods.setFeeToSetter(feeToSetter),
+      options,
+    );
+  }
+
   public async createPair(
     tokenA: address,
     tokenB: address,

@@ -63,6 +63,7 @@ def fixRequires(dir, filepath):
 
         indexOfEnd = builder.find(');')
         if (inARequire and indexOfEnd >= 0):
+            print('Running for ' + filepath + ': ' + str(requireLine))
             numLeadingSpaces = len(builder) - 2
             allLines[requireLine] = (' ' * numLeadingSpaces) \
             + 'if (' + ifStatement[:-1] + ') { /* FOR COVERAGE TESTING */ }\n'
@@ -90,18 +91,18 @@ def main():
 
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-    for dir,_,_ in os.walk(dir_path+"/contracts"):
+    for dir,_,_ in os.walk(dir_path+"/.temp_contracts"):
         files.extend(glob.glob(os.path.join(dir,pattern)))
 
     numHidden = 0
     for file in files:
         numHidden += hideAsserts(dir_path, file)
-    print str(numHidden) + " asserts hidden."
+    print(str(numHidden) + " asserts hidden.")
 
-    numRequires = 0
-    for file in files:
-        numRequires += fixRequires(dir_path, file)
-    print str(numRequires) + " require()s fixed."
+#     numRequires = 0
+#     for file in files:
+#         numRequires += fixRequires(dir_path, file)
+#     print(str(numRequires) + " require()s fixed.")
 
     sys.exit(0)
 

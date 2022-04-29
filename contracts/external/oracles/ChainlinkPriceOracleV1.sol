@@ -86,22 +86,21 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
         uint8[] memory aggregatorDecimals,
         address chainlinkFlagsOrNull
     ) public {
-        // can't use Require.that because it causes the compiler to hang for some reason
-        require(
+        require( // coverage-disable-line
             tokens.length == chainlinkAggregators.length,
-            "ChainlinkPriceOracleV1: invalid aggregators length"
+            "invalid aggregators"
         );
-        require(
+        require( // coverage-disable-line
             chainlinkAggregators.length == tokenDecimals.length,
-            "ChainlinkPriceOracleV1: invalid token decimals length"
+            "invalid token decimals"
         );
-        require(
+        require( // coverage-disable-line
             tokenDecimals.length == tokenPairs.length,
-            "ChainlinkPriceOracleV1: invalid token pairs length"
+            "invalid token pairs"
         );
-        require(
+        require( // coverage-disable-line
             tokenPairs.length == aggregatorDecimals.length,
-            "ChainlinkPriceOracleV1: invalid aggregator decimals length"
+            "invalid aggregator decimals"
         );
 
         for (uint i = 0; i < tokens.length; i++) {
@@ -114,9 +113,7 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
             );
         }
 
-        if (chainlinkFlagsOrNull != address(0)) {
-            chainlinkFlags = IChainlinkFlags(chainlinkFlagsOrNull);
-        }
+        chainlinkFlags = IChainlinkFlags(chainlinkFlagsOrNull);
     }
 
     // ============ Admin Functions ============

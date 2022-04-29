@@ -21,6 +21,8 @@ provider.send({
                 id: new Date().getTime(),
             }, function () { process.exit(0); });
         });
+    } else {
+        process.exit(0);
     }
 });
 //# sourceMappingURL=reset-test-evm.js.map

@@ -417,8 +417,8 @@ contract DolomiteAmmRouterProxy is ReentrancyGuard {
         ModifyPositionCache memory cache
     ) internal {
         (
-        Account.Info[] memory accounts,
-        Actions.ActionArgs[] memory actions
+            Account.Info[] memory accounts,
+            Actions.ActionArgs[] memory actions
         ) = _getParamsForSwapExactTokensForTokens(cache);
 
         cache.dolomiteMargin.operate(accounts, actions);
@@ -430,8 +430,8 @@ contract DolomiteAmmRouterProxy is ReentrancyGuard {
         ModifyPositionCache memory cache
     ) internal {
         (
-        Account.Info[] memory accounts,
-        Actions.ActionArgs[] memory actions
+            Account.Info[] memory accounts,
+            Actions.ActionArgs[] memory actions
         ) = _getParamsForSwapTokensForExactTokens(cache);
 
         cache.dolomiteMargin.operate(accounts, actions);

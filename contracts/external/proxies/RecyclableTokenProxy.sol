@@ -221,7 +221,7 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
         DOLOMITE_MARGIN.operate(accounts, actions);
     }
 
-    function withdrawAfterRecycle(uint accountNumber) public {
+    function withdrawAfterRecycle(uint accountNumber) public nonReentrant {
         Require.that(
             isRecycled,
             FILE,
@@ -243,12 +243,12 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
     }
 
     function trade(
-        uint accountNumber,
+        uint256 accountNumber,
         Types.AssetAmount memory supplyAmount, // equivalent to amounts[amounts.length - 1]
         address borrowToken,
         Types.AssetAmount memory borrowAmount,
         address exchangeWrapper,
-        uint expirationTimestamp,
+        uint256 expirationTimestamp,
         bool isOpen,
         bytes memory tradeData
     ) public {
@@ -276,8 +276,8 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             expirationTimestamp
         );
 
-        uint marketId = MARKET_ID;
-        uint borrowMarketId = DOLOMITE_MARGIN.getMarketIdByTokenAddress(borrowToken);
+        uint256 marketId = MARKET_ID;
+        uint256 borrowMarketId = DOLOMITE_MARGIN.getMarketIdByTokenAddress(borrowToken);
 
         Account.Info[] memory accounts = new Account.Info[](1);
         accounts[0] = Account.Info(address(this), _getAccountNumber(msg.sender, accountNumber));
@@ -390,9 +390,9 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
         address to,
         uint256 amount
     ) public onlyDolomiteMargin(msg.sender) returns (bool) {
-        // transferFrom should always send tokens to DOLOMITE_MARGIN
+        // transferFrom should always send tokens to DOLOMITE_MARGIN && msg.sender eq DOLOMITE_MARGIN
         Require.that(
-            to == address(msg.sender), // msg.sender eq DOLOMITE_MARGIN
+            to == address(msg.sender),
             FILE,
             "invalid recipient"
         );

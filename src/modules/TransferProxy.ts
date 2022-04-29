@@ -55,7 +55,7 @@ export class TransferProxy {
     to: address,
     toAccountIndex: Integer,
     token: address,
-    amount: Integer,
+    amountWei: Integer,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -64,7 +64,7 @@ export class TransferProxy {
         to,
         toAccountIndex.toFixed(),
         token,
-        amount.toFixed(),
+        amountWei.toFixed(),
       ),
       options,
     );
@@ -75,7 +75,7 @@ export class TransferProxy {
     to: address,
     toAccountIndex: Integer,
     tokens: address[],
-    amounts: Integer[],
+    amountsWei: Integer[],
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -84,7 +84,7 @@ export class TransferProxy {
         to,
         toAccountIndex.toFixed(),
         tokens,
-        amounts.map(amount => amount.toFixed()),
+        amountsWei.map(amount => amount.toFixed()),
       ),
       options,
     );

@@ -13,11 +13,24 @@ import {
 import { DolomiteAmmFactory } from './DolomiteAmmFactory';
 import { DolomiteAmmPair } from './DolomiteAmmPair';
 
+export interface PermitSignature {
+  approveMax: boolean;
+  v: string;
+  r: string;
+  s: string;
+}
+
 export class DolomiteAmmRouterProxy {
+  public static PermitTypeHash = '0x6e71edae12b1b97f4d1f60370fef10105fa2faae0126114a169c64845d6126c9';
+
   private contracts: Contracts;
 
   constructor(contracts: Contracts) {
     this.contracts = contracts;
+  }
+
+  public get address(): string {
+    return this.contracts.dolomiteAmmRouterProxy.options.address;
   }
 
   // ============ View Functions ============
@@ -167,6 +180,34 @@ export class DolomiteAmmRouterProxy {
     );
   }
 
+  public async removeLiquidityWithPermit(
+    to: address,
+    fromAccountNumber: Integer,
+    tokenA: address,
+    tokenB: address,
+    liquidity: Integer,
+    amountAMin: Integer,
+    amountBMin: Integer,
+    deadline: Integer,
+    permit: PermitSignature,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.dolomiteAmmRouterProxy.methods.removeLiquidityWithPermit(
+        to,
+        fromAccountNumber.toFixed(0),
+        tokenA,
+        tokenB,
+        liquidity.toFixed(0),
+        amountAMin.toFixed(0),
+        amountBMin.toFixed(0),
+        deadline.toFixed(0),
+        permit,
+      ),
+      options,
+    );
+  }
+
   public async swapExactTokensForTokens(
     accountNumber: Integer,
     amountIn: Integer,
@@ -240,6 +281,45 @@ export class DolomiteAmmRouterProxy {
         amountInMax.toFixed(0),
         amountOut.toFixed(0),
         tokenPath,
+        deadline.toFixed(0),
+      ),
+      options,
+    );
+  }
+
+  public async swapTokensForExactTokensAndModifyPosition(
+    accountNumber: Integer,
+    amountInMax: Integer,
+    amountOut: Integer,
+    tokenPath: address[],
+    depositToken: address,
+    isPositiveMarginDeposit: boolean,
+    marginDeposit: Integer,
+    expiryTimeDelta: Integer,
+    deadline: Integer,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    const createAmount = (value: Integer) => {
+      return {
+        sign: true,
+        denomination: AmountDenomination.Wei,
+        ref: AmountReference.Delta,
+        value: value.toFixed(0),
+      };
+    };
+
+    return this.contracts.callContractFunction(
+      this.contracts.dolomiteAmmRouterProxy.methods.swapTokensForExactTokensAndModifyPosition(
+        {
+          tokenPath,
+          depositToken,
+          isPositiveMarginDeposit,
+          accountNumber: accountNumber.toFixed(0),
+          amountIn: createAmount(amountInMax),
+          amountOut: createAmount(amountOut),
+          marginDeposit: marginDeposit.toFixed(0),
+          expiryTimeDelta: expiryTimeDelta.toFixed(0),
+        },
         deadline.toFixed(0),
       ),
       options,

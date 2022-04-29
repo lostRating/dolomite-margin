@@ -7,20 +7,13 @@ import { default as IERC20 } from '../build/contracts/IERC20.json';
 import { default as IInterestSetter } from '../build/contracts/IInterestSetter.json';
 import { default as IPriceOracle } from '../build/contracts/IPriceOracle.json';
 import { default as Expiry } from '../build/contracts/Expiry.json';
-import { default as PayableProxy }
-  from '../build/contracts/PayableProxy.json';
-import { default as SignedOperationProxy }
-  from '../build/contracts/SignedOperationProxy.json';
-import { default as LiquidatorProxyV1 }
-  from '../build/contracts/LiquidatorProxyV1.json';
-import { default as LiquidatorProxyV1WithAmm }
-  from '../build/contracts/LiquidatorProxyV1WithAmm.json';
-import { default as DolomiteAmmRouterProxy }
-  from '../build/contracts/DolomiteAmmRouterProxy.json';
-import { default as PolynomialInterestSetter }
-  from '../build/contracts/PolynomialInterestSetter.json';
-import { default as DoubleExponentInterestSetter }
-  from '../build/contracts/DoubleExponentInterestSetter.json';
+import { default as PayableProxy } from '../build/contracts/PayableProxy.json';
+import { default as SignedOperationProxy } from '../build/contracts/SignedOperationProxy.json';
+import { default as LiquidatorProxyV1 } from '../build/contracts/LiquidatorProxyV1.json';
+import { default as LiquidatorProxyV1WithAmm } from '../build/contracts/LiquidatorProxyV1WithAmm.json';
+import { default as DolomiteAmmRouterProxy } from '../build/contracts/DolomiteAmmRouterProxy.json';
+import { default as PolynomialInterestSetter } from '../build/contracts/PolynomialInterestSetter.json';
+import { default as DoubleExponentInterestSetter } from '../build/contracts/DoubleExponentInterestSetter.json';
 import { default as Weth } from '../build/contracts/TestWETH.json';
 import { default as Events } from '../build/contracts/Events.json';
 import { default as AdminImpl } from '../build/contracts/AdminImpl.json';
@@ -32,8 +25,7 @@ import { default as TradeImpl } from '../build/contracts/TradeImpl.json';
 import { default as LiquidateOrVaporizeImpl } from '../build/contracts/LiquidateOrVaporizeImpl.json';
 import { default as CallImpl } from '../build/contracts/CallImpl.json';
 import { default as Permission } from '../build/contracts/Permission.json';
-import { default as PartiallyDelayedMultiSig }
-  from '../build/contracts/PartiallyDelayedMultiSig.json';
+import { default as PartiallyDelayedMultiSig } from '../build/contracts/PartiallyDelayedMultiSig.json';
 import { default as ChainlinkPriceOracleV1 } from '../build/contracts/ChainlinkPriceOracleV1.json';
 import { default as SimpleFeeOwner } from '../build/contracts/SimpleFeeOwner.json';
 import { default as DolomiteAmmFactory } from '../build/contracts/DolomiteAmmFactory.json';
@@ -46,6 +38,7 @@ import { default as ArbitrumMultiCall } from '../build/contracts/ArbitrumMultiCa
 import { default as MultiCall } from '../build/contracts/MultiCall.json';
 import { default as IArbitrumGasInfo } from '../build/contracts/IArbitrumGasInfo.json';
 import { default as TestUniswapAmmRebalancerProxy } from '../build/contracts/TestUniswapAmmRebalancerProxy.json';
+import { default as RecyclableTokenProxy } from '../build/contracts/RecyclableTokenProxy.json';
 
 export default {
   DepositImpl,
@@ -84,4 +77,5 @@ export default {
   MultiCall,
   IArbitrumGasInfo,
   TestUniswapAmmRebalancerProxy,
+  RecyclableTokenProxy,
 };

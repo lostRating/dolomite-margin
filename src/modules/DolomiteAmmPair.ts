@@ -23,6 +23,10 @@ export class DolomiteAmmPair {
     this.pair = pair;
   }
 
+  get address(): string {
+    return this.pair.options.address;
+  }
+
   // ============ View Functions ============
 
   public async dolomiteMargin(): Promise<address> {

@@ -7,6 +7,7 @@ import { default as TokenE } from '../build/contracts/TokenE.json';
 import { default as TokenF } from '../build/contracts/TokenF.json';
 import { default as TestToken } from '../build/contracts/TestToken.json';
 import { default as ErroringToken } from '../build/contracts/ErroringToken.json';
+import { default as MalformedToken } from '../build/contracts/MalformedToken.json';
 import { default as OmiseToken } from '../build/contracts/OmiseToken.json';
 import { default as TestCounter } from '../build/contracts/TestCounter.json';
 import { default as TestLib } from '../build/contracts/TestLib.json';
@@ -17,10 +18,8 @@ import { default as TestSimpleCallee } from '../build/contracts/TestSimpleCallee
 import { default as TestExchangeWrapper } from '../build/contracts/TestExchangeWrapper.json';
 import { default as TestPriceOracle } from '../build/contracts/TestPriceOracle.json';
 import { default as TestOasisDex } from '../build/contracts/TestOasisDex.json';
-import { default as TestPolynomialInterestSetter }
-  from '../build/contracts/TestPolynomialInterestSetter.json';
-import { default as TestDoubleExponentInterestSetter }
-  from '../build/contracts/TestDoubleExponentInterestSetter.json';
+import { default as TestPolynomialInterestSetter } from '../build/contracts/TestPolynomialInterestSetter.json';
+import { default as TestDoubleExponentInterestSetter } from '../build/contracts/TestDoubleExponentInterestSetter.json';
 import { default as TestInterestSetter } from '../build/contracts/TestInterestSetter.json';
 import { default as TestDolomiteMargin } from '../build/contracts/TestDolomiteMargin.json';
 import { default as UniswapV2Pair } from '../build/contracts/UniswapV2Pair.json';
@@ -30,6 +29,8 @@ import { default as TestRecyclableToken } from '../build/contracts/TestRecyclabl
 import { default as TestTrader } from '../build/contracts/TestTrader.json';
 import { default as TestAmmRebalancerProxy } from '../build/contracts/TestAmmRebalancerProxy.json';
 import { default as TestUniswapV3MultiRouter } from '../build/contracts/TestUniswapV3MultiRouter.json';
+import { default as TestChainlinkFlags } from '../build/contracts/TestChainlinkFlags.json';
+import { default as TestChainlinkPriceOracleV1 } from '../build/contracts/TestChainlinkPriceOracleV1.json';
 
 export default {
   CustomTestToken,
@@ -41,6 +42,7 @@ export default {
   TokenF,
   TestToken,
   ErroringToken,
+  MalformedToken,
   OmiseToken,
   TestAmmRebalancerProxy,
   TestCounter,
@@ -62,4 +64,6 @@ export default {
   TestRecyclableToken,
   TestTrader,
   TestUniswapV3MultiRouter,
+  TestChainlinkFlags,
+  TestChainlinkPriceOracleV1,
 };

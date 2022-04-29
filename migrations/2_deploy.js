@@ -79,6 +79,7 @@ const TokenD = artifacts.require('TokenD');
 const TokenE = artifacts.require('TokenE');
 const TokenF = artifacts.require('TokenF');
 const ErroringToken = artifacts.require('ErroringToken');
+const MalformedToken = artifacts.require('MalformedToken');
 const OmiseToken = artifacts.require('OmiseToken');
 const TestLib = artifacts.require('TestLib');
 const TestAutoTrader = artifacts.require('TestAutoTrader');
@@ -94,6 +95,7 @@ const TestMaticUsdChainlinkAggregator = artifacts.require('TestMaticUsdChainlink
 const TestUsdcUsdChainlinkAggregator = artifacts.require('TestUsdcUsdChainlinkAggregator');
 const TestMakerOracle = artifacts.require('TestMakerOracle');
 const TestOasisDex = artifacts.require('TestOasisDex');
+const TestChainlinkFlags = artifacts.require('TestChainlinkFlags');
 const TestInterestSetter = artifacts.require('TestInterestSetter');
 const TestPolynomialInterestSetter = artifacts.require('TestPolynomialInterestSetter');
 const TestDoubleExponentInterestSetter = artifacts.require('TestDoubleExponentInterestSetter');
@@ -150,6 +152,7 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(TokenF),
       deployer.deploy(TestWETH, 'Wrapped Ether', 'WETH'),
       deployer.deploy(ErroringToken),
+      deployer.deploy(MalformedToken),
       deployer.deploy(OmiseToken),
       deployer.deploy(TestLib),
       deployer.deploy(TestAutoTrader),
@@ -158,6 +161,7 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(TestDoubleExponentInterestSetter, getDoubleExponentParams(network)),
       deployer.deploy(TestMakerOracle),
       deployer.deploy(TestOasisDex),
+      deployer.deploy(TestChainlinkFlags),
     ]);
   }
 }

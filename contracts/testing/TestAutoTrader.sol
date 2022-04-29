@@ -22,7 +22,7 @@ pragma experimental ABIEncoderV2;
 import { IAutoTrader } from "../protocol/interfaces/IAutoTrader.sol";
 import { Account } from "../protocol/lib/Account.sol";
 import { Actions } from "../protocol/lib/Actions.sol";
-import { Math } from "../protocol/lib/Math.sol";
+import { DolomiteMarginMath } from "../protocol/lib/DolomiteMarginMath.sol";
 import { Require } from "../protocol/lib/Require.sol";
 import { Time } from "../protocol/lib/Time.sol";
 import { Types } from "../protocol/lib/Types.sol";

@@ -3,9 +3,6 @@ pragma solidity ^0.5.16;
 
 /// A library for performing various math operations
 library AdvancedMath {
-    function min(uint x, uint y) internal pure returns (uint z) {
-        z = x < y ? x : y;
-    }
 
     // babylonian method (https://en.wikipedia.org/wiki/Methods_of_computing_square_roots#Babylonian_method)
     function sqrt(uint y) internal pure returns (uint z) {

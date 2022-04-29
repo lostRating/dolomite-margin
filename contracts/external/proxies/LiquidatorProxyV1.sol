@@ -27,7 +27,7 @@ import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
 import { Decimal } from "../../protocol/lib/Decimal.sol";
 import { Interest } from "../../protocol/lib/Interest.sol";
-import { Math } from "../../protocol/lib/Math.sol";
+import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
 import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
@@ -42,7 +42,7 @@ import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
  * Contract for liquidating other accounts in DolomiteMargin.
  */
 contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorProxyHelper {
-    using Math for uint256;
+    using DolomiteMarginMath for uint256;
     using SafeMath for uint256;
     using Types for Types.Par;
     using Types for Types.Wei;
