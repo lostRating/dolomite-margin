@@ -15,7 +15,8 @@ The DolomiteMargin smart contracts were audited independently by
 
 ## Code Coverage
 
-All production smart contracts are tested and have the vast majority of line and branch coverage.
+All production smart contracts are tested and have 100% line and branch 
+[coverage](https://coveralls.io/github/dolomite-exchange/dolomite-margin?branch=master).
 
 ## Vulnerability Disclosure Policy
 
