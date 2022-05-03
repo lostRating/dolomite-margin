@@ -39,14 +39,14 @@ contract which determines what the interest rates are for the Market.
 Markets are referenced by their numerical IDs. Currently, on Mainnet DolomiteMargin has the following markets, but more
 will be added over time:
 
-| id  | Asset |
-|-----|-------|
-| 0   | WETH  |
-| 1   | DAI   |
-| 2   | USDC  |
-| 3   | LINK  |
-| 4   | WBTC  |
-| 5   | USDT  |
+| marketId | Asset |
+|----------|-------|
+| 0        | WETH  |
+| 1        | DAI   |
+| 2        | USDC  |
+| 3        | LINK  |
+| 4        | WBTC  |
+| 5        | USDT  |
 
 ## Interest
 

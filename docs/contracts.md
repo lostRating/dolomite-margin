@@ -181,7 +181,9 @@ the protocol (subject to any time delays, of course). These values include the f
 The following market-specific functions and parameters can be called or changed by the protocol's admin and are subject
 to the same, universal, time delays as well as any applicable limits defined above.
 
-To verify any of these parameters for a particular market, visit the DolomiteMargin smart contract on
+To verify any of these parameters for a particular market, you can first get the `marketId` from the 
+[Markets](https://docs.dolomite.io/#/protocol?id=markets) section of the docs. Alternatively, you can visit the
+DolomiteMargin smart contract on
 [Arbiscan](https://arbiscan.io/address/0x6a76986201E1906eb8d887Bb4Ad74b55888617af#readContract) and get the `marketId`
 by calling the `getMarketIdByTokenAddress` function, passing in the token address whose market ID you're seeking. Then,
 pass the `marketId` into the `getMarket` function or into individual market risk-oriented functions like:
@@ -209,9 +211,9 @@ function ownerAddMarket(
 )
 ```
 
-This function allows a new market to be added to DolomiteMargin. Upon initialization, `isRecyclable` (explanation below)
-and the token's address cannot be changed. Other values that are initialized and can be changed include
-`isClosing`, `priceOracle`, `interestSetter`, `marginPremium`, `spreadPremium`, and `maxWei`.
+> This function allows a new market to be added to DolomiteMargin. Upon initialization, `isRecyclable` (explanation 
+> below) and the token's address cannot be changed. Other values that are initialized and can be changed include
+>`isClosing`, `priceOracle`, `interestSetter`, `marginPremium`, `spreadPremium`, and `maxWei`.
 
 ---
 
