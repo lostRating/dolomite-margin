@@ -16,7 +16,7 @@ config
 artifacts/
 
 .coverage_contracts/
-.temp_contracts/
+.temp_contracts/external/rebalancers
 .coverage_artifacts/
 coverage-cached/
 
