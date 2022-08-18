@@ -31,6 +31,7 @@ import { default as SimpleFeeOwner } from '../build/contracts/SimpleFeeOwner.jso
 import { default as DolomiteAmmFactory } from '../build/contracts/DolomiteAmmFactory.json';
 import { default as DolomiteAmmPair } from '../build/contracts/DolomiteAmmPair.json';
 import { default as TransferProxy } from '../build/contracts/TransferProxy.json';
+import { default as BorrowPositionProxy } from '../build/contracts/BorrowPositionProxy.json';
 import { default as DepositWithdrawalProxy } from '../build/contracts/DepositWithdrawalProxy.json';
 import { default as AmmRebalancerProxyV1 } from '../build/contracts/AmmRebalancerProxyV1.json';
 import { default as AmmRebalancerProxyV2 } from '../build/contracts/AmmRebalancerProxyV2.json';
@@ -72,6 +73,7 @@ export default {
   DolomiteAmmPair,
   SimpleFeeOwner,
   TransferProxy,
+  BorrowPositionProxy,
   DepositWithdrawalProxy,
   ArbitrumMultiCall,
   MultiCall,

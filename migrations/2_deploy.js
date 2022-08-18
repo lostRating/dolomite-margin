@@ -116,6 +116,7 @@ const TestAmmRebalancerProxy = artifacts.require('TestAmmRebalancerProxy');
 const TestUniswapAmmRebalancerProxy = artifacts.require('TestUniswapAmmRebalancerProxy');
 const TestUniswapV3MultiRouter = artifacts.require('TestUniswapV3MultiRouter');
 const TransferProxy = artifacts.require('TransferProxy');
+const BorrowPositionProxy = artifacts.require('BorrowPositionProxy');
 
 // Interest Setters
 const DoubleExponentInterestSetter = artifacts.require('DoubleExponentInterestSetter');
@@ -363,6 +364,19 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
+  const borrowPositionProxy = BorrowPositionProxy;
+  if (shouldOverwrite(borrowPositionProxy, network)) {
+    await deployer.deploy(
+      borrowPositionProxy,
+      dolomiteMargin.address,
+    );
+  } else {
+    await deployer.deploy(
+      borrowPositionProxy,
+      getNoOverwriteParams(),
+    );
+  }
+
   const depositWithdrawalProxy = DepositWithdrawalProxy;
   if (shouldOverwrite(depositWithdrawalProxy, network)) {
     await deployer.deploy(
@@ -575,6 +589,10 @@ async function deploySecondLayer(deployer, network, accounts) {
     ),
     dolomiteMargin.ownerSetGlobalOperator(
       TransferProxy.address,
+      true,
+    ),
+    dolomiteMargin.ownerSetGlobalOperator(
+      BorrowPositionProxy.address,
       true,
     ),
     dolomiteMargin.ownerSetGlobalOperator(

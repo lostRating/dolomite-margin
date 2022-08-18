@@ -49,6 +49,7 @@ import recyclableTokenProxyJson from '../../build/published_contracts/Recyclable
 import signedOperationProxyJson from '../../build/published_contracts/SignedOperationProxy.json';
 import simpleFeeOwnerJson from '../../build/published_contracts/SimpleFeeOwner.json';
 import transferProxyJson from '../../build/published_contracts/TransferProxy.json';
+import borrowPositionProxyJson from '../../build/published_contracts/BorrowPositionProxy.json';
 import depositProxyJson from '../../build/published_contracts/DepositWithdrawalProxy.json';
 import multiCallJson from '../../build/published_contracts/MultiCall.json';
 import arbitrumMultiCallJson from '../../build/published_contracts/ArbitrumMultiCall.json';
@@ -78,6 +79,7 @@ import { SimpleFeeOwner } from '../../build/wrappers/SimpleFeeOwner';
 import { DepositWithdrawalProxy } from '../../build/wrappers/DepositWithdrawalProxy';
 import { RecyclableTokenProxy } from '../../build/wrappers/RecyclableTokenProxy';
 import { TransferProxy } from '../../build/wrappers/TransferProxy';
+import { BorrowPositionProxy } from '../../build/wrappers/BorrowPositionProxy';
 import { Weth } from '../../build/wrappers/Weth';
 import { TestUniswapAmmRebalancerProxy } from '../../build/wrappers/TestUniswapAmmRebalancerProxy';
 import {
@@ -120,6 +122,7 @@ export class Contracts {
   public dolomiteAmmFactory: DolomiteAmmFactory;
   public simpleFeeOwner: SimpleFeeOwner;
   public transferProxy: TransferProxy;
+  public borrowPositionProxy: BorrowPositionProxy;
   public depositProxy: DepositWithdrawalProxy;
   public multiCall: MultiCall;
   public arbitrumMultiCall: ArbitrumMultiCall;
@@ -201,6 +204,7 @@ export class Contracts {
       simpleFeeOwnerJson.abi,
     ) as SimpleFeeOwner;
     this.transferProxy = new this.web3.eth.Contract(transferProxyJson.abi) as TransferProxy;
+    this.borrowPositionProxy = new this.web3.eth.Contract(borrowPositionProxyJson.abi) as BorrowPositionProxy;
     this.depositProxy = new this.web3.eth.Contract(depositProxyJson.abi) as DepositWithdrawalProxy;
     this.multiCall = new this.web3.eth.Contract(multiCallJson.abi) as MultiCall;
     this.arbitrumMultiCall = new this.web3.eth.Contract(arbitrumMultiCallJson.abi) as ArbitrumMultiCall;
@@ -289,6 +293,7 @@ export class Contracts {
         json: chainlinkPriceOracleV1Json,
       },
       { contract: this.transferProxy, json: transferProxyJson },
+      { contract: this.borrowPositionProxy, json: borrowPositionProxyJson },
       { contract: this.depositProxy, json: depositProxyJson },
       { contract: this.multiCall, json: multiCallJson },
       { contract: this.arbitrumMultiCall, json: arbitrumMultiCallJson },
@@ -328,6 +333,7 @@ export class Contracts {
     this.dolomiteAmmFactory.options.from = account;
     this.simpleFeeOwner.options.from = account;
     this.transferProxy.options.from = account;
+    this.borrowPositionProxy.options.from = account;
     this.depositProxy.options.from = account;
     this.multiCall.options.from = account;
     this.arbitrumMultiCall.options.from = account;

@@ -40,6 +40,7 @@ import { StandardActions } from './modules/StandardActions';
 import { SubgraphAPI } from './modules/SubgraphAPI';
 import { Token } from './modules/Token';
 import { TransferProxy } from './modules/TransferProxy';
+import { BorrowPositionProxy } from './modules/BorrowPositionProxy';
 import { WalletLogin } from './modules/WalletLogin';
 import { Weth } from './modules/Weth';
 import {
@@ -73,6 +74,7 @@ export class DolomiteMargin {
   public ammRebalancerProxyV2: AmmRebalancerProxyV2;
   public depositProxy: DepositProxy;
   public transferProxy: TransferProxy;
+  public borrowPositionProxy: BorrowPositionProxy;
   public multiCall: MultiCall;
   public arbitrumGasInfo: ArbitrumGasInfo;
   public permissions: Permissions;
@@ -126,6 +128,7 @@ export class DolomiteMargin {
     this.ammRebalancerProxyV2 = new AmmRebalancerProxyV2(this.contracts);
     this.depositProxy = new DepositProxy(this.contracts);
     this.transferProxy = new TransferProxy(this.contracts);
+    this.borrowPositionProxy = new BorrowPositionProxy(this.contracts);
     this.multiCall = new MultiCall(this.contracts);
     this.arbitrumGasInfo = new ArbitrumGasInfo(this.contracts);
     this.dolomiteAmmFactory = new DolomiteAmmFactory(this.contracts);
