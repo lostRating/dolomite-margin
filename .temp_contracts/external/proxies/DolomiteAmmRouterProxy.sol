@@ -688,7 +688,7 @@ contract DolomiteAmmRouterProxy is ReentrancyGuard {
                 (amountAWei, amountBWei) = (amountADesiredWei, amountBOptimal);
             } else {
                 uint amountAOptimal = DolomiteAmmLibrary.quote(amountBDesiredWei, reserveBWei, reserveAWei);
-                assert(amountAOptimal <= amountADesiredWei);
+              /*assert(amountAOptimal <= amountADesiredWei);*/
                 Require.that(
                     amountAOptimal >= amountAMinWei,
                     FILE,

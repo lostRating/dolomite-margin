@@ -259,8 +259,8 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
         private
         pure
     {
-        assert(!cache.heldWei.isNegative());
-        assert(!cache.owedWei.isPositive());
+      /*assert(!cache.heldWei.isNegative());*/
+      /*assert(!cache.owedWei.isPositive());*/
 
         // if the liquidator account is already not above the collateralization requirement, return
         bool liquidatorAboveCollateralization = isCollateralized(
@@ -390,7 +390,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
 
         // update toLiquidate, heldWei, and owedWei
         Types.Wei memory delta = cache.owedWei.sub(newOwedWei);
-        assert(!delta.isNegative());
+      /*assert(!delta.isNegative());*/
         cache.toLiquidate = cache.toLiquidate.add(delta.value);
         cache.heldWei = newHeldWei;
         cache.owedWei = newOwedWei;

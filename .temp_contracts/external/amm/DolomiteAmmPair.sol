@@ -410,7 +410,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
                 amount0OutWei = 0;
                 amount1OutWei = amountOutWei;
             } else {
-                assert(inputMarketId == cache.marketId1);
+              /*assert(inputMarketId == cache.marketId1);*/
 
                 cache.balance1Wei = cache.balance1Wei.add(inputWei.value);
                 cache.balance0Wei = cache.balance0Wei.sub(amountOutWei);

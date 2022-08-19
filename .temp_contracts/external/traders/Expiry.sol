@@ -286,7 +286,7 @@ contract Expiry is
             SetExpiryArg[] memory expiries
         ) = abi.decode(data, (CallFunctionType, SetExpiryArg[]));
 
-        assert(callType == CallFunctionType.SetExpiry);
+      /*assert(callType == CallFunctionType.SetExpiry);*/
 
         for (uint256 i = 0; i < expiries.length; i++) {
             SetExpiryArg memory exp = expiries[i];
@@ -325,7 +325,7 @@ contract Expiry is
             CallFunctionType callType,
             SetApprovalArg memory approvalArg
         ) = abi.decode(data, (CallFunctionType, SetApprovalArg));
-        assert(callType == CallFunctionType.SetApproval);
+      /*assert(callType == CallFunctionType.SetApproval);*/
         _setApproval(sender, approvalArg.sender, approvalArg.minTimeDelta);
     }
 
@@ -359,7 +359,7 @@ contract Expiry is
                 "Borrows cannot be overpaid",
                 newInputPar.value
             );
-            assert(oldInputPar.isNegative());
+          /*assert(oldInputPar.isNegative());*/
             Require.that(
                 maxOutputWei.isPositive(),
                 FILE,
@@ -392,7 +392,7 @@ contract Expiry is
                 "Collateral cannot be overused",
                 newInputPar.value
             );
-            assert(oldInputPar.isPositive());
+          /*assert(oldInputPar.isPositive());*/
             Require.that(
                 maxOutputWei.isNegative(),
                 FILE,
@@ -421,7 +421,7 @@ contract Expiry is
             output.value,
             maxOutputWei.value
         );
-        assert(output.sign != maxOutputWei.sign);
+      /*assert(output.sign != maxOutputWei.sign);*/
 
         SafeLiquidationCallback.callLiquidateCallbackIfNecessary(
             makerAccount,

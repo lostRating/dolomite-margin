@@ -86,22 +86,22 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
         uint8[] memory aggregatorDecimals,
         address chainlinkFlagsOrNull
     ) public {
-        require( // coverage-disable-line
+      /*require( // coverage-disable-line
             tokens.length == chainlinkAggregators.length,
             "invalid aggregators"
-        );
-        require( // coverage-disable-line
+        );*/
+      /*require( // coverage-disable-line
             chainlinkAggregators.length == tokenDecimals.length,
             "invalid token decimals"
-        );
-        require( // coverage-disable-line
+        );*/
+      /*require( // coverage-disable-line
             tokenDecimals.length == tokenPairs.length,
             "invalid token pairs"
-        );
-        require( // coverage-disable-line
+        );*/
+      /*require( // coverage-disable-line
             tokenPairs.length == aggregatorDecimals.length,
             "invalid aggregator decimals"
-        );
+        );*/
 
         for (uint i = 0; i < tokens.length; i++) {
             _insertOrUpdateOracleToken(

@@ -424,6 +424,18 @@
             "transactionHash": "0xa5b57102ce68ff2a7e3748edc332c43c2aee321724cdc96be88f37c9008a502c"
         }
     },
+    "BorrowPositionProxy": {
+        "42161": {
+            "links": {},
+            "address": "0x2036e188b5fB51a86E6dCf6744c0215a862567C8",
+            "transactionHash": "0x7aff267201a7ada967413e01de02ae7ea2a44124185dd96932bff28f3407864d"
+        },
+        "421611": {
+            "links": {},
+            "address": "0x04a631F974d93CbECE72d84E9443A6dd9b56316D",
+            "transactionHash": "0x794b95fbe65ce6debfb1913d1acf636f48be81c28a8dd7ec8c9cd5bd4bbf05de"
+        }
+    },
     "MultiCall": {
         "80001": {
             "links": {},

@@ -290,7 +290,7 @@ library OperationImpl {
                     Actions.parseVaporizeArgs(accounts, action)
                 );
             } else {
-                assert(actionType == Actions.ActionType.Call);
+              /*assert(actionType == Actions.ActionType.Call);*/
                 CallImpl.call(
                     state,
                     Actions.parseCallArgs(accounts, action)

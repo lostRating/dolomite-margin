@@ -69,10 +69,10 @@ contract PayableProxy is OnlyDolomiteMargin, ReentrancyGuard {
         external
         payable
     {
-        require( // coverage-disable-line
+      /*require( // coverage-disable-line
             msg.sender == address(WETH),
             "Cannot receive ETH"
-        );
+        );*/
     }
 
     function operate(

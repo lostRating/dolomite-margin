@@ -100,7 +100,7 @@ library Interest {
                 supplyInterest = DolomiteMarginMath.getPartial(supplyInterest, borrowWei.value, supplyWei.value);
             }
         }
-        assert(supplyInterest <= borrowInterest);
+      /*assert(supplyInterest <= borrowInterest);*/
 
         return Index({
             borrow: DolomiteMarginMath.getPartial(index.borrow, borrowInterest, BASE).add(index.borrow).to96(),

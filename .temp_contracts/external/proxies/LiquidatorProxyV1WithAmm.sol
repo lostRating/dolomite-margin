@@ -506,10 +506,10 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         for (uint i = 0; i < accountsForTrade.length; i++) {
             accounts[i] = accountsForTrade[i];
         }
-        assert(
+      /*assert(
             accounts[0].owner == constants.solidAccount.owner &&
             accounts[0].number == constants.solidAccount.number
-        );
+        );*/
 
         accounts[accounts.length - 1] = constants.liquidAccount;
         return accounts;

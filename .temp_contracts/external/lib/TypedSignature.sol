@@ -106,7 +106,7 @@ library TypedSignature {
         } else if (sigType == SignatureType.Decimal) {
             signedHash = keccak256(abi.encodePacked(PREPEND_DEC, hash));
         } else {
-            assert(sigType == SignatureType.Hexadecimal);
+          /*assert(sigType == SignatureType.Hexadecimal);*/
             signedHash = keccak256(abi.encodePacked(PREPEND_HEX, hash));
         }
 

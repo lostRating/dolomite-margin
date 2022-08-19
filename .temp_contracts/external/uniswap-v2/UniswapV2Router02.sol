@@ -28,7 +28,7 @@ contract UniswapV2Router02 {
     }
 
     function() external payable {
-        assert(msg.sender == WETH); // only accept ETH via fallback from the WETH contract
+      /*assert(msg.sender == WETH);*/ // only accept ETH via fallback from the WETH contract
     }
 
     function getPairInitCodeHash() external view returns (bytes32) {
@@ -93,7 +93,7 @@ contract UniswapV2Router02 {
             amountToken
         );
         IWETH(WETH).deposit.value(amountETH)();
-        assert(IWETH(WETH).transfer(pair, amountETH));
+      /*assert(IWETH(WETH).transfer(pair, amountETH));*/
         liquidity = IUniswapV2Pair(pair).mint(to);
         // refund dust eth, if any
         if (msg.value > amountETH) {
@@ -318,7 +318,7 @@ contract UniswapV2Router02 {
         amounts = UniswapV2Library.getAmountsOut(factory, msg.value, path);
         require(amounts[amounts.length - 1] >= amountOutMin, "UniswapV2Router: INSUFFICIENT_OUTPUT_AMOUNT");
         IWETH(WETH).deposit.value(amounts[0])();
-        assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));
+      /*assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));*/
         _swap(amounts, path, to);
     }
 
@@ -384,7 +384,7 @@ contract UniswapV2Router02 {
         amounts = UniswapV2Library.getAmountsIn(factory, amountOut, path);
         require(amounts[0] <= msg.value, "UniswapV2Router: EXCESSIVE_INPUT_AMOUNT");
         IWETH(WETH).deposit.value(amounts[0])();
-        assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));
+      /*assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amounts[0]));*/
         _swap(amounts, path, to);
         // refund dust eth, if any
         if (msg.value > amounts[0]) SafeETH.safeTransferETH(msg.sender, msg.value - amounts[0]);
@@ -421,7 +421,7 @@ contract UniswapV2Router02 {
         require(path[0] == WETH, "UniswapV2Router: INVALID_PATH");
         uint amountIn = msg.value;
         IWETH(WETH).deposit.value(amountIn)();
-        assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn));
+      /*assert(IWETH(WETH).transfer(UniswapV2Library.pairFor(factory, path[0], path[1]), amountIn));*/
         uint balanceBefore = IERC20(path[path.length - 1]).balanceOf(to);
         _swapSupportingFeeOnTransferTokens(path, to);
         require(
@@ -510,7 +510,7 @@ contract UniswapV2Router02 {
                 (amountA, amountB) = (amountADesired, amountBOptimal);
             } else {
                 uint amountAOptimal = UniswapV2Library.quote(amountBDesired, reserveB, reserveA);
-                assert(amountAOptimal <= amountADesired);
+              /*assert(amountAOptimal <= amountADesired);*/
                 require(amountAOptimal >= amountAMin, "UniswapV2Router: INSUFFICIENT_A_AMOUNT");
                 (amountA, amountB) = (amountAOptimal, amountBDesired);
             }
