@@ -76,15 +76,15 @@ contract MalformedToken {
         return allowed[owner][spender];
     }
 
-    function symbol() public view returns (string memory) {
+    function symbol() public pure returns (string memory) {
         return "MAL";
     }
 
-    function name() public view returns (string memory) {
+    function name() public pure returns (string memory) {
         return "Malformed Token";
     }
 
-    function decimals() public view returns (uint8) {
+    function decimals() public pure returns (uint8) {
         return 18;
     }
 

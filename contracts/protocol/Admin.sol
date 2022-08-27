@@ -88,11 +88,15 @@ contract Admin is
     // ============ Market Functions ============
 
     /**
-     * Sets the number of non-zero balances an account may have within the same `accountIndex`, if the account has any
-     * debt. This ensures a user cannot DOS the system by filling their account with non-zero balances (which linearly
-     * increases gas costs when checking collateralization) and disallowing themselves to close the position, because
-     * the number of gas units needed to process their transaction exceed the block's gas limit. In turn, this would
-     * prevent the user from also being liquidated, causing the all of the capital to be "stuck" in the position.
+     * Sets the number of non-zero balances an account may have within the same `accountIndex`. This ensures a user
+     * cannot DOS the system by filling their account with non-zero balances (which linearly increases gas costs when
+     * checking collateralization) and disallowing themselves to close the position, because the number of gas units
+     * needed to process their transaction exceed the block's gas limit. In turn, this would  prevent the user from also
+     * being liquidated, causing the all of the capital to be "stuck" in the position.
+     *
+     * Lowering this number does not "freeze" user accounts that have more than the new limit of balances, because this
+     * variable is enforced by checking the users number of non-zero balances against the max or if it sizes down before
+     * each transaction finishes.
      */
     function ownerSetAccountMaxNumberOfMarketsWithBalances(
         uint256 accountMaxNumberOfMarketsWithBalances

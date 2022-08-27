@@ -542,7 +542,7 @@ describe('Withdraw', () => {
     await expectWithdrawRevert({}, 'Token: transfer failed');
   });
 
-  it('Fails if the user has too many non-zero balances and has debt', async () => {
+  it('Fails if the user has too many non-zero balances', async () => {
     await issueTokensToDolomiteMargin(wei);
     await dolomiteMargin.testing.setAccountBalance(who, accountNumber, otherMarket, wei);
     await dolomiteMargin.admin.setAccountMaxNumberOfMarketsWithBalances(2, { from: admin });
@@ -550,6 +550,20 @@ describe('Withdraw', () => {
       {},
       `OperationImpl: Too many non-zero balances <${defaultGlob.primaryAccountOwner.toLowerCase()}, ${defaultGlob.primaryAccountId.toString()}>`,
     );
+  });
+
+  it('Succeeds if the user has too many non-zero balances but does not decrease the number', async () => {
+    await issueTokensToDolomiteMargin(wei);
+    await dolomiteMargin.testing.setAccountBalance(who, accountNumber, market, wei.times(2));
+    await dolomiteMargin.testing.setAccountBalance(who, accountNumber, otherMarket, wei);
+
+    const numberOfMarketsWithBalances = await dolomiteMargin.getters.getAccountNumberOfMarketsWithBalances(who, accountNumber);
+    expect(numberOfMarketsWithBalances).to.eql(new BigNumber(3));
+
+    await dolomiteMargin.admin.setAccountMaxNumberOfMarketsWithBalances(2, { from: admin });
+
+    await expectWithdrawOkay({});
+    expect(numberOfMarketsWithBalances).to.eql(new BigNumber(3));
   });
 });
 

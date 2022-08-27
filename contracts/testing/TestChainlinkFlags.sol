@@ -34,7 +34,7 @@ contract TestChainlinkFlags is IChainlinkFlags {
         shouldReturnOffline = _shouldReturnOffline;
     }
 
-    function getFlag(address subject) external view returns (bool) {
+    function getFlag(address) external view returns (bool) {
         if (shouldReturnOffline) {
             return true;
         } else {
