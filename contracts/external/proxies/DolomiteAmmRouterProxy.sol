@@ -36,6 +36,7 @@ import "../lib/DolomiteAmmLibrary.sol";
 import "../interfaces/IExpiry.sol";
 import "../interfaces/IDolomiteAmmFactory.sol";
 import "../interfaces/IDolomiteAmmPair.sol";
+import "../interfaces/IDolomiteAmmRouterProxy.sol";
 
 
 /**
@@ -44,48 +45,12 @@ import "../interfaces/IDolomiteAmmPair.sol";
  *
  * Contract for routing trades to the Dolomite AMM pools and potentially opening margin positions
  */
-contract DolomiteAmmRouterProxy is ReentrancyGuard {
+contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     using SafeMath for uint;
 
     // ============ Constants ============
 
     bytes32 constant internal FILE = "DolomiteAmmRouterProxy";
-
-    // ============ Structs ============
-
-    struct ModifyPositionParams {
-        uint accountNumber;
-        Types.AssetAmount amountIn;
-        Types.AssetAmount amountOut;
-        address[] tokenPath;
-        /// the token to be deposited/withdrawn to/from account number. To not perform any margin deposits or
-        /// withdrawals, simply set this to `address(0)`
-        address depositToken;
-        /// a positive number means funds are deposited to `accountNumber` from accountNumber zero
-        /// a negative number means funds are withdrawn from `accountNumber` and moved to accountNumber zero
-        bool isPositiveMarginDeposit;
-        /// the amount of the margin deposit/withdrawal, in wei
-        uint marginDeposit;
-        /// the amount of seconds from the time at which the position is opened to expiry. 0 for no expiration
-        uint expiryTimeDelta;
-    }
-
-    struct ModifyPositionCache {
-        ModifyPositionParams params;
-        IDolomiteMargin dolomiteMargin;
-        IDolomiteAmmFactory ammFactory;
-        address account;
-        uint[] marketPath;
-        uint[] amountsWei;
-        uint marginDepositDeltaWei;
-    }
-
-    struct PermitSignature {
-        bool approveMax;
-        uint8 v;
-        bytes32 r;
-        bytes32 s;
-    }
 
     // ============ Events ============
 
