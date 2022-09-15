@@ -127,6 +127,12 @@ const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
 const SimpleFeeOwner = artifacts.require('SimpleFeeOwner');
 
+// GLP
+const GLPPriceOracleV1 = artifacts.require('GLPPriceOracleV1');
+const TestGLP = artifacts.require('TestGLP');
+const TestGLPManager = artifacts.require('TestGLPManager');
+const TestGMXVault = artifacts.require('TestGMXVault');
+
 // ============ Main Migration ============
 
 const migration = async (deployer, network, accounts) => {
@@ -163,6 +169,9 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(TestMakerOracle),
       deployer.deploy(TestOasisDex),
       deployer.deploy(TestChainlinkFlags),
+      deployer.deploy(TestGLP),
+      deployer.deploy(TestGLPManager),
+      deployer.deploy(TestGMXVault),
     ]);
   }
 }
@@ -293,6 +302,31 @@ async function deployPriceOracles(deployer, network) {
       deployer.deploy(TestMaticUsdChainlinkAggregator),
       deployer.deploy(TestUsdcUsdChainlinkAggregator),
     ]);
+  }
+
+  if (isDevNetwork(network)) {
+    await deployer.deploy(GLPPriceOracleV1, TestGLPManager.address, TestGMXVault.address, TestGLP.address);
+  } else if (isArbitrum(network)) {
+    await deployer.deploy(GLPPriceOracleV1,
+      '0x321F653eED006AD1C29D174e17d96351BDe22649',
+      '0x489ee077994B6658eAfA855C308275EAd8097C4A',
+      '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258',
+    );
+    if (shouldOverwrite(GLPPriceOracleV1, network)) {
+      await deployer.deploy(
+        GLPPriceOracleV1,
+        '0x321F653eED006AD1C29D174e17d96351BDe22649',
+        '0x489ee077994B6658eAfA855C308275EAd8097C4A',
+        '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258',
+      );
+    } else {
+      await deployer.deploy(
+        GLPPriceOracleV1,
+        getNoOverwriteParams(),
+      );
+    }
+  } else {
+    throw new Error('Cannot deploy GLPPriceOracleV1. Need impl on network ' + network);
   }
 
   const tokens = {

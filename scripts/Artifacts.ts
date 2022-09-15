@@ -40,6 +40,7 @@ import { default as MultiCall } from '../build/contracts/MultiCall.json';
 import { default as IArbitrumGasInfo } from '../build/contracts/IArbitrumGasInfo.json';
 import { default as TestUniswapAmmRebalancerProxy } from '../build/contracts/TestUniswapAmmRebalancerProxy.json';
 import { default as RecyclableTokenProxy } from '../build/contracts/RecyclableTokenProxy.json';
+import { default as GLPPriceOracleV1 } from '../build/contracts/GLPPriceOracleV1.json';
 
 export default {
   DepositImpl,
@@ -80,4 +81,5 @@ export default {
   IArbitrumGasInfo,
   TestUniswapAmmRebalancerProxy,
   RecyclableTokenProxy,
+  GLPPriceOracleV1,
 };

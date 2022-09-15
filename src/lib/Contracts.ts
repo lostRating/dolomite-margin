@@ -33,6 +33,7 @@ import chainlinkPriceOracleV1Json from '../../build/published_contracts/Chainlin
 import dolomiteAmmFactoryJson from '../../build/published_contracts/DolomiteAmmFactory.json';
 import dolomiteAmmPairJson from '../../build/published_contracts/DolomiteAmmPair.json';
 import dolomiteAmmRouterProxyJson from '../../build/published_contracts/DolomiteAmmRouterProxy.json';
+import glpPriceOracleV1Json from '../../build/published_contracts/GLPPriceOracleV1.json';
 
 // JSON
 import dolomiteMarginJson from '../../build/published_contracts/DolomiteMargin.json';
@@ -65,6 +66,7 @@ import { DolomiteAmmRouterProxy } from '../../build/wrappers/DolomiteAmmRouterPr
 import { DolomiteMargin } from '../../build/wrappers/DolomiteMargin';
 import { DoubleExponentInterestSetter } from '../../build/wrappers/DoubleExponentInterestSetter';
 import { Expiry } from '../../build/wrappers/Expiry';
+import { GLPPriceOracleV1 } from '../../build/wrappers/GLPPriceOracleV1';
 import { IERC20 as ERC20 } from '../../build/wrappers/IERC20';
 import { IInterestSetter as InterestSetter } from '../../build/wrappers/IInterestSetter';
 import { IPriceOracle as PriceOracle } from '../../build/wrappers/IPriceOracle';
@@ -119,6 +121,7 @@ export class Contracts {
   public polynomialInterestSetter: PolynomialInterestSetter;
   public doubleExponentInterestSetter: DoubleExponentInterestSetter;
   public chainlinkPriceOracleV1: ChainlinkPriceOracleV1;
+  public glpPriceOracleV1: GLPPriceOracleV1;
   public dolomiteAmmFactory: DolomiteAmmFactory;
   public simpleFeeOwner: SimpleFeeOwner;
   public transferProxy: TransferProxy;
@@ -197,6 +200,9 @@ export class Contracts {
     this.chainlinkPriceOracleV1 = new this.web3.eth.Contract(
       chainlinkPriceOracleV1Json.abi,
     ) as ChainlinkPriceOracleV1;
+    this.glpPriceOracleV1 = new this.web3.eth.Contract(
+      glpPriceOracleV1Json.abi,
+    ) as GLPPriceOracleV1;
     this.dolomiteAmmFactory = new this.web3.eth.Contract(
       dolomiteAmmFactoryJson.abi,
     ) as DolomiteAmmFactory;
@@ -267,31 +273,16 @@ export class Contracts {
       { contract: this.payableProxy, json: payableProxyJson },
       { contract: this.signedOperationProxy, json: signedOperationProxyJson },
       { contract: this.liquidatorProxyV1, json: liquidatorV1Json },
-      {
-        contract: this.liquidatorProxyV1WithAmm,
-        json: liquidatorV1WithAmmJson,
-      },
-      {
-        contract: this.dolomiteAmmRouterProxy,
-        json: dolomiteAmmRouterProxyJson,
-      },
+      { contract: this.liquidatorProxyV1WithAmm, json: liquidatorV1WithAmmJson },
+      { contract: this.dolomiteAmmRouterProxy, json: dolomiteAmmRouterProxyJson },
       { contract: this.ammRebalancerProxyV1, json: ammRebalancerProxyV1Json },
       { contract: this.ammRebalancerProxyV2, json: ammRebalancerProxyV2Json },
       { contract: this.arbitrumGasInfo, json: arbitrumGasInfoJson },
-      {
-        contract: this.polynomialInterestSetter,
-        json: polynomialInterestSetterJson,
-      },
-      {
-        contract: this.doubleExponentInterestSetter,
-        json: doubleExponentInterestSetterJson,
-      },
+      { contract: this.polynomialInterestSetter, json: polynomialInterestSetterJson },
+      { contract: this.doubleExponentInterestSetter, json: doubleExponentInterestSetterJson },
       { contract: this.dolomiteAmmFactory, json: dolomiteAmmFactoryJson },
       { contract: this.simpleFeeOwner, json: simpleFeeOwnerJson },
-      {
-        contract: this.chainlinkPriceOracleV1,
-        json: chainlinkPriceOracleV1Json,
-      },
+      { contract: this.chainlinkPriceOracleV1, json: chainlinkPriceOracleV1Json },
       { contract: this.transferProxy, json: transferProxyJson },
       { contract: this.borrowPositionProxy, json: borrowPositionProxyJson },
       { contract: this.depositProxy, json: depositProxyJson },
@@ -299,6 +290,7 @@ export class Contracts {
       { contract: this.arbitrumMultiCall, json: arbitrumMultiCallJson },
       { contract: this.weth, json: wethJson },
       { contract: this.testUniswapAmmRebalancer, json: testUniswapAmmRebalancerJson },
+      { contract: this.glpPriceOracleV1, json: glpPriceOracleV1Json },
     ];
 
     contracts.forEach(contract =>
@@ -318,6 +310,7 @@ export class Contracts {
     this.erc20.options.from = account;
     this.interestSetter.options.from = account;
     this.priceOracle.options.from = account;
+    this.glpPriceOracleV1.options.from = account;
     this.expiry.options.from = account;
     this.payableProxy.options.from = account;
     this.signedOperationProxy.options.from = account;

@@ -33,6 +33,7 @@ import { LiquidatorProxyWithAmm } from './modules/LiquidatorProxyWithAmm';
 import { Logs } from './modules/Logs';
 import { Operation } from './modules/operate/Operation';
 import { ChainlinkPriceOracleV1 } from './modules/oracles/ChainlinkPriceOracleV1';
+import { GLPPriceOracleV1 } from './modules/oracles/GLPPriceOracleV1';
 import { OrderMapper } from './modules/OrderMapper';
 import { Permissions } from './modules/Permissions';
 import { SignedOperations } from './modules/SignedOperations';
@@ -61,6 +62,7 @@ export class DolomiteMargin {
   public token: Token;
   public expiry: Expiry;
   public chainlinkPriceOracle: ChainlinkPriceOracleV1;
+  public glpPriceOracle: GLPPriceOracleV1;
   public weth: Weth;
   public web3: Web3;
   public admin: Admin;
@@ -104,24 +106,16 @@ export class DolomiteMargin {
     }
 
     this.networkId = networkId;
-    this.contracts = this.createContractsModule(
-      realProvider,
-      networkId,
-      this.web3,
-      options,
-    );
+    this.contracts = this.createContractsModule(realProvider, networkId, this.web3, options);
     this.interest = new Interest(networkId);
     this.token = new Token(this.contracts);
     this.expiry = new Expiry(this.contracts);
     this.chainlinkPriceOracle = new ChainlinkPriceOracleV1(this.contracts);
+    this.glpPriceOracle = new GLPPriceOracleV1(this.contracts);
     this.weth = new Weth(this.contracts, this.token);
     this.admin = new Admin(this.contracts);
     this.getters = new Getters(this.contracts);
-    this.signedOperations = new SignedOperations(
-      this.contracts,
-      this.web3,
-      networkId,
-    );
+    this.signedOperations = new SignedOperations(this.contracts, this.web3, networkId);
     this.liquidatorProxy = new LiquidatorProxy(this.contracts);
     this.liquidatorProxyWithAmm = new LiquidatorProxyWithAmm(this.contracts);
     this.ammRebalancerProxyV1 = new AmmRebalancerProxyV1(this.contracts);

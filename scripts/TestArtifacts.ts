@@ -31,6 +31,9 @@ import { default as TestAmmRebalancerProxy } from '../build/contracts/TestAmmReb
 import { default as TestUniswapV3MultiRouter } from '../build/contracts/TestUniswapV3MultiRouter.json';
 import { default as TestChainlinkFlags } from '../build/contracts/TestChainlinkFlags.json';
 import { default as TestChainlinkPriceOracleV1 } from '../build/contracts/TestChainlinkPriceOracleV1.json';
+import { default as TestGMXVault } from '../build/contracts/TestGMXVault.json';
+import { default as TestGLPManager } from '../build/contracts/TestGLPManager.json';
+import { default as TestGLP } from '../build/contracts/TestGLP.json';
 
 export default {
   CustomTestToken,
@@ -66,4 +69,7 @@ export default {
   TestUniswapV3MultiRouter,
   TestChainlinkFlags,
   TestChainlinkPriceOracleV1,
+  TestGMXVault,
+  TestGLPManager,
+  TestGLP,
 };
