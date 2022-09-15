@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2022 Dolomite.
+    Copyright 2019 dYdX Trading Inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,26 +19,18 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { IChainlinkFlags} from "../external/oracles/IChainlinkFlags.sol";
+import { IGLPManager } from  "../external/interfaces/IGLPManager.sol";
 
 
-contract TestChainlinkFlags is IChainlinkFlags {
+/**
+ * @title TestGLPManager
+ * @author Dolomite
+ *
+ * GLP manager used for testing the GLP price oracle. Emulates real data from GMX on Arbitrum.
+ */
+contract TestGLPManager is IGLPManager {
 
-    bool private shouldReturnOffline = false;
-
-    function setShouldReturnOffline(
-        bool _shouldReturnOffline
-    )
-        external
-    {
-        shouldReturnOffline = _shouldReturnOffline;
-    }
-
-    function getFlag(address) external view returns (bool) {
-        if (shouldReturnOffline) {
-            return true;
-        } else {
-            return false;
-        }
+    function getAumInUsdg(bool) external view returns (uint256) {
+        return 289372552930917558292948353; // 289M
     }
 }

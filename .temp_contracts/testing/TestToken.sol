@@ -51,6 +51,7 @@ contract TestToken is IERC20Detailed {
         uint currBalance = balanceOf(_target);
         require(_value + currBalance >= currBalance, "INVALID_VALUE");
         balances[_target] = currBalance.add(_value);
+        supply = supply.add(_value);
         emit Transfer(address(0x0), _target, _value);
     }
 

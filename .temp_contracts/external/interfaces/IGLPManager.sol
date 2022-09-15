@@ -17,28 +17,9 @@
 */
 
 pragma solidity ^0.5.7;
-pragma experimental ABIEncoderV2;
-
-import { IChainlinkFlags} from "../external/oracles/IChainlinkFlags.sol";
 
 
-contract TestChainlinkFlags is IChainlinkFlags {
+interface IGLPManager {
 
-    bool private shouldReturnOffline = false;
-
-    function setShouldReturnOffline(
-        bool _shouldReturnOffline
-    )
-        external
-    {
-        shouldReturnOffline = _shouldReturnOffline;
-    }
-
-    function getFlag(address) external view returns (bool) {
-        if (shouldReturnOffline) {
-            return true;
-        } else {
-            return false;
-        }
-    }
+    function getAumInUsdg(bool maximise) external view returns (uint256);
 }

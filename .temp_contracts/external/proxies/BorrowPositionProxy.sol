@@ -39,8 +39,8 @@ import { IBorrowPositionProxy } from "../interfaces/IBorrowPositionProxy.sol";
  * @title   BorrowPositionProxy
  * @author  Dolomite
  *
- * @dev Contract for opening borrow positions to make indexing easier. This lowers gas costs on Arbitrum by minimizing
- *      call data, too.
+ * @dev Proxy contract for opening borrow positions. This makes indexing easier and lowers gas costs on Arbitrum by
+ *      minimizing call data
  */
 contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, ReentrancyGuard {
 

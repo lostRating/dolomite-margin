@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2022 Dolomite.
+    Copyright 2019 dYdX Trading Inc.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -19,26 +19,22 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { IChainlinkFlags} from "../external/oracles/IChainlinkFlags.sol";
+import { IGMXVault } from  "../external/interfaces/IGMXVault.sol";
 
 
-contract TestChainlinkFlags is IChainlinkFlags {
+/**
+ * @title TestGMXVault
+ * @author Dolomite
+ *
+ * GMX vault used for testing the GLP price oracle. Emulates real data from GMX on Arbitrum.
+ */
+contract TestGMXVault is IGMXVault {
 
-    bool private shouldReturnOffline = false;
-
-    function setShouldReturnOffline(
-        bool _shouldReturnOffline
-    )
-        external
-    {
-        shouldReturnOffline = _shouldReturnOffline;
+    function taxBasisPoints() external view returns (uint256) {
+        return 50;
     }
 
-    function getFlag(address) external view returns (bool) {
-        if (shouldReturnOffline) {
-            return true;
-        } else {
-            return false;
-        }
+    function mintBurnFeeBasisPoints() external view returns (uint256) {
+        return 25;
     }
 }

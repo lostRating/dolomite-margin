@@ -35,7 +35,7 @@ import "./IChainlinkFlags.sol";
  * @title ChainlinkPriceOracleV1
  * @author Dolomite
  *
- * An implementation of the dYdX IPriceOracle interface that makes Chainlink prices compatible with the protocol.
+ * An implementation of the IPriceOracle interface that makes Chainlink prices compatible with the protocol.
  */
 contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
     using SafeMath for uint;

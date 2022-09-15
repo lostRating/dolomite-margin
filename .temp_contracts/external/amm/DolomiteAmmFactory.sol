@@ -82,9 +82,9 @@ contract DolomiteAmmFactory is IDolomiteAmmFactory {
         ITransferProxy(transferProxy).setIsCallerTrusted(pair, true);
         IDolomiteAmmPair(pair).initialize(token0, token1, transferProxy);
         getPair[token0][token1] = pair;
+        // populate mapping in the reverse direction
         getPair[token1][token0] = pair;
         isPairCreated[pair] = true;
-        // populate mapping in the reverse direction
         allPairs.push(pair);
         emit PairCreated(
             token0,

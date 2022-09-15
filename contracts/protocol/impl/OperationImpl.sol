@@ -399,7 +399,7 @@ library OperationImpl {
         Account.Info memory account,
         uint256 cachedNumberOfMarketsWithBalances
     )
-        private
+        private view
     {
         // The account should either have less markets with balances than at the start of the transaction OR
         // less markets with balances than the max number of markets with balances per account

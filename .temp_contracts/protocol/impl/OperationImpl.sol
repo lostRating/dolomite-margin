@@ -76,6 +76,7 @@ library OperationImpl {
 
         (
             bool[] memory primaryAccounts,
+            uint256[] memory numberOfMarketsWithBalancesPerAccount,
             Cache.MarketCache memory cache
         ) = _runPreprocessing(
             state,
@@ -94,6 +95,7 @@ library OperationImpl {
             state,
             accounts,
             primaryAccounts,
+            numberOfMarketsWithBalancesPerAccount,
             cache
         );
     }
@@ -139,11 +141,13 @@ library OperationImpl {
         private
         returns (
             bool[] memory,
+            uint256[] memory,
             Cache.MarketCache memory
         )
     {
         uint256 numMarkets = state.numMarkets;
         bool[] memory primaryAccounts = new bool[](accounts.length);
+        uint256[] memory numberOfMarketsWithBalancesPerAccount = new uint256[](accounts.length);
         Cache.MarketCache memory cache = Cache.create(numMarkets);
 
         // keep track of primary accounts and indexes that need updating
@@ -193,6 +197,7 @@ library OperationImpl {
         // get any other markets for which an account has a balance
         for (uint256 a = 0; a < accounts.length; a++) {
             uint[] memory marketIdsWithBalance = state.getMarketsWithBalances(accounts[a]);
+            numberOfMarketsWithBalancesPerAccount[a] = marketIdsWithBalance.length;
             for (uint256 i = 0; i < marketIdsWithBalance.length; i++) {
                 _updateMarket(state, cache, marketIdsWithBalance[i]);
             }
@@ -204,7 +209,7 @@ library OperationImpl {
             Events.logOraclePrice(cache.getAtIndex(i));
         }
 
-        return (primaryAccounts, cache);
+        return (primaryAccounts, numberOfMarketsWithBalancesPerAccount, cache);
     }
 
     function _updateMarket(
@@ -291,6 +296,7 @@ library OperationImpl {
                 );
             } else {
               /*assert(actionType == Actions.ActionType.Call);*/
+                // solium-disable-next-line
                 CallImpl.call(
                     state,
                     Actions.parseCallArgs(accounts, action)
@@ -303,6 +309,7 @@ library OperationImpl {
         Storage.State storage state,
         Account.Info[] memory accounts,
         bool[] memory primaryAccounts,
+        uint256[] memory numberOfMarketsWithBalancesPerAccount,
         Cache.MarketCache memory cache
     )
         private
@@ -361,13 +368,7 @@ library OperationImpl {
         for (uint256 a = 0; a < accounts.length; a++) {
             Account.Info memory account = accounts[a];
 
-            Require.that(
-                state.getNumberOfMarketsWithBalances(account) <= state.riskParams.accountMaxNumberOfMarketsWithBalances,
-                FILE,
-                "Too many non-zero balances",
-                account.owner,
-                account.number
-            );
+            _verifyNumberOfMarketsWithBalances(state, account, numberOfMarketsWithBalancesPerAccount[a]);
 
             // don't check collateralization for non-primary accounts
             if (!primaryAccounts[a]) {
@@ -393,4 +394,23 @@ library OperationImpl {
         }
     }
 
+    function _verifyNumberOfMarketsWithBalances(
+        Storage.State storage state,
+        Account.Info memory account,
+        uint256 cachedNumberOfMarketsWithBalances
+    )
+        private view
+    {
+        // The account should either have less markets with balances than at the start of the transaction OR
+        // less markets with balances than the max number of markets with balances per account
+        uint256 actualNumberOfMarketsWithBalances = state.getNumberOfMarketsWithBalances(account);
+        Require.that(
+            actualNumberOfMarketsWithBalances <= cachedNumberOfMarketsWithBalances ||
+            actualNumberOfMarketsWithBalances <= state.riskParams.accountMaxNumberOfMarketsWithBalances,
+            FILE,
+            "Too many non-zero balances",
+            account.owner,
+            account.number
+        );
+    }
 }

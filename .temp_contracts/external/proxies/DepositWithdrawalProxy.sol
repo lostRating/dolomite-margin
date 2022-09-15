@@ -108,7 +108,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _deposit(
-            /* _from = */ msg.sender,
+            /* _from = */ msg.sender, // solium-disable-line indentation
             _accountIndex,
             _marketId,
             Types.AssetAmount({
@@ -129,7 +129,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     nonReentrant {
         _wrap();
         _deposit(
-            /* _from = */ address(this),
+            /* _from = */ address(this), // solium-disable-line indentation
             _accountIndex,
             ETH_MARKET_ID,
             Types.AssetAmount({
@@ -148,8 +148,8 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _deposit(
-            /* _from = */ msg.sender,
-            /* _accountIndex = */ 0,
+            /* _from = */ msg.sender, // solium-disable-line indentation
+            /* _accountIndex = */ 0, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: true,
@@ -167,8 +167,8 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     nonReentrant {
         _wrap();
         _deposit(
-            /* _from = */ address(this),
-            /* _accountIndex = */ 0,
+            /* _from = */ address(this), // solium-disable-line indentation
+            /* _accountIndex = */ 0, // solium-disable-line indentation
             ETH_MARKET_ID,
             Types.AssetAmount({
                 sign: true,
@@ -187,7 +187,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _withdraw(
-            /* _to = */ msg.sender,
+            /* _to = */ msg.sender, // solium-disable-line indentation
             _accountIndex,
             _marketId,
             Types.AssetAmount({
@@ -207,7 +207,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     requireIsInitialized
     nonReentrant {
         _withdraw(
-            /* _to = */ address(this),
+            /* _to = */ address(this), // solium-disable-line indentation
             _accountIndex,
             ETH_MARKET_ID,
             Types.AssetAmount({
@@ -227,8 +227,8 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _withdraw(
-            /* _to = */ msg.sender,
-            /* _accountIndex = */ 0,
+            /* _to = */ msg.sender, // solium-disable-line indentation
+            /* _accountIndex = */ 0, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: false,
@@ -246,8 +246,8 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     requireIsInitialized
     nonReentrant {
         _withdraw(
-            /* _to = */ address(this),
-            0,
+            /* _to = */ address(this), // solium-disable-line indentation
+            0, // solium-disable-line indentation
             ETH_MARKET_ID,
             Types.AssetAmount({
                 sign: false,
@@ -269,7 +269,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _deposit(
-            /* _from = */ msg.sender,
+            /* _from = */ msg.sender, // solium-disable-line indentation
             _accountIndex,
             _marketId,
             Types.AssetAmount({
@@ -288,8 +288,8 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _deposit(
-            /* _from = */ msg.sender,
-            /* _accountIndex = */ 0,
+            /* _from = */ msg.sender, // solium-disable-line indentation
+            /* _accountIndex = */ 0, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: true,
@@ -308,7 +308,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _withdraw(
-            /* _to = */ msg.sender,
+            /* _to = */ msg.sender, // solium-disable-line indentation
             _accountIndex,
             _marketId,
             Types.AssetAmount({
@@ -327,8 +327,8 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     external
     nonReentrant {
         _withdraw(
-            /* _to = */ msg.sender,
-            /* _accountIndex = */ 0,
+            /* _to = */ msg.sender, // solium-disable-line indentation
+            /* _accountIndex = */ 0, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: false,

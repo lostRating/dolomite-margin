@@ -11,7 +11,9 @@ interface IArbitrumGasInfo {
     //            per ArbGas congestion,
     //            per ArbGas total
     //        )
-    function getPricesInWeiWithAggregator(address aggregator) external view returns (uint, uint, uint, uint, uint, uint);
+    function getPricesInWeiWithAggregator(
+        address aggregator
+    ) external view returns (uint, uint, uint, uint, uint, uint);
 
     // return gas prices in wei, as described above, assuming the caller's preferred aggregator is used
     //     if the caller hasn't specified a preferred aggregator, the default aggregator is assumed

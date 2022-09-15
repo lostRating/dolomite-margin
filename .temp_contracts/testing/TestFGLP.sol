@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2022 Dolomite.
+    Copyright 2021 Dolomite.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -17,28 +17,13 @@
 */
 
 pragma solidity ^0.5.7;
-pragma experimental ABIEncoderV2;
 
-import { IChainlinkFlags} from "../external/oracles/IChainlinkFlags.sol";
+import "./CustomTestToken.sol";
 
 
-contract TestChainlinkFlags is IChainlinkFlags {
+contract TestFGLP is CustomTestToken {
 
-    bool private shouldReturnOffline = false;
-
-    function setShouldReturnOffline(
-        bool _shouldReturnOffline
-    )
-        external
-    {
-        shouldReturnOffline = _shouldReturnOffline;
-    }
-
-    function getFlag(address) external view returns (bool) {
-        if (shouldReturnOffline) {
-            return true;
-        } else {
-            return false;
-        }
+    constructor() CustomTestToken("Fee GLP", "fGLP", 18) public {
+        addBalance(msg.sender, 313858827868641219289226776); // 313M
     }
 }
