@@ -36,7 +36,7 @@ module.exports = {
   client: require('ganache-cli'),
   configureYulOptimizer: true,
   onServerReady: async () => {
-    execSync('rm -rf .temp_contracts && sudo cp -r contracts/ .temp_contracts/', { stdio: 'inherit' });
+    execSync('rm -rf contracts_temp && sudo cp -r contracts/ contracts_temp/', { stdio: 'inherit' });
     execSync('python util/fix_contracts_for_coverage.py', { stdio: 'inherit' });
   },
   onCompileComplete: async () => {

@@ -91,7 +91,7 @@ def main():
 
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-    for dir,_,_ in os.walk(dir_path+"/.temp_contracts"):
+    for dir,_,_ in os.walk(dir_path+"/contracts_temp"):
         files.extend(glob.glob(os.path.join(dir,pattern)))
 
     numHidden = 0
