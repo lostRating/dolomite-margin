@@ -47,10 +47,17 @@ describe('GLPPriceOracleV1', () => {
   });
 
   describe('#getPrice', () => {
-    it('returns the correct value under the correct conditions', async () => {
+    it('returns the correct value under the correct conditions for GLP', async () => {
       await dolomiteMargin.glpPriceOracle.updateOraclePrice();
       const glp = await dolomiteMargin.glpPriceOracle.glp();
       const price = await dolomiteMargin.glpPriceOracle.getPrice(glp);
+      expect(price).to.eql(GLP_PRICE);
+    });
+
+    it('returns the correct value under the correct conditions for fGLP', async () => {
+      await dolomiteMargin.glpPriceOracle.updateOraclePrice();
+      const fGLP = await dolomiteMargin.glpPriceOracle.fGlp();
+      const price = await dolomiteMargin.glpPriceOracle.getPrice(fGLP);
       expect(price).to.eql(GLP_PRICE);
     });
 

@@ -31,6 +31,15 @@ export class GLPPriceOracleV1 {
     );
   }
 
+  public async fGlp(
+    options?: ContractConstantCallOptions,
+  ): Promise<address> {
+    return await this.contracts.callConstantContractFunction(
+      this.contracts.glpPriceOracleV1.methods.fGlp(),
+      options,
+    );
+  }
+
   public async getPrice(
     token: address,
     options?: ContractConstantCallOptions,

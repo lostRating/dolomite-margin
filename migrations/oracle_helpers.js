@@ -250,7 +250,21 @@ function mapPairsToParams(pairs) {
   };
 }
 
+function getGlpPriceOracleV1Params(network) {
+  if (isArbitrum(network)) {
+    return [
+      '0x321F653eED006AD1C29D174e17d96351BDe22649',
+      '0x489ee077994B6658eAfA855C3082575EAd8097C4A',
+      '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258',
+      '0x4e971a87900b931fF39d1Aad67697F49835400b6',
+    ]
+  } else {
+    throw new Error('Cannot deploy GLPPriceOracleV1. Need impl on network ' + network);
+  }
+}
+
 module.exports = {
   getChainlinkPriceOracleV1Params,
+  getGlpPriceOracleV1Params,
   getChainlinkPriceOracleContract,
 };

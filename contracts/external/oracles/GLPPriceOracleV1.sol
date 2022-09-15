@@ -59,6 +59,7 @@ contract GLPPriceOracleV1 is IPriceOracle {
     address public glpManager;
     address public gmxVault;
     address public glp;
+    address public fGlp;
     uint256 public priceCumulative;
     uint256 public lastOraclePriceUpdateTimestamp;
 
@@ -69,11 +70,13 @@ contract GLPPriceOracleV1 is IPriceOracle {
     constructor(
         address _glpManager,
         address _gmxVault,
-        address _glp
+        address _glp,
+        address _fGlp
     ) public {
         glpManager = _glpManager;
         gmxVault = _gmxVault;
         glp = _glp;
+        fGlp = _fGlp;
 
         lastOraclePriceUpdateTimestamp = block.timestamp - EXPIRATION_DURATION;
     }
@@ -112,7 +115,7 @@ contract GLPPriceOracleV1 is IPriceOracle {
             "oracle price not set"
         );
         Require.that(
-            token == glp,
+            token == glp || token == fGlp,
             FILE,
             "invalid token"
         );

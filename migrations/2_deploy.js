@@ -41,6 +41,7 @@ const {
 const {
   getChainlinkPriceOracleContract,
   getChainlinkPriceOracleV1Params,
+  getGlpPriceOracleV1Params,
 } = require('./oracle_helpers');
 const {
   getWethAddress,
@@ -130,6 +131,7 @@ const SimpleFeeOwner = artifacts.require('SimpleFeeOwner');
 // GLP
 const GLPPriceOracleV1 = artifacts.require('GLPPriceOracleV1');
 const TestGLP = artifacts.require('TestGLP');
+const TestFGLP = artifacts.require('TestFGLP');
 const TestGLPManager = artifacts.require('TestGLPManager');
 const TestGMXVault = artifacts.require('TestGMXVault');
 
@@ -170,6 +172,7 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(TestOasisDex),
       deployer.deploy(TestChainlinkFlags),
       deployer.deploy(TestGLP),
+      deployer.deploy(TestFGLP),
       deployer.deploy(TestGLPManager),
       deployer.deploy(TestGMXVault),
     ]);
@@ -305,19 +308,18 @@ async function deployPriceOracles(deployer, network) {
   }
 
   if (isDevNetwork(network)) {
-    await deployer.deploy(GLPPriceOracleV1, TestGLPManager.address, TestGMXVault.address, TestGLP.address);
-  } else if (isArbitrum(network)) {
-    await deployer.deploy(GLPPriceOracleV1,
-      '0x321F653eED006AD1C29D174e17d96351BDe22649',
-      '0x489ee077994B6658eAfA855C308275EAd8097C4A',
-      '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258',
+    await deployer.deploy(
+      GLPPriceOracleV1,
+      TestGLPManager.address,
+      TestGMXVault.address,
+      TestGLP.address,
+      TestFGLP.address,
     );
+  } else if (isArbitrum(network)) {
     if (shouldOverwrite(GLPPriceOracleV1, network)) {
       await deployer.deploy(
         GLPPriceOracleV1,
-        '0x321F653eED006AD1C29D174e17d96351BDe22649',
-        '0x489ee077994B6658eAfA855C308275EAd8097C4A',
-        '0x4277f8F2c384827B5273592FF7CeBd9f2C1ac258',
+        ...getGlpPriceOracleV1Params(network),
       );
     } else {
       await deployer.deploy(
