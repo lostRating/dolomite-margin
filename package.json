@@ -1,6 +1,6 @@
 {
   "name": "@dolomite-exchange/dolomite-margin",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "description": "Ethereum Smart Contracts and TypeScript library used for the DolomiteMargin trading protocol",
   "engines": {
     "npm": "6.14.x"
@@ -29,7 +29,7 @@
     "build:all-wrappers": "npm run build:wrappers && npm run build:test_wrappers",
     "build:wrappers": "typechain --target=web3-1.0.0 --outDir=build/wrappers/ './build/published_contracts/*.json'",
     "build:test_wrappers": "typechain --target=web3-1.0.0 --outDir=build/testing_wrappers/ './build/testing_contracts/*.json'",
-    "migrate": "node --max-old-space-size=8192 node_modules/.bin/truffle migrate",
+    "migrate": "DOCKER_COMPILER=true node --max-old-space-size=8192 node_modules/.bin/truffle migrate",
     "develop": "truffle develop",
     "console": "truffle console",
     "lint": "npm run lint:ts && npm run lint:js && npm run lint:sol && npm run lint:dolomite-margin",
@@ -47,13 +47,14 @@
     "check_amm_bytecode": "ts-node ./scripts/CheckAmmBytecode.ts",
     "clean_contract_json": "ts-node ./scripts/CleanBuild.ts",
     "fix_deployment_file": "ts-node ./scripts/FixDeploymentFile.ts",
-    "deploy": "npm run fix_deployment_file && NODE_ENV=production truffle migrate --network=$NETWORK --reset && npm run save_deployed_addresses",
+    "deploy": "npm run fix_deployment_file && NODE_ENV=production npm run migrate -- --network $NETWORK --reset && npm run save_deployed_addresses",
     "deploy_kovan": "NETWORK=kovan npm run deploy",
     "deploy_mainnet": "NETWORK=mainnet npm run deploy",
     "deploy_matic": "NETWORK=matic npm run deploy",
     "deploy_mumbai": "NETWORK=mumbai_matic npm run deploy",
-    "deploy_arbitrum": "NETWORK=arbitrum npm run deploy",
+    "deploy_arbitrum_one": "NETWORK=arbitrum_one npm run deploy",
     "deploy_arbitrum_rinkeby": "NETWORK=arbitrum_rinkeby npm run deploy",
+    "deploy_arbitrum_goerli": "NETWORK=arbitrum_goerli npm run deploy",
     "deploy_test": "npm run reset_test_evm && npm run migrate -- --network test --reset && npm run snapshot_test_evm && npm run check_amm_bytecode && npm run build:contract-artifacts",
     "deploy_coverage": "npm run replace_bytecode && RPC_NODE_URI=http://127.0.01:8545 npm run reset_test_evm && COVERAGE_REPLICA_DEPLOY=true node --max-old-space-size=8192 node_modules/.bin/truffle migrate --network coverage_replica && RPC_NODE_URI=http://127.0.0.1:8545 npm run snapshot_test_evm && npm run build:contract-artifacts",
     "deploy_test_ci": "RPC_NODE_URI=http://0.0.0.0:8545 npm run reset_test_evm && npm run migrate -- --network test_ci --reset && RPC_NODE_URI=http://0.0.0.0:8545 npm run snapshot_test_evm && npm run check_amm_bytecode && npm run build:contract-artifacts",
