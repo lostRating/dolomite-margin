@@ -131,7 +131,7 @@ module.exports = {
       timeoutBlocks: 5000,
       networkCheckTimeout: 120000,
     },
-    arbitrum: {
+    arbitrum_one: {
       network_id: 42161,
       provider: () => {
         return new HDWalletProvider(
@@ -140,10 +140,10 @@ module.exports = {
         )
       },
       gasPrice: 1000000000, // 1 gwei
-      gas: 100000000,
+      gas: 25000000,
       timeoutBlocks: 5000,
       networkCheckTimeout: 120000,
-      confirmations: 1,
+      confirmations: 0,
       disableConfirmationListener: true,
     },
     arbitrum_rinkeby: {
@@ -155,10 +155,25 @@ module.exports = {
         )
       },
       gasPrice: 100000000, // 0.1 gwei
-      gas: 100000000,
+      gas: 25000000,
       timeoutBlocks: 5000,
       networkCheckTimeout: 120000,
-      confirmations: 1,
+      confirmations: 0,
+      disableConfirmationListener: true,
+    },
+    arbitrum_goerli: {
+      network_id: 421613,
+      provider: () => {
+        return new HDWalletProvider(
+          [process.env.DEPLOYER_PRIVATE_KEY],
+          process.env.ARBITRUM_GOERLI_NODE_URL
+        )
+      },
+      gasPrice: 100000000, // 0.1 gwei
+      gas: 25000000,
+      timeoutBlocks: 5000,
+      networkCheckTimeout: 120000,
+      confirmations: 0,
       disableConfirmationListener: true,
     }
   },

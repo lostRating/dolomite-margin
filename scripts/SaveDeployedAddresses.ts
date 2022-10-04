@@ -1,18 +1,13 @@
 import fs from 'fs';
 import { promisify } from 'es6-promisify';
-import mkdirp from 'mkdirp';
 import contracts from './Artifacts';
 import deployed from '../migrations/deployed.json';
 
 const writeFileAsync = promisify(fs.writeFile);
-const mkdirAsync = promisify(mkdirp);
 
-const NETWORK_IDS = ['1', '42', '137', '80001', '42161', '421611'];
+const NETWORK_IDS = ['1', '5', '42', '137', '80001', '42161', '421611', '421613'];
 
 async function run() {
-  const directory = `${__dirname}/../migrations/`;
-  await mkdirAsync(directory);
-
   Object.keys(contracts).forEach((contractName) => {
     const contract = contracts[contractName];
 
@@ -31,6 +26,7 @@ async function run() {
 
   const json = JSON.stringify(deployed, null, 4).concat('\n');
 
+  const directory = `${__dirname}/../migrations/`;
   const filename = 'deployed.json';
   await writeFileAsync(directory + filename, json);
   console.log(`Wrote ${filename}`);

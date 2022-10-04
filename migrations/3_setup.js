@@ -19,12 +19,13 @@
 const {
   isDevNetwork,
   isKovan,
-  isMainNet,
+  isEthereumMainnet,
   isDocker,
-  isMatic,
-  isMaticTest,
-  isArbitrum,
-  isArbitrumTest,
+  isMaticProd,
+  isMumbaiMatic,
+  isArbitrumOne,
+  isArbitrumRinkeby,
+  isArbitrumGoerli,
 } = require('./helpers');
 const {
   getDaiAddress,
@@ -116,7 +117,7 @@ async function getDolomiteMargin(network) {
 }
 
 function getTokens(network) {
-  if (isMatic(network)) {
+  if (isMaticProd(network)) {
     return [
       { address: getWethAddress(network, TestWETH) },
       { address: getDaiAddress(network, TokenB) },
@@ -124,14 +125,14 @@ function getTokens(network) {
       { address: getUsdcAddress(network, TokenA) },
       { address: getLinkAddress(network, TokenF) },
     ];
-  } else if (isMaticTest(network)) {
+  } else if (isMumbaiMatic(network)) {
     return [
       { address: getWethAddress(network, TestWETH) },
       { address: getDaiAddress(network, TokenB) },
       { address: getMaticAddress(network, TokenD) },
       { address: getUsdcAddress(network, TokenA) },
     ];
-  } else if (isArbitrum(network) || isArbitrumTest(network)) {
+  } else if (isArbitrumOne(network) || isArbitrumRinkeby(network) || isArbitrumGoerli(network)) {
     const tokens = [
       { address: getWethAddress(network, TestWETH) },
       { address: getDaiAddress(network, TokenB) },
@@ -139,7 +140,7 @@ function getTokens(network) {
       { address: getLinkAddress(network, TokenF) },
       { address: getWbtcAddress(network, TokenD) },
     ];
-    if (isArbitrum(network)) {
+    if (isArbitrumOne(network)) {
       tokens.push({ address: getUsdtAddress(network) });
     }
     return tokens;
@@ -155,49 +156,10 @@ async function getOracles(network) {
   }
 
   const OracleContract = getChainlinkPriceOracleContract(network, artifacts);
-  if (isKovan(network)) {
-    return tokens.map(() => ({ address: OracleContract.address }));
-  }
-  if (isMainNet(network)) {
-    return tokens.map(() => ({ address: OracleContract.address }));
-  }
-  if (isMaticTest(network)) {
-    return tokens.map(() => ({ address: OracleContract.address }));
-  }
-  if (isMatic(network)) {
-    return tokens.map(() => ({ address: OracleContract.address }));
-  }
-  if (isArbitrum(network)) {
-    return tokens.map(() => ({ address: OracleContract.address }));
-  }
-  if (isArbitrumTest(network)) {
-    return tokens.map(() => ({ address: OracleContract.address }));
-  }
-  throw new Error('Cannot find Oracles');
+  return tokens.map(() => ({ address: OracleContract.address }));
 }
 
 async function getSetters(network) {
   const tokens = getTokens(network);
-  if (isDocker(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  if (isKovan(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  if (isMainNet(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  if (isMatic(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  if (isMaticTest(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  if (isArbitrum(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  if (isArbitrumTest(network)) {
-    return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
-  }
-  throw new Error('Cannot find Setters');
+  return tokens.map(() => ({ address: DoubleExponentInterestSetter.address }));
 }

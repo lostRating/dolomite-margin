@@ -496,7 +496,7 @@ contract UniswapV2Router02 {
         uint amountAMin,
         uint amountBMin
     ) internal returns (uint amountA, uint amountB) {
-        // create the pair if it doesn"t exist yet
+        // create the pair if it doesn't exist yet
         if (IUniswapV2Factory(factory).getPair(tokenA, tokenB) == address(0)) {
             IUniswapV2Factory(factory).createPair(tokenA, tokenB);
         }

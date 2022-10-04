@@ -21,7 +21,7 @@ const ethers = require('ethers');
 const {
   isDevNetwork,
   isKovan,
-  isMainNet,
+  isEthereumMainnet,
   getPolynomialParams,
   getDoubleExponentParams,
   getRiskLimits,
@@ -29,14 +29,16 @@ const {
   getExpiryRampTime,
   getSenderAddress,
   getChainId,
-  isMatic,
-  isMaticTest,
-  isArbitrum,
-  isArbitrumTest,
+  isMaticProd,
+  isMumbaiMatic,
+  isArbitrumOne,
+  isArbitrumRinkeby,
   getChainlinkFlags,
   getUniswapV3MultiRouter,
   shouldOverwrite,
   getNoOverwriteParams,
+  isArbitrumGoerli,
+  isArbitrumNetwork,
 } = require('./helpers');
 const {
   getChainlinkPriceOracleContract,
@@ -48,7 +50,8 @@ const {
   getWrappedCurrencyAddress,
 } = require('./token_helpers');
 const { bytecode: uniswapV2PairBytecode } = require('../build/contracts/UniswapV2Pair.json');
-const { getRebalancerV1Routers,
+const {
+  getRebalancerV1Routers,
   getRebalancerV1InitHashes
 } = require('./rebalancer_helpers');
 
@@ -240,9 +243,15 @@ async function deployBaseProtocol(deployer, network) {
   if (isDevNetwork(network)) {
     await deployer.deploy(TestOperationImpl);
     dolomiteMargin = TestDolomiteMargin;
-  } else if (isMatic(network) || isMaticTest(network) || isArbitrum(network) || isArbitrumTest(network)) {
-    dolomiteMargin = DolomiteMargin;
-  } else if (isKovan(network) || isMainNet(network)) {
+  } else if (
+    isKovan(network) ||
+    isEthereumMainnet(network) ||
+    isMaticProd(network) ||
+    isMumbaiMatic(network) ||
+    isArbitrumOne(network) ||
+    isArbitrumRinkeby(network) ||
+    isArbitrumGoerli(network)
+  ) {
     dolomiteMargin = DolomiteMargin;
   } else {
     throw new Error('Cannot deploy DolomiteMargin');
@@ -265,7 +274,7 @@ async function deployBaseProtocol(deployer, network) {
 
 async function deployMultiCall(deployer, network) {
   let multiCall;
-  if (isArbitrum(network) || isArbitrumTest(network)) {
+  if (isArbitrumNetwork(network)) {
     multiCall = ArbitrumMultiCall;
   } else {
     multiCall = MultiCall;
@@ -315,20 +324,6 @@ async function deployPriceOracles(deployer, network) {
       TestGLP.address,
       TestFGLP.address,
     );
-  } else if (isArbitrum(network)) {
-    if (shouldOverwrite(GLPPriceOracleV1, network)) {
-      await deployer.deploy(
-        GLPPriceOracleV1,
-        ...getGlpPriceOracleV1Params(network),
-      );
-    } else {
-      await deployer.deploy(
-        GLPPriceOracleV1,
-        getNoOverwriteParams(),
-      );
-    }
-  } else {
-    throw new Error('Cannot deploy GLPPriceOracleV1. Need impl on network ' + network);
   }
 
   const tokens = {
@@ -484,7 +479,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
-  if (isDevNetwork(network) || isMaticTest(network) || isArbitrumTest(network)) {
+  if (isDevNetwork(network) || isMumbaiMatic(network) || isArbitrumRinkeby(network) || isArbitrumGoerli(network)) {
     await deployer.deploy(
       TestAmmRebalancerProxy,
       dolomiteMargin.address,
@@ -521,7 +516,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     }
   }
 
-  if (isDevNetwork(network) || isMaticTest(network) || isArbitrumTest(network)) {
+  if (isDevNetwork(network) || isMumbaiMatic(network) || isArbitrumRinkeby(network) || isArbitrumGoerli(network)) {
     await deployer.deploy(
       TestAmmRebalancerProxy,
       dolomiteMargin.address,
@@ -531,7 +526,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     await deployer.deploy(TestUniswapAmmRebalancerProxy, getNoOverwriteParams());
   }
 
-  const ammRebalancerProxyV2 = AmmRebalancerProxyV2
+  const ammRebalancerProxyV2 = AmmRebalancerProxyV2;
   if (shouldOverwrite(ammRebalancerProxyV2, network)) {
     await deployer.deploy(
       ammRebalancerProxyV2,
@@ -546,7 +541,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
-  const payableProxy = PayableProxy
+  const payableProxy = PayableProxy;
   if (shouldOverwrite(payableProxy, network)) {
     await deployer.deploy(
       payableProxy,
@@ -560,7 +555,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
-  const liquidatorProxyV1 = LiquidatorProxyV1
+  const liquidatorProxyV1 = LiquidatorProxyV1;
   if (shouldOverwrite(liquidatorProxyV1, network)) {
     await deployer.deploy(
       liquidatorProxyV1,
@@ -573,7 +568,7 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
-  const liquidatorProxyV1WithAmm = LiquidatorProxyV1WithAmm
+  const liquidatorProxyV1WithAmm = LiquidatorProxyV1WithAmm;
   if (shouldOverwrite(liquidatorProxyV1WithAmm, network)) {
     await deployer.deploy(
       liquidatorProxyV1WithAmm,
@@ -585,16 +580,16 @@ async function deploySecondLayer(deployer, network, accounts) {
     await deployer.deploy(
       liquidatorProxyV1WithAmm,
       getNoOverwriteParams(),
-    )
+    );
   }
 
-  const signedOperationProxy = SignedOperationProxy
+  const signedOperationProxy = SignedOperationProxy;
   if (shouldOverwrite(signedOperationProxy, network)) {
     await deployer.deploy(
       signedOperationProxy,
       dolomiteMargin.address,
       getChainId(network),
-    )
+    );
   } else {
     await deployer.deploy(
       signedOperationProxy,
