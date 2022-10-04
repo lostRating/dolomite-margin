@@ -33,7 +33,7 @@ function getDaiAddress(network, TokenB) {
   }
   if (isArbitrumGoerli(network)) {
     return '0xE65A051E0ae02eB66a11c73B2BA14021B5aadAEE';
-  }// |000000000000000000
+  }
   throw new Error('Cannot find DAI');
 }
 
