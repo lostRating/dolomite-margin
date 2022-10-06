@@ -1,6 +1,6 @@
 {
   "name": "@dolomite-exchange/dolomite-margin",
-  "version": "0.9.0",
+  "version": "0.9.1",
   "description": "Ethereum Smart Contracts and TypeScript library used for the DolomiteMargin trading protocol",
   "engines": {
     "npm": "6.14.x"
@@ -65,6 +65,7 @@
     "snapshot_test_evm": "node scripts/snapshot-test-evm.js",
     "install_compiler": "docker pull ethereum/solc:0.5.7",
     "save_deployed_addresses": "ts-node ./scripts/SaveDeployedAddresses.ts",
+    "deploy_docs": "firebase deploy",
     "serve_docs": "docsify serve ./docs",
     "execute-set-expiry": "ts-node scripts/SetExpiry.ts",
     "verify": "DEPLOYER_PRIVATE_KEY=0x1234567812345678123456781234567812345678123456781234567812345678 NODE_ENV=production ts-node scripts/VerifyContracts.ts",
