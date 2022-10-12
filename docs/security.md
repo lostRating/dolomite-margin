@@ -4,8 +4,11 @@
 
 ### DolomiteMargin
 
-The DolomiteMargin smart contracts were audited independently by
-[Zeppelin Solutions](https://zeppelin.solutions/), Bramah Systems, and [SECBIT Labs](https://secbit.io).
+The DolomiteMargin smart contracts were audited independently at various points in their lifecycle by
+[Zeppelin Solutions](https://zeppelin.solutions/), Bramah Systems, and most-recently by [SECBIT Labs](https://secbit.io).
+
+The SECBIT audit report covers the most recent suite of updates to the smart contracts. The Zeppelin Solutions and 
+Bramah Systems audit reports cover the original version of the smart contracts that was created by dYdX.
 
 **[Zeppelin Solutions Audit Report](https://blog.zeppelin.solutions/solo-margin-protocol-audit-30ac2aaf6b10)**
 
