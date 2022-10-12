@@ -69,17 +69,17 @@ The contracts are officially deployed to the following networks:
 | [`TransferProxy`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/external/proxies/TransferProxy.sol)                                       | Contract for transferring funds within Dolomite to other users                                                                                                                                            | [0xb8689de25A06980eD034AE3bf75E2452392e495A](https://goerli-rollup-explorer.arbitrum.io/address/0xb8689de25A06980eD034AE3bf75E2452392e495A) |
 | [`WithdrawalImpl`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/impl/WithdrawalImpl.sol)                                        | DolomiteMargin library containing the logic for executing withdrawals                                                                                                                                     | [0x46bF4eB8290fc4Af78B49DfD209BeAF7a8e23043](https://goerli-rollup-explorer.arbitrum.io/address/0x46bF4eB8290fc4Af78B49DfD209BeAF7a8e23043) |
 
-### Admin Privileges Overview
+### Admin Privileges
 
 In the initial stages of the protocol, the admin rights are owned by Dolomite's executive team using a simple multi
 signature wallet (Gnosis Safe) that is stood up behind a delayed multi signature wallet (custom-made by the dYdX team).
-The Gnosis Safe is a 2/3 wallet that is owned by the Dolomite executive team. Meaning, 2 signers are needed out of the 3
-owners to execute a transaction. The delayed multi signature wallet is solely owned by the Gnosis Safe, which means the 
-security and ownership of the delayed multi signature wallet falls back on to the Gnosis Safe. On the other hand, the 
-time delay falls completely on the delayed multi signature wallet; what ever delay is set for the delayed multi 
-signature wallet indiscriminately requires that *all* transactions sent to it wait the same delay before the transaction 
-can be executed. This means, all admin transactions involving the `DolomiteMargin` protocol require that 
-`secondsTimeLocked` amount of time must be waited before the transaction effectuates.
+The Gnosis Safe is a 2/3 wallet that is owned by the Dolomite team. Meaning, 2 signers are needed out of the 3 owners to 
+execute a transaction. The delayed multi signature wallet is solely owned by the Gnosis Safe, which means the security 
+and ownership of the delayed multi signature wallet falls back on to the Gnosis Safe. On the other hand, the time delay 
+falls completely on the delayed multi signature wallet; what ever delay is set for the delayed multi signature wallet 
+indiscriminately requires that *all* transactions sent to it wait the same delay before the transaction can be executed. 
+This means, all admin transactions involving the `DolomiteMargin` protocol require that `secondsTimeLocked` amount of 
+time must be waited before the transaction effectuates.
 
 
 > At the time of launch, the delay on the delayed multi signature wallet is 1 day (86,400 seconds). The intention is to 
