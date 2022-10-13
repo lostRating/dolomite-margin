@@ -58,5 +58,4 @@ If you follow these guidelines when reporting an issue to us, we commit to:
 * Work with you to understand and resolve the issue quickly
 (including an initial confirmation of your report within 72 hours of submission).
 
-TODO replace link
-* Grant a monetary reward based on the [OWASP risk assessment methodology](https://medium.com/dydxderivatives/announcing-bug-bounties-for-the-dydx-margin-trading-protocol-d0c817d1cda4).
+* Grant a monetary reward based on the [OWASP risk assessment methodology](https://medium.com/dolomite-official).
