@@ -69,6 +69,19 @@ The contracts are officially deployed to the following networks:
 | [`TransferProxy`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/external/proxies/TransferProxy.sol)                                       | Contract for transferring funds within Dolomite to other users                                                                                                                                            | [0xb8689de25A06980eD034AE3bf75E2452392e495A](https://goerli-rollup-explorer.arbitrum.io/address/0xb8689de25A06980eD034AE3bf75E2452392e495A) |
 | [`WithdrawalImpl`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/impl/WithdrawalImpl.sol)                                        | DolomiteMargin library containing the logic for executing withdrawals                                                                                                                                     | [0x46bF4eB8290fc4Af78B49DfD209BeAF7a8e23043](https://goerli-rollup-explorer.arbitrum.io/address/0x46bF4eB8290fc4Af78B49DfD209BeAF7a8e23043) |
 
+##### Arbitrum Goerli Testnet Tokens
+
+| Contract Name                                                                                                    | Description                                                                    | Address                                                                                                                                     |
+|------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
+| [`DAI`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/CustomTestToken.sol)  | DAI token                                                                      | [0xE65A051E0ae02eB66a11c73B2BA14021B5aadAEE](https://goerli-rollup-explorer.arbitrum.io/address/0xE65A051E0ae02eB66a11c73B2BA14021B5aadAEE) |
+| [`LINK`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/CustomTestToken.sol) | LINK token (unofficial from and not supported by the Chainlink Oracle Network) | [0x2d3B3F17d6694d5AA643Cb89A82Ac9214a41536d](https://goerli-rollup-explorer.arbitrum.io/address/0x2d3B3F17d6694d5AA643Cb89A82Ac9214a41536d) |
+| [`USDC`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/CustomTestToken.sol) | USDC token (unofficial from and not supported by Circle)                       | [0x7317eb743583250739862644cef74B982708eBB4](https://goerli-rollup-explorer.arbitrum.io/address/0x7317eb743583250739862644cef74B982708eBB4) |
+| [`WBTC`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/CustomTestToken.sol) | WBTC token                                                                     | [0x6fA07522F1dd8D8cb5b400c957418b4bD2C96F80](https://goerli-rollup-explorer.arbitrum.io/address/0x6fA07522F1dd8D8cb5b400c957418b4bD2C96F80) |
+| [`WETH`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/TestWETH.sol)        | WETH token                                                                     | [0xC033378c6eEa969C001CE9438973ca4d6460999a](https://goerli-rollup-explorer.arbitrum.io/address/0xC033378c6eEa969C001CE9438973ca4d6460999a) |
+
+
+> All testnet tokens have an `addBalance(address _target, uint256 _value)` function which can be used to give yourself tokens for testing purposes. The tokens are sent directly to your wallet, NOT to your Dolomite ledger balance. 
+
 ### Admin Privileges
 
 In the initial stages of the protocol, the admin rights are owned by Dolomite's executive team using a simple multi
