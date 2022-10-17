@@ -69,7 +69,7 @@ The contracts are officially deployed to the following networks:
 | [`TransferProxy`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/external/proxies/TransferProxy.sol)                                       | Contract for transferring funds within Dolomite to other users                                                                                                                                            | [0xb8689de25A06980eD034AE3bf75E2452392e495A](https://goerli-rollup-explorer.arbitrum.io/address/0xb8689de25A06980eD034AE3bf75E2452392e495A) |
 | [`WithdrawalImpl`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/impl/WithdrawalImpl.sol)                                        | DolomiteMargin library containing the logic for executing withdrawals                                                                                                                                     | [0x46bF4eB8290fc4Af78B49DfD209BeAF7a8e23043](https://goerli-rollup-explorer.arbitrum.io/address/0x46bF4eB8290fc4Af78B49DfD209BeAF7a8e23043) |
 
-##### Arbitrum Goerli Testnet Tokens
+#### Arbitrum Goerli Testnet Tokens
 
 | Contract Name                                                                                                    | Description                                                                    | Address                                                                                                                                     |
 |------------------------------------------------------------------------------------------------------------------|--------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------|
@@ -80,7 +80,8 @@ The contracts are officially deployed to the following networks:
 | [`WETH`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/TestWETH.sol)        | WETH token                                                                     | [0xC033378c6eEa969C001CE9438973ca4d6460999a](https://goerli-rollup-explorer.arbitrum.io/address/0xC033378c6eEa969C001CE9438973ca4d6460999a) |
 
 
-> All testnet tokens have an `addBalance(address _target, uint256 _value)` function which can be used to give yourself tokens for testing purposes. The tokens are sent directly to your wallet, NOT to your Dolomite ledger balance. 
+> All testnet tokens have an `addBalance(address _target, uint256 _value)` function which can be used to give yourself 
+> tokens for testing purposes. The tokens are sent directly to `__taget`'s wallet, NOT to the Dolomite virtual balance. 
 
 ### Admin Privileges
 
