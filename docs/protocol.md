@@ -127,24 +127,36 @@ Transfer funds internally between two DolomiteMargin accounts.
 
 ### Buy
 
-Buy an asset on a decentralized exchange using another asset. Uses
-an [Exchange Wrapper](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/interfaces/IExchangeWrapper.sol)
+Buy an asset on a decentralized exchange using another asset. Uses an 
+[Exchange Wrapper](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/interfaces/IExchangeWrapper.sol)
 to interact with different decentralized exchanges. Causes the bought asset's balance to go up, and the asset used to do
 the buy's balance to go down. Example: Buy 1 WETH on Uniswap using DAI
 
+There are no fees charged by Dolomite for performing this action. Performing a `Buy` action that reduces the user's
+balance to less than 0 (therefore making the `Buy` a flashloan) do not incur any Dolomite-specific fees. Users are still
+responsible for paying the fees charged by the external decentralized exchange they are using.
+
 ### Sell
 
-Sell an asset on a decentralized exchange for another asset. Uses
-an [Exchange Wrapper](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/interfaces/IExchangeWrapper.sol)
+Sell an asset on a decentralized exchange for another asset. Uses an 
+[Exchange Wrapper](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/interfaces/IExchangeWrapper.sol)
 to interact with different decentralized exchanges. Causes the sold asset's balance to go down, and the received assets
 balance to go up. Example: Sell 1 WETH on Uniswap for DAI
+
+There are no fees charged by Dolomite for performing this action. Performing a `Sell` action that reduces the user's
+balance to less than 0 (therefore making the `Sell` a flashloan) do not incur any Dolomite-specific fees. Users are 
+still responsible for paying the fees charged by the external decentralized exchange they are using.
 
 ### Trade
 
 Trade assets with another account on DolomiteMargin internally. No actual tokens are moved, but Account balances are
-updated. Uses
-the [`AutoTrader`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/interfaces/IAutoTrader.sol)
+updated. Uses the 
+[`AutoTrader`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/interfaces/IAutoTrader.sol)
 interface, which allows a smart contract to be specified which is called to determine the price of the trade.
+
+The fees charged by Dolomite for performing this action depend on the implementation of the specific `IAutoTrader` 
+contract. For example, the simple `x * y = k` AMM pools used by Dolomite charge a 0.3% fee for trades, which is 
+factored into the trade price.
 
 ### Call
 
