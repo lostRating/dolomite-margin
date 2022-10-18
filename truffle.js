@@ -132,7 +132,7 @@ module.exports = {
       networkCheckTimeout: 120000,
     },
     arbitrum_one: {
-      network_id: 42161,
+      network_id: '42161',
       provider: () => {
         return new HDWalletProvider(
           [process.env.DEPLOYER_PRIVATE_KEY],
@@ -147,7 +147,7 @@ module.exports = {
       disableConfirmationListener: true,
     },
     arbitrum_rinkeby: {
-      network_id: 421611,
+      network_id: '421611',
       provider: () => {
         return new HDWalletProvider(
           [process.env.DEPLOYER_PRIVATE_KEY],
@@ -162,7 +162,7 @@ module.exports = {
       disableConfirmationListener: true,
     },
     arbitrum_goerli: {
-      network_id: 421613,
+      network_id: '421613',
       provider: () => {
         return new HDWalletProvider(
           [process.env.DEPLOYER_PRIVATE_KEY],

@@ -44,7 +44,10 @@ export class Interest {
   public getInterestPerSecondByMarket(
     marketId: Integer,
     totals: { totalBorrowed: Integer; totalSupply: Integer },
-  ) {
+  ): {
+    borrowInterestRate: Integer,
+    supplyInterestRate: Integer,
+  } {
     const earningsRate = this.getEarningsRate();
     const constants = this.getMarketConstants(marketId);
 
