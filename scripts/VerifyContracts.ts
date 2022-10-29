@@ -15,7 +15,8 @@ async function verifyAll(): Promise<void> {
     const contract = deployed[keys[i]][networkId];
     if (contract && contract.address && !keys[i].toLowerCase().includes('AmmRebalancer'.toLowerCase())) {
       try {
-        execSync(`truffle run verify --network ${process.env.NETWORK} ${keys[i]}@${contract.address}`, {
+        const contractName = contract.contractName ?? keys[i];
+        execSync(`truffle run verify --network ${process.env.NETWORK} ${contractName}@${contract.address}`, {
           stdio: 'inherit',
         });
         console.log('Successfully verified', keys[i]);

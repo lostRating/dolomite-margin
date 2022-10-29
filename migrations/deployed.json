@@ -689,5 +689,45 @@
             "address": "0xcE54edaBaB4f39D4617b54515E0C7fDEE15656D6",
             "transactionHash": "0x349dc6b9187906ecee89d148bf08633247408bd003ac40f1ac7d4b6ab268c8a5"
         }
+    },
+    "DAI": {
+        "421613": {
+            "contractName": "CustomTestToken",
+            "links": {},
+            "address": "0xE65A051E0ae02eB66a11c73B2BA14021B5aadAEE",
+            "transactionHash": "0x5ccaf2e0fa4c687375a4152362de4ad4c70c5779f3bc6e1366e58a18895550e3"
+        }
+    },
+    "LINK": {
+        "421613": {
+            "contractName": "CustomTestToken",
+            "links": {},
+            "address": "0x2d3B3F17d6694d5AA643Cb89A82Ac9214a41536d",
+            "transactionHash": "0xdcbd3b184f07c39b3ca3a736d5fdfdd1cd00753e594d0d15e3429b4e3c6aa167"
+        }
+    },
+    "USDC": {
+        "421613": {
+            "contractName": "CustomTestToken",
+            "links": {},
+            "address": "0x7317eb743583250739862644cef74B982708eBB4",
+            "transactionHash": "0xb7210cadbcc3083d8e067cc69be7bb581a2d267abd16a35de659980b55d007d3"
+        }
+    },
+    "WBTC": {
+        "421613": {
+            "contractName": "CustomTestToken",
+            "links": {},
+            "address": "0x6fA07522F1dd8D8cb5b400c957418b4bD2C96F80",
+            "transactionHash": "0x99ee7e5e255cda128d1bf61622e61fb8b5dd3d5a16b73b2e737242955d034af9"
+        }
+    },
+    "WETH": {
+        "421613": {
+            "contractName": "TestWETH",
+            "links": {},
+            "address": "0xC033378c6eEa969C001CE9438973ca4d6460999a",
+            "transactionHash": "0x0ec63faa5e5ae300a9fafb3064ad1631f98bf4fa5f7f40b05fd800ca2c57a7d0"
+        }
     }
 }
