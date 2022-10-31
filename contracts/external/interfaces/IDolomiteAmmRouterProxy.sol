@@ -31,7 +31,8 @@ interface IDolomiteAmmRouterProxy {
     // ============ Structs ============
 
     struct ModifyPositionParams {
-        uint accountNumber;
+        uint fromAccountNumber;
+        uint toAccountNumber;
         Types.AssetAmount amountIn;
         Types.AssetAmount amountOut;
         address[] tokenPath;
@@ -45,6 +46,9 @@ interface IDolomiteAmmRouterProxy {
         uint marginDeposit;
         /// the amount of seconds from the time at which the position is opened to expiry. 0 for no expiration
         uint expiryTimeDelta;
+        /// 0 if the accounts cannot be negative, 0x0F if _fromAccountIndex can be negative, 0xF0 if the toAccountNumber
+        /// can be negative, or 0xFF if both accounts can be negative
+        uint canAccountsBeNegativeFlag;
     }
 
     struct ModifyPositionCache {

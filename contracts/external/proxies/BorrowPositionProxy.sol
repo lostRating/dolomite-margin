@@ -33,6 +33,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { IBorrowPositionProxy } from "../interfaces/IBorrowPositionProxy.sol";
+import "../helpers/AccountBalanceHelper.sol";
 
 
 /**
@@ -42,7 +43,8 @@ import { IBorrowPositionProxy } from "../interfaces/IBorrowPositionProxy.sol";
  * @dev Proxy contract for opening borrow positions. This makes indexing easier and lowers gas costs on Arbitrum by
  *      minimizing call data
  */
-contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, ReentrancyGuard {
+contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, AccountBalanceHelper, ReentrancyGuard {
+    using Types for Types.Par;
 
     constructor (
         address dolomiteMargin
@@ -52,10 +54,10 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
     {}
 
     function openBorrowPosition(
-        uint _fromAccountIndex,
-        uint _toAccountIndex,
-        uint _marketId,
-        uint _amountWei
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        uint256 _marketId,
+        uint256 _amountWei
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
@@ -82,13 +84,16 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
         // Emit this before the call to DolomiteMargin so indexers get it before the Transfer events are emitted
         emit BorrowPositionOpen(msg.sender, _toAccountIndex);
 
-        IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
+        IDolomiteMargin dolomiteMargin = IDolomiteMargin(DOLOMITE_MARGIN);
+        dolomiteMargin.operate(accounts, actions);
+
+        _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _fromAccountIndex, _marketId);
     }
 
     function closeBorrowPosition(
-        uint _borrowAccountIndex,
-        uint _toAccountIndex,
-        uint[] calldata _collateralMarketIds
+        uint256 _borrowAccountIndex,
+        uint256 _toAccountIndex,
+        uint256[] calldata _collateralMarketIds
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info(msg.sender, _borrowAccountIndex);
@@ -102,7 +107,7 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
             value: 0
         });
 
-        for (uint i = 0; i < _collateralMarketIds.length; i++) {
+        for (uint256 i = 0; i < _collateralMarketIds.length; i++) {
             actions[i] = Actions.ActionArgs({
                 actionType : Actions.ActionType.Transfer,
                 accountId : 0,
@@ -119,10 +124,11 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
     }
 
     function transferBetweenAccounts(
-        uint _fromAccountIndex,
-        uint _toAccountIndex,
-        uint _marketId,
-        uint _amountWei
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        uint256 _marketId,
+        uint256 _amountWei,
+        uint256 _canAccountsBeNegativeFlag
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
@@ -146,13 +152,32 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
             data : bytes("")
         });
 
-        IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
+        IDolomiteMargin dolomiteMargin = IDolomiteMargin(DOLOMITE_MARGIN);
+        dolomiteMargin.operate(accounts, actions);
+
+        if (_canAccountsBeNegativeFlag == 0) {
+            // Neither account can be negative
+            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _fromAccountIndex, _marketId);
+            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _toAccountIndex, _marketId);
+        } else if (_canAccountsBeNegativeFlag == 0x0F) {
+            // Only the to account can be negative
+            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _toAccountIndex, _marketId);
+        } else if (_canAccountsBeNegativeFlag == 0xF0) {
+            // Only the from account can be negative
+            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _fromAccountIndex, _marketId);
+        } else {
+            Require.that(
+                _canAccountsBeNegativeFlag == 0xFF,
+                FILE,
+                "Invalid flag"
+            );
+        }
     }
 
     function repayAllForBorrowPosition(
-        uint _fromAccountIndex,
-        uint _borrowAccountIndex,
-        uint _marketId
+        uint256 _fromAccountIndex,
+        uint256 _borrowAccountIndex,
+        uint256 _marketId
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info(msg.sender, _borrowAccountIndex);
@@ -179,4 +204,5 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
 
         IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
     }
+
 }

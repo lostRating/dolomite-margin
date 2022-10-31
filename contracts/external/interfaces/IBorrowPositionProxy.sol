@@ -23,7 +23,7 @@ interface IBorrowPositionProxy {
 
     // ========================= Events =========================
 
-    event BorrowPositionOpen(address indexed _borrower, uint indexed _borrowAccountIndex);
+    event BorrowPositionOpen(address indexed _borrower, uint256 indexed _borrowAccountIndex);
 
     // ========================= Functions =========================
 
@@ -34,10 +34,10 @@ interface IBorrowPositionProxy {
      * @param _amountWei            The amount, in Wei, to deposit
      */
     function openBorrowPosition(
-        uint _fromAccountIndex,
-        uint _toAccountIndex,
-        uint _collateralMarketId,
-        uint _amountWei
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        uint256 _collateralMarketId,
+        uint256 _amountWei
     ) external;
 
     /**
@@ -49,22 +49,26 @@ interface IBorrowPositionProxy {
      * @param _collateralMarketIds  The IDs of the markets being withdrawn, to close the position
      */
     function closeBorrowPosition(
-        uint _borrowAccountIndex,
-        uint _toAccountIndex,
-        uint[] calldata _collateralMarketIds
+        uint256 _borrowAccountIndex,
+        uint256 _toAccountIndex,
+        uint256[] calldata _collateralMarketIds
     ) external;
 
     /**
-     * @param _fromAccountIndex The index from which `msg.sender` will be withdrawing assets
-     * @param _toAccountIndex   The index into which `msg.sender` will be depositing assets
-     * @param _marketId         The ID of the market being transferred
-     * @param _amountWei        The amount, in Wei, to transfer
+     * @param _fromAccountIndex             The index from which `msg.sender` will be withdrawing assets
+     * @param _toAccountIndex               The index into which `msg.sender` will be depositing assets
+     * @param _marketId                     The ID of the market being transferred
+     * @param _amountWei                    The amount, in Wei, to transfer
+     * @param _canAccountsBeNegativeFlag    0 if the accounts cannot be negative, 0x0F if _fromAccountIndex can be
+     *                                      negative, 0xF0 if the _toAccountIndex can be negative, or 0xFF if both
+     *                                      accounts can be negative
      */
     function transferBetweenAccounts(
-        uint _fromAccountIndex,
-        uint _toAccountIndex,
-        uint _marketId,
-        uint _amountWei
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        uint256 _marketId,
+        uint256 _amountWei,
+        uint256 _canAccountsBeNegativeFlag
     ) external;
 
     /**
@@ -73,8 +77,8 @@ interface IBorrowPositionProxy {
      * @param _marketId             The ID of the market being transferred
      */
     function repayAllForBorrowPosition(
-        uint _fromAccountIndex,
-        uint _borrowAccountIndex,
-        uint _marketId
+        uint256 _fromAccountIndex,
+        uint256 _borrowAccountIndex,
+        uint256 _marketId
     ) external;
 }
