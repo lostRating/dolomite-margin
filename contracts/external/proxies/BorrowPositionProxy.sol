@@ -30,10 +30,10 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { IBorrowPositionProxy } from "../interfaces/IBorrowPositionProxy.sol";
-import "../helpers/AccountBalanceHelper.sol";
 
 
 /**
@@ -43,7 +43,7 @@ import "../helpers/AccountBalanceHelper.sol";
  * @dev Proxy contract for opening borrow positions. This makes indexing easier and lowers gas costs on Arbitrum by
  *      minimizing call data
  */
-contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, AccountBalanceHelper, ReentrancyGuard {
+contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, ReentrancyGuard {
     using Types for Types.Par;
 
     constructor (
@@ -57,7 +57,8 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Accoun
         uint256 _fromAccountIndex,
         uint256 _toAccountIndex,
         uint256 _marketId,
-        uint256 _amountWei
+        uint256 _amountWei,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
@@ -87,7 +88,14 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Accoun
         IDolomiteMargin dolomiteMargin = IDolomiteMargin(DOLOMITE_MARGIN);
         dolomiteMargin.operate(accounts, actions);
 
-        _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _fromAccountIndex, _marketId);
+        _verifyAccountBalances(
+            dolomiteMargin,
+            msg.sender,
+            _fromAccountIndex,
+            _toAccountIndex,
+            _marketId,
+            _balanceCheckFlag
+        );
     }
 
     function closeBorrowPosition(
@@ -128,7 +136,7 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Accoun
         uint256 _toAccountIndex,
         uint256 _marketId,
         uint256 _amountWei,
-        uint256 _canAccountsBeNegativeFlag
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
@@ -155,23 +163,14 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Accoun
         IDolomiteMargin dolomiteMargin = IDolomiteMargin(DOLOMITE_MARGIN);
         dolomiteMargin.operate(accounts, actions);
 
-        if (_canAccountsBeNegativeFlag == 0) {
-            // Neither account can be negative
-            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _fromAccountIndex, _marketId);
-            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _toAccountIndex, _marketId);
-        } else if (_canAccountsBeNegativeFlag == 0x0F) {
-            // Only the to account can be negative
-            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _toAccountIndex, _marketId);
-        } else if (_canAccountsBeNegativeFlag == 0xF0) {
-            // Only the from account can be negative
-            _verifyAccountIsNotNegative(dolomiteMargin, msg.sender, _fromAccountIndex, _marketId);
-        } else {
-            Require.that(
-                _canAccountsBeNegativeFlag == 0xFF,
-                FILE,
-                "Invalid flag"
-            );
-        }
+        _verifyAccountBalances(
+            dolomiteMargin,
+            msg.sender,
+            _fromAccountIndex,
+            _toAccountIndex,
+            _marketId,
+            _balanceCheckFlag
+        );
     }
 
     function repayAllForBorrowPosition(
@@ -203,6 +202,55 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Accoun
         });
 
         IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
+    }
+
+    // ========================= Internal Functions =========================
+
+    function _verifyAccountBalances(
+        IDolomiteMargin _dolomiteMargin,
+        address _account,
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        uint256 _marketId,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+    ) internal view {
+        if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both) {
+            // Neither account can be negative
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                _dolomiteMargin,
+                _account,
+                _fromAccountIndex,
+                _marketId
+            );
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                _dolomiteMargin,
+                _account,
+                _toAccountIndex,
+                _marketId
+            );
+        } else if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From) {
+            // The From account cannot be negative
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                _dolomiteMargin,
+                _account,
+                _toAccountIndex,
+                _marketId
+            );
+        } else if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To) {
+            // Only the from account can be negative
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                _dolomiteMargin,
+                _account,
+                _fromAccountIndex,
+                _marketId
+            );
+        } else {
+            Require.that(
+                _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.None,
+                FILE,
+                "Invalid _balanceCheckFlag"
+            );
+        }
     }
 
 }

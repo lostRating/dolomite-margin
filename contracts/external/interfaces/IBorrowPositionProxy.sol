@@ -18,6 +18,8 @@
 
 pragma solidity ^0.5.7;
 
+import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
+
 
 interface IBorrowPositionProxy {
 
@@ -32,12 +34,16 @@ interface IBorrowPositionProxy {
      * @param _toAccountIndex       The index into which `msg.sender` will be depositing
      * @param _collateralMarketId   The ID of the market being deposited
      * @param _amountWei            The amount, in Wei, to deposit
+     * @param _balanceCheckFlag     Flag used to check if _from, _to, or both accounts can get negative after the
+     *                              transfer settles. Setting the flag to `BalanceCheckFlag.None=3` checks neither
+     *                              account.
      */
     function openBorrowPosition(
         uint256 _fromAccountIndex,
         uint256 _toAccountIndex,
         uint256 _collateralMarketId,
-        uint256 _amountWei
+        uint256 _amountWei,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**
@@ -55,20 +61,19 @@ interface IBorrowPositionProxy {
     ) external;
 
     /**
-     * @param _fromAccountIndex             The index from which `msg.sender` will be withdrawing assets
-     * @param _toAccountIndex               The index into which `msg.sender` will be depositing assets
-     * @param _marketId                     The ID of the market being transferred
-     * @param _amountWei                    The amount, in Wei, to transfer
-     * @param _canAccountsBeNegativeFlag    0 if the accounts cannot be negative, 0x0F if _fromAccountIndex can be
-     *                                      negative, 0xF0 if the _toAccountIndex can be negative, or 0xFF if both
-     *                                      accounts can be negative
+     * @param _fromAccountIndex The index from which `msg.sender` will be withdrawing assets
+     * @param _toAccountIndex   The index into which `msg.sender` will be depositing assets
+     * @param _marketId         The ID of the market being transferred
+     * @param _amountWei        The amount, in Wei, to transfer
+     * @param _balanceCheckFlag Flag used to check if _from, _to, or both accounts can get negative after the transfer
+     *                          settles. Setting the flag to `BalanceCheckFlag.None=3` checks neither account.
      */
     function transferBetweenAccounts(
         uint256 _fromAccountIndex,
         uint256 _toAccountIndex,
         uint256 _marketId,
         uint256 _amountWei,
-        uint256 _canAccountsBeNegativeFlag
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**

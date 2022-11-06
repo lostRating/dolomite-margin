@@ -30,6 +30,8 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
+import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { IDepositWithdrawalProxy } from "../interfaces/IDepositWithdrawalProxy.sol";
@@ -101,15 +103,17 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function depositWei(
-        uint _accountIndex,
-        uint _marketId,
-        uint _amountWei
+        uint256 _toAccountIndex,
+        uint256 _marketId,
+        uint256 _amountWei
     )
     external
     nonReentrant {
-        _deposit(
-            /* _from = */ msg.sender, // solium-disable-line indentation
-            _accountIndex,
+        AccountActionHelper.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ msg.sender, // solium-disable-line indentation
+            _toAccountIndex,
             _marketId,
             Types.AssetAmount({
                 sign: true,
@@ -121,16 +125,18 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function depositETH(
-        uint _accountIndex
+        uint256 _toAccountIndex
     )
     external
     payable
     requireIsInitialized
     nonReentrant {
         _wrap();
-        _deposit(
-            /* _from = */ address(this), // solium-disable-line indentation
-            _accountIndex,
+        AccountActionHelper.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ address(this), // solium-disable-line indentation
+            _toAccountIndex,
             ETH_MARKET_ID,
             Types.AssetAmount({
                 sign: true,
@@ -142,14 +148,16 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function depositWeiIntoDefaultAccount(
-        uint _marketId,
-        uint _amountWei
+        uint256 _marketId,
+        uint256 _amountWei
     )
     external
     nonReentrant {
-        _deposit(
-            /* _from = */ msg.sender, // solium-disable-line indentation
-            /* _accountIndex = */ 0, // solium-disable-line indentation
+        AccountActionHelper.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ msg.sender, // solium-disable-line indentation
+            /* _toAccountIndex = */ 0, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: true,
@@ -166,9 +174,11 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     requireIsInitialized
     nonReentrant {
         _wrap();
-        _deposit(
-            /* _from = */ address(this), // solium-disable-line indentation
-            /* _accountIndex = */ 0, // solium-disable-line indentation
+        AccountActionHelper.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ address(this), // solium-disable-line indentation
+            /* _toAccountIndex = */ 0, // solium-disable-line indentation
             ETH_MARKET_ID,
             Types.AssetAmount({
                 sign: true,
@@ -180,81 +190,97 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function withdrawWei(
-        uint _accountIndex,
-        uint _marketId,
-        uint _amountWei
+        uint256 _fromAccountIndex,
+        uint256 _marketId,
+        uint256 _amountWei,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        _withdraw(
-            /* _to = */ msg.sender, // solium-disable-line indentation
-            _accountIndex,
+        AccountActionHelper.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            _fromAccountIndex,
+            /* _toAccount = */ msg.sender, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Wei,
                 ref: _amountWei == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
                 value: _amountWei == uint(-1) ? 0 : _amountWei
-            })
+            }),
+            _balanceCheckFlag
         );
     }
 
     function withdrawETH(
-        uint _accountIndex,
-        uint _amountWei
+        uint256 _fromAccountIndex,
+        uint256 _amountWei,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
     requireIsInitialized
     nonReentrant {
-        _withdraw(
-            /* _to = */ address(this), // solium-disable-line indentation
-            _accountIndex,
+        AccountActionHelper.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            _fromAccountIndex,
+            /* _toAccount = */ address(this), // solium-disable-line indentation
             ETH_MARKET_ID,
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Wei,
                 ref: _amountWei == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
                 value: _amountWei == uint(-1) ? 0 : _amountWei
-            })
+            }),
+            _balanceCheckFlag
         );
         _unwrapAndSend();
     }
 
     function withdrawWeiFromDefaultAccount(
-        uint _marketId,
-        uint _amountWei
+        uint256 _marketId,
+        uint256 _amountWei,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        _withdraw(
-            /* _to = */ msg.sender, // solium-disable-line indentation
-            /* _accountIndex = */ 0, // solium-disable-line indentation
+        AccountActionHelper.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccountIndex = */ 0, // solium-disable-line indentation
+            /* _toAccount = */ msg.sender, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Wei,
                 ref: _amountWei == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
                 value: _amountWei == uint(-1) ? 0 : _amountWei
-            })
+            }),
+            _balanceCheckFlag
         );
     }
 
     function withdrawETHFromDefaultAccount(
-        uint _amountWei
+        uint256 _amountWei,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
     requireIsInitialized
     nonReentrant {
-        _withdraw(
-            /* _to = */ address(this), // solium-disable-line indentation
-            0, // solium-disable-line indentation
+        AccountActionHelper.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccountIndex = */ 0, // solium-disable-line indentation
+            /* _toAccount = */ address(this), // solium-disable-line indentation
             ETH_MARKET_ID,
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Wei,
                 ref: _amountWei == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
                 value: _amountWei == uint(-1) ? 0 : _amountWei
-            })
+            }),
+            _balanceCheckFlag
         );
         _unwrapAndSend();
     }
@@ -262,15 +288,17 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     // ========================= Par Functions =========================
 
     function depositPar(
-        uint _accountIndex,
-        uint _marketId,
-        uint _amountPar
+        uint256 _toAccountIndex,
+        uint256 _marketId,
+        uint256 _amountPar
     )
     external
     nonReentrant {
-        _deposit(
-            /* _from = */ msg.sender, // solium-disable-line indentation
-            _accountIndex,
+        AccountActionHelper.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ msg.sender, // solium-disable-line indentation
+            _toAccountIndex,
             _marketId,
             Types.AssetAmount({
                 sign: true,
@@ -282,14 +310,16 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function depositParIntoDefaultAccount(
-        uint _marketId,
-        uint _amountPar
+        uint256 _marketId,
+        uint256 _amountPar
     )
     external
     nonReentrant {
-        _deposit(
-            /* _from = */ msg.sender, // solium-disable-line indentation
-            /* _accountIndex = */ 0, // solium-disable-line indentation
+        AccountActionHelper.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ msg.sender, // solium-disable-line indentation
+            /* _toAccountIndex = */ 0, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: true,
@@ -301,41 +331,49 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     }
 
     function withdrawPar(
-        uint _accountIndex,
-        uint _marketId,
-        uint _amountPar
+        uint256 _fromAccountIndex,
+        uint256 _marketId,
+        uint256 _amountPar,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        _withdraw(
-            /* _to = */ msg.sender, // solium-disable-line indentation
-            _accountIndex,
+        AccountActionHelper.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            _fromAccountIndex,
+            /* _toAccount = */ msg.sender, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Par,
                 ref: _amountPar == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
                 value: _amountPar == uint(-1) ? 0 : _amountPar
-            })
+            }),
+            _balanceCheckFlag
         );
     }
 
     function withdrawParFromDefaultAccount(
-        uint _marketId,
-        uint _amountPar
+        uint256 _marketId,
+        uint256 _amountPar,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        _withdraw(
-            /* _to = */ msg.sender, // solium-disable-line indentation
-            /* _accountIndex = */ 0, // solium-disable-line indentation
+        AccountActionHelper.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccountIndex = */ 0, // solium-disable-line indentation
+            /* _toAccount = */ msg.sender, // solium-disable-line indentation
             _marketId,
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Par,
                 ref: _amountPar == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
                 value: _amountPar == uint(-1) ? 0 : _amountPar
-            })
+            }),
+            _balanceCheckFlag
         );
     }
 
@@ -352,62 +390,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
         msg.sender.sendValue(amount);
     }
 
-    function _getSenderBalance(uint _marketId) internal view returns (uint) {
+    function _getSenderBalance(uint256 _marketId) internal view returns (uint) {
         return IERC20(DOLOMITE_MARGIN.getMarketTokenAddress(_marketId)).balanceOf(msg.sender);
     }
-
-    function _deposit(
-        address _from,
-        uint _accountIndex,
-        uint _marketId,
-        Types.AssetAmount memory _amount
-    ) internal {
-        Account.Info[] memory accounts = new Account.Info[](1);
-        accounts[0] = Account.Info({
-            owner: msg.sender,
-            number: _accountIndex
-        });
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Deposit,
-            accountId: 0,
-            amount: _amount,
-            primaryMarketId: _marketId,
-            secondaryMarketId: 0,
-            otherAddress: _from,
-            otherAccountId: 0,
-            data: bytes("")
-        });
-
-        DOLOMITE_MARGIN.operate(accounts, actions);
-    }
-
-    function _withdraw(
-        address _to,
-        uint _accountIndex,
-        uint _marketId,
-        Types.AssetAmount memory _amount
-    ) internal {
-        Account.Info[] memory accounts = new Account.Info[](1);
-        accounts[0] = Account.Info({
-            owner: msg.sender,
-            number: _accountIndex
-        });
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Withdraw,
-            accountId: 0,
-            amount: _amount,
-            primaryMarketId: _marketId,
-            secondaryMarketId: 0,
-            otherAddress: _to,
-            otherAccountId: 0,
-            data: bytes("")
-        });
-
-        DOLOMITE_MARGIN.operate(accounts, actions);
-    }
-
 }

@@ -203,8 +203,8 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
             uint token1Index = _dolomiteMargin.getMarketCurrentIndex(markets[1]).supply;
 
             feeOn = _mintFee(_reserve0, _reserve1);
-            uint _totalSupply = totalSupply;
             // gas savings, must be defined here since totalSupply can update in _mintFee
+            uint _totalSupply = totalSupply;
             amount0Wei = (liquidity.mul(balance0) / _totalSupply).getPartialRoundHalfUp(token0Index, INDEX_BASE);
             // using balances ensures pro-rata distribution
             amount1Wei = (liquidity.mul(balance1) / _totalSupply).getPartialRoundHalfUp(token1Index, INDEX_BASE);
@@ -223,7 +223,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         amounts[1] = amount1Wei;
 
         ITransferProxy(dolomiteMarginTransferProxy).transferMultipleWithMarkets(
-            0,
+            /* fromAccountIndex = */ 0, // solium-disable-line indentation
             to,
             toAccountNumber,
             markets,
@@ -245,7 +245,8 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         emit Burn(
             msg.sender,
             amount0Wei,
-            amount1Wei, to
+            amount1Wei,
+            to
         );
     }
 
@@ -266,7 +267,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
         amounts[1] = amount1;
 
         ITransferProxy(dolomiteMarginTransferProxy).transferMultipleWithMarkets(
-            0,
+            /* fromAccountIndex = */ 0, // solium-disable-line indentation
             to,
             toAccountNumber,
             markets,

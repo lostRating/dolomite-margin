@@ -19,24 +19,27 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "../../protocol/interfaces/IDolomiteMargin.sol";
-import "../../protocol/lib/Events.sol";
+import { IDolomiteMargin } from  "../../protocol/interfaces/IDolomiteMargin.sol";
 
-import "../../protocol/lib/Account.sol";
-import "../../protocol/lib/Actions.sol";
-import "../../protocol/lib/Require.sol";
-import "../../protocol/lib/Types.sol";
+import { Account } from "../../protocol/lib/Account.sol";
+import { Actions } from "../../protocol/lib/Actions.sol";
+import { Events } from "../../protocol/lib/Events.sol";
+import { Require } from "../../protocol/lib/Require.sol";
+import { Types } from "../../protocol/lib/Types.sol";
 
-import "../lib/TypedSignature.sol";
-import "../lib/DolomiteAmmLibrary.sol";
+import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
+import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 
-import "../interfaces/IExpiry.sol";
-import "../interfaces/IDolomiteAmmFactory.sol";
-import "../interfaces/IDolomiteAmmPair.sol";
-import "../interfaces/IDolomiteAmmRouterProxy.sol";
+import { TypedSignature } from "../lib/TypedSignature.sol";
+import { DolomiteAmmLibrary } from "../lib/DolomiteAmmLibrary.sol";
+
+import { IExpiry } from "../interfaces/IExpiry.sol";
+import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
+import { IDolomiteAmmRouterProxy } from "../interfaces/IDolomiteAmmRouterProxy.sol";
 
 
 /**
@@ -48,35 +51,13 @@ import "../interfaces/IDolomiteAmmRouterProxy.sol";
 contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     using SafeMath for uint;
 
-    // ============ Constants ============
+    // ==================== Constants ====================
 
     bytes32 constant internal FILE = "DolomiteAmmRouterProxy";
 
-    // ============ Events ============
+    // ==================== Modifiers ====================
 
-    event MarginPositionOpen(
-        address indexed user,
-        uint indexed accountIndex,
-        address inputToken,
-        address outputToken,
-        address depositToken,
-        Events.BalanceUpdate inputBalanceUpdate, // the amount of borrow amount being sold to purchase collateral
-        Events.BalanceUpdate outputBalanceUpdate, // the amount of collateral purchased by the borrowed amount
-        Events.BalanceUpdate marginDepositUpdate
-    );
-
-    event MarginPositionClose(
-        address indexed user,
-        uint indexed accountIndex,
-        address inputToken,
-        address outputToken,
-        address withdrawalToken,
-        Events.BalanceUpdate inputBalanceUpdate, // the amount of held amount being sold to repay debt
-        Events.BalanceUpdate outputBalanceUpdate, // the amount of borrow amount being repaid
-        Events.BalanceUpdate marginWithdrawalUpdate
-    );
-
-    modifier ensure(uint deadline) {
+    modifier ensure(uint256 deadline) {
         Require.that(
             deadline >= block.timestamp,
             FILE,
@@ -109,19 +90,19 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function addLiquidity(
         address to,
-        uint fromAccountNumber,
+        uint256 fromAccountNumber,
         address tokenA,
         address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline
+        uint256 amountADesired,
+        uint256 amountBDesired,
+        uint256 amountAMinWei,
+        uint256 amountBMinWei,
+        uint256 deadline
     )
     external
     ensure(deadline)
-    returns (uint amountAWei, uint amountBWei, uint liquidity) {
-        (amountAWei, amountBWei) = _addLiquidity(
+    returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity) {
+        (amountAWei, amountBWei) = _addLiquidityCalculations(
             tokenA,
             tokenB,
             amountADesired,
@@ -137,8 +118,8 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             accounts[0] = Account.Info(msg.sender, fromAccountNumber);
             accounts[1] = Account.Info(pair, 0);
 
-            uint marketIdA = DOLOMITE_MARGIN.getMarketIdByTokenAddress(tokenA);
-            uint marketIdB = DOLOMITE_MARGIN.getMarketIdByTokenAddress(tokenB);
+            uint256 marketIdA = DOLOMITE_MARGIN.getMarketIdByTokenAddress(tokenA);
+            uint256 marketIdB = DOLOMITE_MARGIN.getMarketIdByTokenAddress(tokenB);
 
             Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
             actions[0] = _encodeTransferAction(0, 1, marketIdA, amountAWei);
@@ -151,11 +132,11 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     }
 
     function swapExactTokensForTokens(
-        uint accountNumber,
-        uint amountInWei,
-        uint amountOutMinWei,
+        uint256 accountNumber,
+        uint256 amountInWei,
+        uint256 amountOutMinWei,
         address[] calldata tokenPath,
-        uint deadline
+        uint256 deadline
     )
     external
     ensure(deadline) {
@@ -183,9 +164,9 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function getParamsForSwapExactTokensForTokens(
         address account,
-        uint accountNumber,
-        uint amountInWei,
-        uint amountOutMinWei,
+        uint256 accountNumber,
+        uint256 amountInWei,
+        uint256 amountOutMinWei,
         address[] calldata tokenPath
     )
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory) {
@@ -212,11 +193,11 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     }
 
     function swapTokensForExactTokens(
-        uint accountNumber,
-        uint amountInMaxWei,
-        uint amountOutWei,
+        uint256 accountNumber,
+        uint256 amountInMaxWei,
+        uint256 amountOutWei,
         address[] calldata tokenPath,
-        uint deadline
+        uint256 deadline
     )
     external
     ensure(deadline) {
@@ -244,9 +225,9 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function getParamsForSwapTokensForExactTokens(
         address account,
-        uint accountNumber,
-        uint amountInMaxWei,
-        uint amountOutWei,
+        uint256 accountNumber,
+        uint256 amountInMaxWei,
+        uint256 amountOutWei,
         address[] calldata tokenPath
     )
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory) {
@@ -274,19 +255,19 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function removeLiquidity(
         address to,
-        uint toAccountNumber,
+        uint256 toAccountNumber,
         address tokenA,
         address tokenB,
-        uint liquidity,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline
-    ) public ensure(deadline) returns (uint amountAWei, uint amountBWei) {
+        uint256 liquidity,
+        uint256 amountAMinWei,
+        uint256 amountBMinWei,
+        uint256 deadline
+    ) public ensure(deadline) returns (uint256 amountAWei, uint256 amountBWei) {
         address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), tokenA, tokenB);
         // send liquidity to pair
         IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, liquidity);
 
-        (uint amount0Wei, uint amount1Wei) = IDolomiteAmmPair(pair).burn(to, toAccountNumber);
+        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(to, toAccountNumber);
         (address token0,) = DolomiteAmmLibrary.sortTokens(tokenA, tokenB);
         (amountAWei, amountBWei) = tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
         Require.that(
@@ -305,19 +286,68 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         );
     }
 
+    function removeLiquidityFromWithinDolomite(
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        address _tokenA,
+        address _tokenB,
+        uint256 _liquidity,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+    ) public ensure(_deadline) returns (uint256 amountAWei, uint256 amountBWei) {
+        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _tokenA, _tokenB);
+        IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
+
+        // send liquidity to pair
+        AccountActionHelper.withdraw(
+            dolomiteMargin,
+            msg.sender,
+            _fromAccountIndex,
+            pair,
+            dolomiteMargin.getMarketIdByTokenAddress(pair),
+            Types.AssetAmount({
+                sign: false,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Delta,
+                value: _liquidity
+            }),
+            _balanceCheckFlag
+        );
+
+        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(to, _toAccountIndex);
+        (address token0,) = DolomiteAmmLibrary.sortTokens(_tokenA, _tokenB);
+        (amountAWei, amountBWei) = _tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
+        Require.that(
+            amountAWei >= _amountAMinWei,
+            FILE,
+            "insufficient A amount",
+            amountAWei,
+            _amountAMinWei
+        );
+        Require.that(
+            amountBWei >= _amountBMinWei,
+            FILE,
+            "insufficient B amount",
+            amountBWei,
+            _amountBMinWei
+        );
+    }
+
     function removeLiquidityWithPermit(
         address to,
-        uint toAccountNumber,
+        uint256 toAccountNumber,
         address tokenA,
         address tokenB,
-        uint liquidity,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline,
+        uint256 liquidity,
+        uint256 amountAMinWei,
+        uint256 amountBMinWei,
+        uint256 deadline,
         PermitSignature memory permit
-    ) public returns (uint amountAWei, uint amountBWei) {
+    ) public returns (uint256 amountAWei, uint256 amountBWei) {
         address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), tokenA, tokenB);
-        uint value = permit.approveMax ? uint(- 1) : liquidity;
+        uint256 value = permit.approveMax ? uint(- 1) : liquidity;
         IDolomiteAmmPair(pair).permit(
             msg.sender,
             address(this),
@@ -342,7 +372,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function swapExactTokensForTokensAndModifyPosition(
         ModifyPositionParams memory params,
-        uint deadline
+        uint256 deadline
     ) public ensure(deadline) {
         _swapExactTokensForTokensAndModifyPosition(
             ModifyPositionCache({
@@ -359,7 +389,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function swapTokensForExactTokensAndModifyPosition(
         ModifyPositionParams memory params,
-        uint deadline
+        uint256 deadline
     ) public ensure(deadline) {
         _swapTokensForExactTokensAndModifyPosition(
             ModifyPositionCache({
@@ -413,10 +443,10 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         cache.marketPath = _getMarketPathFromTokenPath(cache);
 
         // Convert from par to wei, if necessary
-        uint amountInWei = _convertAssetAmountToWei(cache.params.amountIn, cache.marketPath[0], cache);
+        uint256 amountInWei = _convertAssetAmountToWei(cache.params.amountIn, cache.marketPath[0], cache);
 
         // Convert from par to wei, if necessary
-        uint amountOutMinWei = _convertAssetAmountToWei(
+        uint256 amountOutMinWei = _convertAssetAmountToWei(
             cache.params.amountOut,
             cache.marketPath[cache.marketPath.length - 1],
             cache
@@ -450,10 +480,10 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         cache.marketPath = _getMarketPathFromTokenPath(cache);
 
         // Convert from par to wei, if necessary
-        uint amountInMaxWei = _convertAssetAmountToWei(cache.params.amountIn, cache.marketPath[0], cache);
+        uint256 amountInMaxWei = _convertAssetAmountToWei(cache.params.amountIn, cache.marketPath[0], cache);
 
         // Convert from par to wei, if necessary
-        uint amountOutWei = _convertAssetAmountToWei(
+        uint256 amountOutWei = _convertAssetAmountToWei(
             cache.params.amountOut,
             cache.marketPath[cache.marketPath.length - 1],
             cache
@@ -497,8 +527,8 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         Actions.ActionArgs[] memory actions = _getActionArgsForModifyPosition(cache, accounts, pools);
 
         if (cache.params.depositToken != address(0) && cache.params.marginDeposit == uint(- 1)) {
-            uint expiryActionCount = cache.params.expiryTimeDelta == 0 ? 0 : 1;
-            uint marketId = actions[actions.length - 1 - expiryActionCount].primaryMarketId;
+            uint256 expiryActionCount = cache.params.expiryTimeDelta == 0 ? 0 : 1;
+            uint256 marketId = actions[actions.length - 1 - expiryActionCount].primaryMarketId;
             if (cache.params.isPositiveMarginDeposit) {
                 // the marginDeposit is equal to the amount of `marketId` in account 0 (which is at accounts.length - 1)
                 cache.marginDepositDeltaWei = cache.dolomiteMargin.getAccountWei(accounts[accounts.length - 1], marketId).value;
@@ -525,17 +555,17 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         ModifyPositionCache memory cache
     ) internal view returns (uint[] memory) {
         uint[] memory marketPath = new uint[](cache.params.tokenPath.length);
-        for (uint i = 0; i < cache.params.tokenPath.length; i++) {
+        for (uint256 i = 0; i < cache.params.tokenPath.length; i++) {
             marketPath[i] = cache.dolomiteMargin.getMarketIdByTokenAddress(cache.params.tokenPath[i]);
         }
         return marketPath;
     }
 
     function _encodeTransferAction(
-        uint fromAccountIndex,
-        uint toAccountIndex,
-        uint marketId,
-        uint amount
+        uint256 fromAccountIndex,
+        uint256 toAccountIndex,
+        uint256 marketId,
+        uint256 amount
     ) internal pure returns (Actions.ActionArgs memory) {
         Types.AssetAmount memory assetAmount;
         if (amount == uint(- 1)) {
@@ -568,8 +598,8 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     function _encodeExpirationAction(
         ModifyPositionParams memory params,
         Account.Info memory account,
-        uint accountIndex,
-        uint owedMarketId
+        uint256 accountIndex,
+        uint256 owedMarketId
     ) internal view returns (Actions.ActionArgs memory) {
         Require.that(
             params.expiryTimeDelta == uint32(params.expiryTimeDelta),
@@ -599,13 +629,13 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     }
 
     function _encodeTradeAction(
-        uint fromAccountIndex,
-        uint toAccountIndex,
-        uint primaryMarketId,
-        uint secondaryMarketId,
+        uint256 fromAccountIndex,
+        uint256 toAccountIndex,
+        uint256 primaryMarketId,
+        uint256 secondaryMarketId,
         address traderAddress,
-        uint amountInWei,
-        uint amountOutWei
+        uint256 amountInWei,
+        uint256 amountOutWei
     ) internal pure returns (Actions.ActionArgs memory) {
         return Actions.ActionArgs({
             actionType : Actions.ActionType.Trade,
@@ -620,20 +650,20 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         });
     }
 
-    function _addLiquidity(
+    function _addLiquidityCalculations(
         address tokenA,
         address tokenB,
-        uint amountADesiredWei,
-        uint amountBDesiredWei,
-        uint amountAMinWei,
-        uint amountBMinWei
-    ) internal returns (uint amountAWei, uint amountBWei) {
+        uint256 amountADesiredWei,
+        uint256 amountBDesiredWei,
+        uint256 amountAMinWei,
+        uint256 amountBMinWei
+    ) internal returns (uint256 amountAWei, uint256 amountBWei) {
         IDolomiteAmmFactory dolomiteAmmFactory = DOLOMITE_AMM_FACTORY;
         // create the pair if it doesn't exist yet
         if (dolomiteAmmFactory.getPair(tokenA, tokenB) == address(0)) {
             dolomiteAmmFactory.createPair(tokenA, tokenB);
         }
-        (uint reserveAWei, uint reserveBWei) = DolomiteAmmLibrary.getReservesWei(
+        (uint256 reserveAWei, uint256 reserveBWei) = DolomiteAmmLibrary.getReservesWei(
             address(dolomiteAmmFactory),
             tokenA,
             tokenB
@@ -641,7 +671,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         if (reserveAWei == 0 && reserveBWei == 0) {
             (amountAWei, amountBWei) = (amountADesiredWei, amountBDesiredWei);
         } else {
-            uint amountBOptimal = DolomiteAmmLibrary.quote(amountADesiredWei, reserveAWei, reserveBWei);
+            uint256 amountBOptimal = DolomiteAmmLibrary.quote(amountADesiredWei, reserveAWei, reserveBWei);
             if (amountBOptimal <= amountBDesiredWei) {
                 Require.that(
                     amountBOptimal >= amountBMinWei,
@@ -652,7 +682,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
                 );
                 (amountAWei, amountBWei) = (amountADesiredWei, amountBOptimal);
             } else {
-                uint amountAOptimal = DolomiteAmmLibrary.quote(amountBDesiredWei, reserveBWei, reserveAWei);
+                uint256 amountAOptimal = DolomiteAmmLibrary.quote(amountBDesiredWei, reserveBWei, reserveAWei);
                 assert(amountAOptimal <= amountADesiredWei);
                 Require.that(
                     amountAOptimal >= amountAMinWei,
@@ -680,7 +710,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
         accounts[0] = Account.Info(cache.account, cache.params.accountNumber);
 
-        for (uint i = 0; i < pools.length; i++) {
+        for (uint256 i = 0; i < pools.length; i++) {
             accounts[i + 1] = Account.Info(pools[i], 0);
         }
 
@@ -702,7 +732,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
                 "invalid margin deposit"
             );
 
-            uint expiryActionCount = cache.params.expiryTimeDelta == 0 ? 0 : 1;
+            uint256 expiryActionCount = cache.params.expiryTimeDelta == 0 ? 0 : 1;
             actions = new Actions.ActionArgs[](pools.length + 1 + expiryActionCount);
 
             // `accountNumber` `0` is at index `accountsLength - 1`
@@ -726,7 +756,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             }
         }
 
-        for (uint i = 0; i < pools.length; i++) {
+        for (uint256 i = 0; i < pools.length; i++) {
             Require.that(
                 accounts[i + 1].owner == pools[i],
                 FILE,
@@ -746,7 +776,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         return actions;
     }
 
-    function _defaultAssetAmount(uint value) internal pure returns (Types.AssetAmount memory) {
+    function _defaultAssetAmount(uint256 value) internal pure returns (Types.AssetAmount memory) {
         return Types.AssetAmount({
             sign : true,
             denomination : Types.AssetDenomination.Wei,
@@ -757,7 +787,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function _convertAssetAmountToWei(
         Types.AssetAmount memory amount,
-        uint marketId,
+        uint256 marketId,
         ModifyPositionCache memory cache
     ) internal view returns (uint) {
         if (amount.denomination == Types.AssetDenomination.Wei) {

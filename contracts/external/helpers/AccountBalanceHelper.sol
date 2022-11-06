@@ -30,19 +30,31 @@ import { Types } from "../../protocol/lib/Types.sol";
  * @title AccountBalanceHelper
  * @author Dolomite
  *
- * Inheritable contract that checks a user's balance after transaction to be non-negative
+ * Library contract that checks a user's balance after transaction to be non-negative
  */
-contract AccountBalanceHelper {
+library AccountBalanceHelper {
     using Types for Types.Par;
 
     // ============ Constants ============
 
     bytes32 constant FILE = "AccountBalanceHelper";
 
-    // ============ Modifiers ============
+    // ============ Types ============
 
+    /// Checks that either BOTH, FROM, or TO accounts all have non-negative balances
+    enum BalanceCheckFlag {
+        Both,
+        From,
+        To,
+        None
+    }
 
-    function _verifyAccountIsNotNegative(
+    // ============ Functions ============
+
+    /**
+     *  Checks that the account's balance is non-negative. Reverts if the check fails
+     */
+    function verifyBalanceIsNonNegative(
         IDolomiteMargin dolomiteMargin,
         address _owner,
         uint256 _accountIndex,

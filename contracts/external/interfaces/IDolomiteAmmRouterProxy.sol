@@ -19,14 +19,40 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "../../protocol/interfaces/IDolomiteMargin.sol";
+import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
-import "../../protocol/lib/Types.sol";
+import { Events } from "../../protocol/lib/Events.sol";
+import { Types } from "../../protocol/lib/Types.sol";
 
-import "../interfaces/IDolomiteAmmFactory.sol";
-import "../interfaces/IDolomiteAmmPair.sol";
+import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
+
 
 interface IDolomiteAmmRouterProxy {
+
+    // ============ Events ============
+
+    event MarginPositionOpen(
+        address indexed user,
+        uint indexed accountIndex,
+        address inputToken,
+        address outputToken,
+        address depositToken,
+        Events.BalanceUpdate inputBalanceUpdate, // the amount of borrow amount being sold to purchase collateral
+        Events.BalanceUpdate outputBalanceUpdate, // the amount of collateral purchased by the borrowed amount
+        Events.BalanceUpdate marginDepositUpdate
+    );
+
+    event MarginPositionClose(
+        address indexed user,
+        uint indexed accountIndex,
+        address inputToken,
+        address outputToken,
+        address withdrawalToken,
+        Events.BalanceUpdate inputBalanceUpdate, // the amount of held amount being sold to repay debt
+        Events.BalanceUpdate outputBalanceUpdate, // the amount of borrow amount being repaid
+        Events.BalanceUpdate marginWithdrawalUpdate
+    );
 
     // ============ Structs ============
 
