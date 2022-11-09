@@ -430,8 +430,8 @@
     "AmmRebalancerProxyV2": {
         "42161": {
             "links": {},
-            "address": "0x8a80212D49F0169D58D61A5c448687d48CD6F879",
-            "transactionHash": "0xd7e35348ee5528080749d1a7ba5aa29e02a7d0175688979f67884f3cdfb53a73"
+            "address": "0x353e0B387663B5daDa800cc30e926f49e6ADAf09",
+            "transactionHash": "0xd7187c6e358ed6c16e210a9e38bf3198170a476cd132d7f1fa01826a4748505c"
         },
         "80001": {
             "links": {},
