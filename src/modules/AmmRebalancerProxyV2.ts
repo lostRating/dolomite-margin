@@ -13,18 +13,16 @@ export class AmmRebalancerProxyV2 {
 
   public async performRebalance(
     dolomitePath: address[],
-    truePriceTokenA: Integer,
-    truePriceTokenB: Integer,
     otherAmountIn: Integer,
+    minOtherAmountOut: Integer,
     uniswapV3CallData: string,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
       this.contracts.ammRebalancerProxyV2.methods.performRebalance(
         toBytesNoPadding(...dolomitePath),
-        truePriceTokenA.toFixed(0),
-        truePriceTokenB.toFixed(0),
         otherAmountIn.toFixed(0),
+        minOtherAmountOut.toFixed(0),
         toBytesNoPadding(uniswapV3CallData),
       ),
       options,
