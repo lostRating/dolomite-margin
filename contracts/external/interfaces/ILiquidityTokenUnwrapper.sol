@@ -27,7 +27,11 @@ interface ILiquidityTokenUnwrapper {
     function token() external view returns (address);
 
     /**
-     * @param _amount the Amount of
+     * @notice  Unwraps `token` to its underlying components and sends them to `msg.sender`. This contract assumes an
+     *          approval of at least `_amount` in order to `safeTransferFrom(msg.sender, address(this), _amount)` the
+     *          `token` into this contract for unwrapping.
+     *
+     * @param _amount the Amount of `token` to be unwrapped and sent to `msg.sender`.
      */
-    function unwrap(uint256 _amount);
+    function unwrap(uint256 _amount) external;
 }

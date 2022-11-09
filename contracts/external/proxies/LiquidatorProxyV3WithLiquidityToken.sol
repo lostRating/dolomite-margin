@@ -45,7 +45,7 @@ import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
  * @author Dolomite
  *
  * Contract for liquidating other accounts in DolomiteMargin that use LP token(s) as collateral or debt. All collateral
- * is atomically sold off collateral via Paraswap liquidity aggregation.
+ * is atomically sold off via Paraswap liquidity aggregation.
  */
 contract LiquidatorProxyV3WithLiquidityToken is ReentrancyGuard, LiquidatorProxyHelper {
     using DolomiteMarginMath for uint256;

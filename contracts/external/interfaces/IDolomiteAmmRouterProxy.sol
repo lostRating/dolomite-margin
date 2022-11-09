@@ -21,8 +21,11 @@ pragma experimental ABIEncoderV2;
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
+import { Account } from "../../protocol/lib/Account.sol";
 import { Events } from "../../protocol/lib/Events.sol";
 import { Types } from "../../protocol/lib/Types.sol";
+
+import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 
 import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
 import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
@@ -34,7 +37,7 @@ interface IDolomiteAmmRouterProxy {
 
     event MarginPositionOpen(
         address indexed user,
-        uint indexed accountIndex,
+        uint256 indexed accountIndex,
         address inputToken,
         address outputToken,
         address depositToken,
@@ -45,7 +48,7 @@ interface IDolomiteAmmRouterProxy {
 
     event MarginPositionClose(
         address indexed user,
-        uint indexed accountIndex,
+        uint256 indexed accountIndex,
         address inputToken,
         address outputToken,
         address withdrawalToken,
@@ -57,8 +60,8 @@ interface IDolomiteAmmRouterProxy {
     // ============ Structs ============
 
     struct ModifyPositionParams {
-        uint fromAccountNumber;
-        uint toAccountNumber;
+        uint256 fromAccountNumber;
+        uint256 toAccountNumber;
         Types.AssetAmount amountIn;
         Types.AssetAmount amountOut;
         address[] tokenPath;
@@ -69,12 +72,10 @@ interface IDolomiteAmmRouterProxy {
         /// a negative number means funds are withdrawn from `accountNumber` and moved to accountNumber zero
         bool isPositiveMarginDeposit;
         /// the amount of the margin deposit/withdrawal, in wei
-        uint marginDeposit;
+        uint256 marginDeposit;
         /// the amount of seconds from the time at which the position is opened to expiry. 0 for no expiration
-        uint expiryTimeDelta;
-        /// 0 if the accounts cannot be negative, 0x0F if _fromAccountIndex can be negative, 0xF0 if the toAccountNumber
-        /// can be negative, or 0xFF if both accounts can be negative
-        uint canAccountsBeNegativeFlag;
+        uint256 expiryTimeDelta;
+        AccountBalanceHelper.BalanceCheckFlag balanceCheckFlag;
     }
 
     struct ModifyPositionCache {
@@ -84,7 +85,7 @@ interface IDolomiteAmmRouterProxy {
         address account;
         uint[] marketPath;
         uint[] amountsWei;
-        uint marginDepositDeltaWei;
+        uint256 marginDepositDeltaWei;
     }
 
     struct PermitSignature {
@@ -97,85 +98,115 @@ interface IDolomiteAmmRouterProxy {
     function getPairInitCodeHash() external view returns (bytes32);
 
     function addLiquidity(
-        address to,
-        uint fromAccountNumber,
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline
+        uint256 _accountNumber,
+        address _to,
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountADesired,
+        uint256 _amountBDesired,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
-    returns (uint amountAWei, uint amountBWei, uint liquidity);
+    returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity);
+
+    function addLiquidityAndDepositIntoDolomite(
+        uint256 _fromAccountNumber,
+        uint256 _toAccountNumber,
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountADesired,
+        uint256 _amountBDesired,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+    )
+    external
+    returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity);
 
     function swapExactTokensForTokens(
-        uint accountNumber,
-        uint amountInWei,
-        uint amountOutMinWei,
-        address[] calldata tokenPath,
-        uint deadline
+        uint256 _accountNumber,
+        uint256 _amountInWei,
+        uint256 _amountOutMinWei,
+        address[] calldata _tokenPath,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external;
 
     function getParamsForSwapExactTokensForTokens(
-        address account,
-        uint accountNumber,
-        uint amountInWei,
-        uint amountOutMinWei,
-        address[] calldata tokenPath
+        address _account,
+        uint256 _accountNumber,
+        uint256 _amountInWei,
+        uint256 _amountOutMinWei,
+        address[] calldata _tokenPath
     )
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory);
 
     function swapTokensForExactTokens(
-        uint accountNumber,
-        uint amountInMaxWei,
-        uint amountOutWei,
-        address[] calldata tokenPath,
-        uint deadline
+        uint256 _accountNumber,
+        uint256 _amountInMaxWei,
+        uint256 _amountOutWei,
+        address[] calldata _tokenPath,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external;
 
     function getParamsForSwapTokensForExactTokens(
-        address account,
-        uint accountNumber,
-        uint amountInMaxWei,
-        uint amountOutWei,
-        address[] calldata tokenPath
+        address _account,
+        uint256 _accountNumber,
+        uint256 _amountInMaxWei,
+        uint256 _amountOutWei,
+        address[] calldata _tokenPath
     )
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory);
 
     function removeLiquidity(
-        address to,
-        uint toAccountNumber,
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline
-    ) external returns (uint amountAWei, uint amountBWei);
+        address _to,
+        uint256 _toAccountNumber,
+        address _tokenA,
+        address _tokenB,
+        uint256 _liquidity,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei,
+        uint256 _deadline
+    ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function removeLiquidityWithPermit(
-        address to,
-        uint toAccountNumber,
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline,
-        PermitSignature calldata permit
-    ) external returns (uint amountAWei, uint amountBWei);
+        address _to,
+        uint256 _toAccountNumber,
+        address _tokenA,
+        address _tokenB,
+        uint256 _liquidity,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei,
+        uint256 _deadline,
+        PermitSignature calldata _permit
+    ) external returns (uint256 amountAWei, uint256 amountBWei);
+
+    function removeLiquidityFromWithinDolomite(
+        uint256 _fromAccountIndex,
+        uint256 _toAccountIndex,
+        address _tokenA,
+        address _tokenB,
+        uint256 _liquidity,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+    ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function swapExactTokensForTokensAndModifyPosition(
-        ModifyPositionParams calldata params,
-        uint deadline
+        ModifyPositionParams calldata _params,
+        uint256 _deadline
     ) external;
 
     function swapTokensForExactTokensAndModifyPosition(
-        ModifyPositionParams calldata params,
-        uint deadline
+        ModifyPositionParams calldata _params,
+        uint256 _deadline
     ) external;
 }
