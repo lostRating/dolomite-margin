@@ -118,8 +118,8 @@ library AccountActionHelper {
     }
 
     function encodeTradeAction(
-        uint256 _fromAccountIndex,
-        uint256 _toAccountIndex,
+        uint256 _fromAccountId,
+        uint256 _toAccountId,
         uint256 _primaryMarketId,
         uint256 _secondaryMarketId,
         address _traderAddress,
@@ -128,13 +128,13 @@ library AccountActionHelper {
     ) internal pure returns (Actions.ActionArgs memory) {
         return Actions.ActionArgs({
         actionType : Actions.ActionType.Trade,
-        accountId : _fromAccountIndex,
+        accountId : _fromAccountId,
         // solium-disable-next-line arg-overflow
         amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
         primaryMarketId : _primaryMarketId,
         secondaryMarketId : _secondaryMarketId,
         otherAddress : _traderAddress,
-        otherAccountId : _toAccountIndex,
+        otherAccountId : _toAccountId,
         data : abi.encode(_amountOutWei)
         });
     }
@@ -166,7 +166,7 @@ library AccountActionHelper {
             accountId : _fromAccountId,
             amount : assetAmount,
             primaryMarketId : _marketId,
-            secondaryMarketId : uint(- 1),
+            secondaryMarketId : 0,
             otherAddress : address(0),
             otherAccountId : _toAccountId,
             data : bytes("")

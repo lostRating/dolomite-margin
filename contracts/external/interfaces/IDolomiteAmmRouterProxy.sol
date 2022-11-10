@@ -22,6 +22,7 @@ pragma experimental ABIEncoderV2;
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
+import { Actions } from "../../protocol/lib/Actions.sol";
 import { Events } from "../../protocol/lib/Events.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
@@ -68,10 +69,8 @@ interface IDolomiteAmmRouterProxy {
         /// the token to be deposited/withdrawn to/from account number. To not perform any margin deposits or
         /// withdrawals, simply set this to `address(0)`
         address depositToken;
-        /// a positive number means funds are deposited to `accountNumber` from accountNumber zero
-        /// a negative number means funds are withdrawn from `accountNumber` and moved to accountNumber zero
-        bool isPositiveMarginDeposit;
-        /// the amount of the margin deposit/withdrawal, in wei
+        /// the amount of the margin deposit/withdrawal, in wei. Whether or not this is a deposit or withdrawal depends
+        /// on what fromAccountNumber or toAccountNumber are set to.
         uint256 marginDeposit;
         /// the amount of seconds from the time at which the position is opened to expiry. 0 for no expiration
         uint256 expiryTimeDelta;
@@ -85,6 +84,7 @@ interface IDolomiteAmmRouterProxy {
         address account;
         uint[] marketPath;
         uint[] amountsWei;
+        /// this value is calculated for emitting an event only
         uint256 marginDepositDeltaWei;
     }
 
