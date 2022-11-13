@@ -47,14 +47,14 @@ library AccountActionHelper {
         IDolomiteMargin _dolomiteMargin,
         address _accountOwner,
         address _fromAccount,
-        uint256 _toAccountIndex,
+        uint256 _toAccountNumber,
         uint256 _marketId,
         Types.AssetAmount memory _amount
     ) internal {
         Account.Info[] memory accounts = new Account.Info[](1);
         accounts[0] = Account.Info({
-        owner: _accountOwner,
-        number: _toAccountIndex
+            owner: _accountOwner,
+            number: _toAccountNumber
         });
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
@@ -78,7 +78,7 @@ library AccountActionHelper {
     function withdraw(
         IDolomiteMargin _dolomiteMargin,
         address _accountOwner,
-        uint256 _fromAccountIndex,
+        uint256 _fromAccountNumber,
         address _toAccount,
         uint256 _marketId,
         Types.AssetAmount memory _amount,
@@ -87,7 +87,7 @@ library AccountActionHelper {
         Account.Info[] memory accounts = new Account.Info[](1);
         accounts[0] = Account.Info({
             owner: _accountOwner,
-            number: _fromAccountIndex
+            number: _fromAccountNumber
         });
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
@@ -111,7 +111,7 @@ library AccountActionHelper {
             AccountBalanceHelper.verifyBalanceIsNonNegative(
                 _dolomiteMargin,
                 accounts[0].owner,
-                _fromAccountIndex,
+                _fromAccountNumber,
                 _marketId
             );
         }
@@ -127,15 +127,15 @@ library AccountActionHelper {
         uint256 _amountOutWei
     ) internal pure returns (Actions.ActionArgs memory) {
         return Actions.ActionArgs({
-        actionType : Actions.ActionType.Trade,
-        accountId : _fromAccountId,
-        // solium-disable-next-line arg-overflow
-        amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
-        primaryMarketId : _primaryMarketId,
-        secondaryMarketId : _secondaryMarketId,
-        otherAddress : _traderAddress,
-        otherAccountId : _toAccountId,
-        data : abi.encode(_amountOutWei)
+            actionType : Actions.ActionType.Trade,
+            accountId : _fromAccountId,
+            // solium-disable-next-line arg-overflow
+            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
+            primaryMarketId : _primaryMarketId,
+            secondaryMarketId : _secondaryMarketId,
+            otherAddress : _traderAddress,
+            otherAccountId : _toAccountId,
+            data : abi.encode(_amountOutWei)
         });
     }
 

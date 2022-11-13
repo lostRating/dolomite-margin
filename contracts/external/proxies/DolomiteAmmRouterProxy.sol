@@ -94,99 +94,76 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     }
 
     function addLiquidity(
-        uint256 _accountNumber,
-        address _to,
-        address _tokenA,
-        address _tokenB,
-        uint256 _amountADesired,
-        uint256 _amountBDesired,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AddLiquidityParams memory _params,
+        address _toAccount
     )
     public
-    ensure(_deadline)
+    ensure(_params.deadline)
     returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity) {
         (amountAWei, amountBWei) = _addLiquidityCalculations(
-            _tokenA,
-            _tokenB,
-            _amountADesired,
-            _amountBDesired,
-            _amountAMinWei,
-            _amountBMinWei
+            _params.tokenA,
+            _params.tokenB,
+            _params.amountADesired,
+            _params.amountBDesired,
+            _params.amountAMinWei,
+            _params.amountBMinWei
         );
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _tokenA, _tokenB);
+        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
 
-        uint256 marketIdA = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_tokenA);
-        uint256 marketIdB = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_tokenB);
+        IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
+        uint256 marketIdA = dolomiteMargin.getMarketIdByTokenAddress(_params.tokenA);
+        uint256 marketIdB = dolomiteMargin.getMarketIdByTokenAddress(_params.tokenB);
 
         // solium-disable indentation, arg-overflow
         {
             Account.Info[] memory accounts = new Account.Info[](2);
-            accounts[0] = Account.Info(msg.sender, _accountNumber);
+            accounts[0] = Account.Info(msg.sender, _params.fromAccountNumber);
             accounts[1] = Account.Info(pair, 0);
 
             Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
             actions[0] = AccountActionHelper.encodeTransferAction(0, 1, marketIdA, amountAWei);
             actions[1] = AccountActionHelper.encodeTransferAction(0, 1, marketIdB, amountBWei);
-            DOLOMITE_MARGIN.operate(accounts, actions);
+            dolomiteMargin.operate(accounts, actions);
         }
         // solium-enable indentation, arg-overflow
 
-        liquidity = IDolomiteAmmPair(pair).mint(_to);
+        liquidity = IDolomiteAmmPair(pair).mint(_toAccount);
 
         if (
-            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both ||
-            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
+            _params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both ||
+            _params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
         ) {
             AccountBalanceHelper.verifyBalanceIsNonNegative(
-                DOLOMITE_MARGIN,
+                dolomiteMargin,
                 msg.sender,
-                _accountNumber,
+                _params.fromAccountNumber,
                 marketIdA
             );
         }
     }
 
     function addLiquidityAndDepositIntoDolomite(
-        uint256 _fromAccountNumber,
-        uint256 _toAccountNumber,
-        address _tokenA,
-        address _tokenB,
-        uint256 _amountADesired,
-        uint256 _amountBDesired,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AddLiquidityParams memory _params,
+        uint256 _toAccountNumber
     )
-    external
-    ensure(_deadline)
+    public
+    ensure(_params.deadline)
     returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity) {
         (amountAWei, amountBWei, liquidity) = addLiquidity(
-            _fromAccountNumber,
-            /* _to = */ address(this), // solium-disable-line indentation
-            _tokenA,
-            _tokenB,
-            _amountADesired,
-            _amountBDesired,
-            _amountAMinWei,
-            _amountBMinWei,
-            _deadline,
-            _balanceCheckFlag
+            _params,
+            /* _toAccount = */ address(this) // solium-disable-line indentation
         );
 
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
-        address pair = DOLOMITE_AMM_FACTORY.getPair(_tokenA, _tokenB);
+        address pair = DOLOMITE_AMM_FACTORY.getPair(_params.tokenA, _params.tokenB);
         if (IERC20(pair).allowance(address(this), address(dolomiteMargin)) < liquidity) {
             IERC20(pair).safeApprove(address(dolomiteMargin), uint256(-1));
         }
 
         AccountActionHelper.deposit(
             dolomiteMargin,
-            msg.sender,
-            address(this),
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ address(this), // solium-disable-line indentation
             _toAccountNumber,
             dolomiteMargin.getMarketIdByTokenAddress(pair),
             Types.AssetAmount({
@@ -328,118 +305,91 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
     function removeLiquidity(
         address _to,
-        uint256 _toAccountNumber,
-        address _tokenA,
-        address _tokenB,
-        uint256 _liquidity,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline
-    ) public ensure(_deadline) returns (uint256 amountAWei, uint256 amountBWei) {
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _tokenA, _tokenB);
+        RemoveLiquidityParams memory _params
+    ) public ensure(_params.deadline) returns (uint256 amountAWei, uint256 amountBWei) {
+        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
         // send liquidity to pair
-        IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, _liquidity);
+        IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, _params.liquidity);
 
-        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(_to, _toAccountNumber);
-        (address token0,) = DolomiteAmmLibrary.sortTokens(_tokenA, _tokenB);
-        (amountAWei, amountBWei) = _tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
+        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(_to, _params.toAccountNumber);
+        (address token0,) = DolomiteAmmLibrary.sortTokens(_params.tokenA, _params.tokenB);
+        (amountAWei, amountBWei) = _params.tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
         Require.that(
-            amountAWei >= _amountAMinWei,
+            amountAWei >= _params.amountAMinWei,
             FILE,
             "insufficient A amount",
             amountAWei,
-            _amountAMinWei
+            _params.amountAMinWei
         );
         Require.that(
-            amountBWei >= _amountBMinWei,
+            amountBWei >= _params.amountBMinWei,
             FILE,
             "insufficient B amount",
             amountBWei,
-            _amountBMinWei
+            _params.amountBMinWei
         );
     }
 
     function removeLiquidityWithPermit(
         address _to,
-        uint256 _toAccountNumber,
-        address _tokenA,
-        address _tokenB,
-        uint256 _liquidity,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
+        RemoveLiquidityParams memory _params,
         PermitSignature memory _permit
     ) public returns (uint256 amountAWei, uint256 amountBWei) {
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _tokenA, _tokenB);
-        uint256 value = _permit.approveMax ? uint(- 1) : _liquidity;
+        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
+        uint256 value = _permit.approveMax ? uint(- 1) : _params.liquidity;
         IDolomiteAmmPair(pair).permit(
             msg.sender,
             address(this),
             value,
-            _deadline,
+            _params.deadline,
             _permit.v,
             _permit.r,
             _permit.s
         );
 
-        (amountAWei, amountBWei) = removeLiquidity(
-            _to,
-            _toAccountNumber,
-            _tokenA,
-            _tokenB,
-            _liquidity,
-            _amountAMinWei,
-            _amountBMinWei,
-            _deadline
-        );
+        (amountAWei, amountBWei) = removeLiquidity(_to, _params);
     }
 
     function removeLiquidityFromWithinDolomite(
-        uint256 _fromAccountIndex,
-        uint256 _toAccountIndex,
-        address _tokenA,
-        address _tokenB,
-        uint256 _liquidity,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
+        uint256 _fromAccountNumber,
+        RemoveLiquidityParams memory _params,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
-    ) public ensure(_deadline) returns (uint256 amountAWei, uint256 amountBWei) {
+    ) public ensure(_params.deadline) returns (uint256 amountAWei, uint256 amountBWei) {
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _tokenA, _tokenB);
+        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
 
         // send liquidity to pair
         AccountActionHelper.withdraw(
             dolomiteMargin,
             msg.sender,
-            _fromAccountIndex,
+            _fromAccountNumber,
             pair,
             dolomiteMargin.getMarketIdByTokenAddress(pair),
             Types.AssetAmount({
                 sign: false,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: _liquidity
+                value: _params.liquidity
             }),
             _balanceCheckFlag
         );
 
-        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(msg.sender, _toAccountIndex);
-        (address token0,) = DolomiteAmmLibrary.sortTokens(_tokenA, _tokenB);
-        (amountAWei, amountBWei) = _tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
+        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(msg.sender, _params.toAccountNumber);
+        (address token0,) = DolomiteAmmLibrary.sortTokens(_params.tokenA, _params.tokenB);
+        (amountAWei, amountBWei) = _params.tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
         Require.that(
-            amountAWei >= _amountAMinWei,
+            amountAWei >= _params.amountAMinWei,
             FILE,
             "insufficient A amount",
             amountAWei,
-            _amountAMinWei
+            _params.amountAMinWei
         );
         Require.that(
-            amountBWei >= _amountBMinWei,
+            amountBWei >= _params.amountBMinWei,
             FILE,
             "insufficient B amount",
             amountBWei,
-            _amountBMinWei
+            _params.amountBMinWei
         );
     }
 
@@ -612,11 +562,11 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             uint256 expiryActionCount = _cache.params.expiryTimeDelta == 0 ? 0 : 1;
             uint256 depositMarketId = actions[actions.length - 1 - expiryActionCount].primaryMarketId;
             if (AccountMarginHelper.isMarginAccount(_cache.params.toAccountNumber)) {
-                // the user is depositing into a margin account from accounts[0] == fromAccountIndex
+                // the user is depositing into a margin account from accounts[0] == fromAccountNumber
                 // the marginDeposit is equal to the amount of `marketId` in fromAccountNumber which is at index=0
                 _cache.marginDepositDeltaWei = _cache.dolomiteMargin.getAccountWei(accounts[0], depositMarketId).value;
             } else {
-                // the user is withdrawing from a margin account from accounts[0] == fromAccountIndex
+                // the user is withdrawing from a margin account from accounts[0] == fromAccountNumber
                 if (_cache.marketPath[0] == depositMarketId) {
                     // the trade downsizes the potential withdrawal
                     _cache.marginDepositDeltaWei = _cache.dolomiteMargin.getAccountWei(
@@ -662,7 +612,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     function _encodeExpirationAction(
         ModifyPositionParams memory _params,
         Account.Info memory _account,
-        uint256 _accountIndex,
+        uint256 _accountId,
         uint256 _owedMarketId
     ) internal view returns (Actions.ActionArgs memory) {
         Require.that(
@@ -681,7 +631,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
         return Actions.ActionArgs({
             actionType : Actions.ActionType.Call,
-            accountId : _accountIndex,
+            accountId : _accountId,
             // solium-disable-next-line arg-overflow
             amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
             primaryMarketId : uint(- 1),

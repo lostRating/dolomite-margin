@@ -37,8 +37,8 @@ interface IDolomiteAmmRouterProxy {
     // ============ Events ============
 
     event MarginPositionOpen(
-        address indexed user,
-        uint256 indexed accountIndex,
+        address indexed account,
+        uint256 indexed accountNumber,
         address inputToken,
         address outputToken,
         address depositToken,
@@ -48,8 +48,8 @@ interface IDolomiteAmmRouterProxy {
     );
 
     event MarginPositionClose(
-        address indexed user,
-        uint256 indexed accountIndex,
+        address indexed account,
+        uint256 indexed accountNumber,
         address inputToken,
         address outputToken,
         address withdrawalToken,
@@ -88,6 +88,28 @@ interface IDolomiteAmmRouterProxy {
         uint256 marginDepositDeltaWei;
     }
 
+    struct AddLiquidityParams {
+        uint256 fromAccountNumber;
+        address tokenA;
+        address tokenB;
+        uint256 amountADesired;
+        uint256 amountBDesired;
+        uint256 amountAMinWei;
+        uint256 amountBMinWei;
+        uint256 deadline;
+        AccountBalanceHelper.BalanceCheckFlag balanceCheckFlag;
+    }
+
+    struct RemoveLiquidityParams {
+        uint256 toAccountNumber;
+        address tokenA;
+        address tokenB;
+        uint256 liquidity;
+        uint256 amountAMinWei;
+        uint256 amountBMinWei;
+        uint256 deadline;
+    }
+
     struct PermitSignature {
         bool approveMax;
         uint8 v;
@@ -98,31 +120,15 @@ interface IDolomiteAmmRouterProxy {
     function getPairInitCodeHash() external view returns (bytes32);
 
     function addLiquidity(
-        uint256 _accountNumber,
-        address _to,
-        address _tokenA,
-        address _tokenB,
-        uint256 _amountADesired,
-        uint256 _amountBDesired,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AddLiquidityParams calldata _params,
+        address _toAccount
     )
     external
     returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity);
 
     function addLiquidityAndDepositIntoDolomite(
-        uint256 _fromAccountNumber,
-        uint256 _toAccountNumber,
-        address _tokenA,
-        address _tokenB,
-        uint256 _amountADesired,
-        uint256 _amountBDesired,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AddLiquidityParams calldata _params,
+        uint256 _toAccountNumber
     )
     external
     returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity);
@@ -167,36 +173,18 @@ interface IDolomiteAmmRouterProxy {
 
     function removeLiquidity(
         address _to,
-        uint256 _toAccountNumber,
-        address _tokenA,
-        address _tokenB,
-        uint256 _liquidity,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline
+        RemoveLiquidityParams calldata _params
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function removeLiquidityWithPermit(
         address _to,
-        uint256 _toAccountNumber,
-        address _tokenA,
-        address _tokenB,
-        uint256 _liquidity,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
+        RemoveLiquidityParams calldata _params,
         PermitSignature calldata _permit
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function removeLiquidityFromWithinDolomite(
-        uint256 _fromAccountIndex,
-        uint256 _toAccountIndex,
-        address _tokenA,
-        address _tokenB,
-        uint256 _liquidity,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei,
-        uint256 _deadline,
+        uint256 _fromAccountNumber,
+        RemoveLiquidityParams calldata _params,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 

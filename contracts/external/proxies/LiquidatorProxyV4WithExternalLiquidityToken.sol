@@ -41,13 +41,13 @@ import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
 
 
 /**
- * @title LiquidatorProxyV3WithLiquidityToken
+ * @title LiquidatorProxyV4WithExternalLiquidityToken
  * @author Dolomite
  *
- * Contract for liquidating other accounts in DolomiteMargin that use LP token(s) as collateral or debt. All collateral
- * is atomically sold off via Paraswap liquidity aggregation.
+ * Contract for liquidating other accounts in DolomiteMargin that use external LP token(s) (ones that are not native to
+ * Dolomite) as collateral or debt. All collateral is atomically sold off via Paraswap liquidity aggregation.
  */
-contract LiquidatorProxyV3WithLiquidityToken is ReentrancyGuard, LiquidatorProxyHelper {
+contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, LiquidatorProxyHelper {
     using DolomiteMarginMath for uint256;
     using SafeMath for uint256;
     using Types for Types.Par;
@@ -55,7 +55,7 @@ contract LiquidatorProxyV3WithLiquidityToken is ReentrancyGuard, LiquidatorProxy
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "LiquidatorProxyV3";
+    bytes32 constant FILE = "LiquidatorProxyV4";
 
     // ============ Structs ============
 
