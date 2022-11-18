@@ -57,35 +57,6 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
 
     bytes32 constant FILE = "LiquidatorProxyV1WithAmm";
 
-    // ============ Structs ============
-
-    struct Constants {
-        IDolomiteMargin dolomiteMargin;
-        Account.Info solidAccount;
-        Account.Info liquidAccount;
-        MarketInfo[] markets;
-        uint256[] liquidMarkets;
-        IExpiry expiryProxy;
-        uint32 expiry;
-    }
-
-    struct LiquidatorProxyWithAmmCache {
-        // mutable
-        uint256 toLiquidate;
-        // The amount of heldMarket the solidAccount will receive. Includes the liquidation reward.
-        uint256 solidHeldUpdateWithReward;
-        Types.Wei solidHeldWei;
-        Types.Wei liquidHeldWei;
-        Types.Wei liquidOwedWei;
-
-        // immutable
-        uint256 heldMarket;
-        uint256 owedMarket;
-        uint256 heldPrice;
-        uint256 owedPrice;
-        uint256 owedPriceAdj;
-    }
-
     // ============ Events ============
 
     /**
@@ -138,7 +109,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
      *
      * @param  solidAccount                 The account that will do the liquidating
      * @param  liquidAccount                The account that will be liquidated
-     * @param  owedMarket                   The owed market whose borrowed value will be added to `toLiquidate`
+     * @param  owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
      * @param  heldMarket                   The held market whose collateral will be recovered to take on the debt of
      *                                      `owedMarket`
      * @param  tokenPath                    The path through which the trade will be routed to recover the collateral
@@ -209,10 +180,11 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         constants.expiryProxy = expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0));
         constants.expiry = uint32(expiry);
 
-        LiquidatorProxyWithAmmCache memory cache = initializeCache(
+        LiquidatorProxyCache memory cache = initializeCache(
             constants,
             heldMarket,
-            owedMarket
+            owedMarket,
+            /* fetchAccountValues = */ false // solium-disable-line indentation
         );
 
         // validate the msg.sender and that the liquidAccount can be liquidated
@@ -228,7 +200,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
 
         // if nothing to liquidate, do nothing
         Require.that(
-            cache.toLiquidate != 0,
+            cache.owedWeiToLiquidate != 0,
             FILE,
             "nothing to liquidate"
         );
@@ -249,7 +221,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
             constants.solidAccount.owner,
             constants.solidAccount.number,
             uint(- 1), // maxInputWei
-            cache.toLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
+            cache.owedWeiToLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
             tokenPath
         );
 
@@ -263,7 +235,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
                 cache.solidHeldUpdateWithReward,
                 Types.Wei(true, profit),
                 _owedMarket,
-                cache.toLiquidate
+                cache.owedWeiToLiquidate
             );
         } else {
             Require.that(
@@ -292,7 +264,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
                 cache.solidHeldUpdateWithReward,
                 Types.Wei(false, profit),
                 _owedMarket,
-                cache.toLiquidate
+                cache.owedWeiToLiquidate
             );
         }
 
@@ -313,7 +285,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
      * that the amount of owedMarket is non-positive and the amount of heldMarket is non-negative.
      */
     function calculateMaxLiquidationAmount(
-        LiquidatorProxyWithAmmCache memory cache
+        LiquidatorProxyCache memory cache
     )
     private
     pure
@@ -323,14 +295,14 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         if (liquidHeldValue <= liquidOwedValue) {
             // The user is under-collateralized; there is no reward left to give
             cache.solidHeldUpdateWithReward = cache.liquidHeldWei.value;
-            cache.toLiquidate = DolomiteMarginMath.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
+            cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
         } else {
             cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
                 cache.liquidOwedWei.value,
                 cache.owedPriceAdj,
                 cache.heldPrice
             );
-            cache.toLiquidate = cache.liquidOwedWei.value;
+            cache.owedWeiToLiquidate = cache.liquidOwedWei.value;
         }
     }
 
@@ -338,9 +310,8 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
 
     /**
      * Make some basic checks before attempting to liquidate an account.
-     *  - Require that the msg.sender has the permission to use the liquidator account
-     *  - Require that the liquid account is liquidatable based on the accounts global value (all assets held and owed,
-     *    not just what's being liquidated)
+     *  - Ensure `tokenPath` is aligned with `heldMarket` and `owedMarket`
+     *  - Basic checks by calling `checkBasicRequirements`
      */
     function checkRequirements(
         Constants memory constants,
@@ -349,17 +320,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         address[] memory tokenPath
     )
     private
-    view
-    {
-        // check credentials for msg.sender
-        Require.that(
-            constants.solidAccount.owner == msg.sender
-            || constants.dolomiteMargin.getIsLocalOperator(constants.solidAccount.owner, msg.sender),
-            FILE,
-            "Sender not operator",
-            constants.solidAccount.owner
-        );
-
+    view {
         Require.that(
             constants.dolomiteMargin.getMarketIdByTokenAddress(tokenPath[0]) == heldMarket,
             FILE,
@@ -374,122 +335,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
             tokenPath[tokenPath.length - 1]
         );
 
-        if (constants.expiry == 0) {
-            // user is getting liquidated, not expired. Check liquid account is indeed liquid
-            (
-                Monetary.Value memory liquidSupplyValue,
-                Monetary.Value memory liquidBorrowValue
-            ) = getAdjustedAccountValues(
-                constants.dolomiteMargin,
-                constants.markets,
-                constants.liquidAccount,
-                constants.liquidMarkets
-            );
-            Require.that(
-                liquidSupplyValue.value != 0,
-                FILE,
-                "Liquid account no supply"
-            );
-            Require.that(
-                constants.dolomiteMargin.getAccountStatus(constants.liquidAccount) == Account.Status.Liquid ||
-                !isCollateralized(
-                    liquidSupplyValue.value,
-                    liquidBorrowValue.value,
-                    constants.dolomiteMargin.getMarginRatio()
-                ),
-                FILE,
-                "Liquid account not liquidatable"
-            );
-        } else {
-            // check the expiration is valid; to get here we already know constants.expiry != 0
-            uint32 expiry = constants.expiryProxy.getExpiry(constants.liquidAccount, owedMarket);
-            Require.that(
-                expiry == constants.expiry,
-                FILE,
-                "expiry mismatch",
-                expiry,
-                constants.expiry
-            );
-            Require.that(
-                expiry <= Time.currentTime(),
-                FILE,
-                "Borrow not yet expired",
-                expiry
-            );
-        }
-    }
-
-    /**
-     * Returns true if the supplyValue over-collateralizes the borrowValue by the ratio.
-     */
-    function isCollateralized(
-        uint256 supplyValue,
-        uint256 borrowValue,
-        Decimal.D256 memory ratio
-    )
-    private
-    pure
-    returns (bool)
-    {
-        uint256 requiredMargin = Decimal.mul(borrowValue, ratio);
-        return supplyValue >= borrowValue.add(requiredMargin);
-    }
-
-    // ============ Getter Functions ============
-
-    /**
-     * Pre-populates cache values for some pair of markets.
-     */
-    function initializeCache(
-        Constants memory constants,
-        uint256 heldMarket,
-        uint256 owedMarket
-    )
-    private
-    view
-    returns (LiquidatorProxyWithAmmCache memory)
-    {
-        MarketInfo memory heldMarketInfo = binarySearch(constants.markets, heldMarket);
-        MarketInfo memory owedMarketInfo = binarySearch(constants.markets, owedMarket);
-        uint256 heldPrice = heldMarketInfo.price.value;
-        uint256 owedPrice = owedMarketInfo.price.value;
-
-        uint256 owedPriceAdj;
-        if (constants.expiry > 0) {
-            (, Monetary.Price memory owedPricePrice) = constants.expiryProxy.getSpreadAdjustedPrices(
-                heldMarket,
-                owedMarket,
-                constants.expiry
-            );
-            owedPriceAdj = owedPricePrice.value;
-        } else {
-            owedPriceAdj = Decimal.mul(
-                owedPrice,
-                Decimal.onePlus(constants.dolomiteMargin.getLiquidationSpreadForPair(heldMarket, owedMarket))
-            );
-        }
-
-        return LiquidatorProxyWithAmmCache({
-            toLiquidate: 0,
-            solidHeldUpdateWithReward: 0,
-            solidHeldWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.solidAccount, heldMarket),
-                heldMarketInfo.index
-            ),
-            liquidHeldWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.liquidAccount, heldMarket),
-                heldMarketInfo.index
-            ),
-            liquidOwedWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.liquidAccount, owedMarket),
-                owedMarketInfo.index
-            ),
-            heldMarket: heldMarket,
-            owedMarket: owedMarket,
-            heldPrice: heldPrice,
-            owedPrice: owedPrice,
-            owedPriceAdj: owedPriceAdj
-        });
+        checkBasicRequirements(constants, heldMarket, owedMarket);
     }
 
     // ============ Operation-Construction Functions ============
@@ -517,7 +363,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
 
     function constructActionsArray(
         Constants memory constants,
-        LiquidatorProxyWithAmmCache memory cache,
+        LiquidatorProxyCache memory cache,
         Account.Info[] memory accounts,
         Actions.ActionArgs[] memory actionsForTrade
     )
@@ -537,7 +383,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: cache.toLiquidate
+                value: cache.owedWeiToLiquidate
             }),
             primaryMarketId: cache.owedMarket,
             secondaryMarketId: cache.heldMarket,
@@ -555,7 +401,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: cache.toLiquidate
+                value: cache.owedWeiToLiquidate
             }),
             primaryMarketId: cache.owedMarket,
             secondaryMarketId: cache.heldMarket,

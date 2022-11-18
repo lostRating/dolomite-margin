@@ -71,7 +71,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
 
     struct LiquidatorProxyWithAmmCache {
         // mutable
-        uint256 toLiquidate;
+        uint256 owedWeiToLiquidate;
         // The amount of heldMarket the solidAccount will receive. Includes the liquidation reward.
         uint256 solidHeldUpdateWithReward;
         Types.Wei solidHeldWei;
@@ -138,7 +138,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
      *
      * @param  solidAccount                 The account that will do the liquidating
      * @param  liquidAccount                The account that will be liquidated
-     * @param  owedMarket                   The owed market whose borrowed value will be added to `toLiquidate`
+     * @param  owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
      * @param  heldMarket                   The held market whose collateral will be recovered to take on the debt of
      *                                      `owedMarket`
      * @param  tokenPath                    The path through which the trade will be routed to recover the collateral
@@ -228,7 +228,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
 
         // if nothing to liquidate, do nothing
         Require.that(
-            cache.toLiquidate != 0,
+            cache.owedWeiToLiquidate != 0,
             FILE,
             "nothing to liquidate"
         );
@@ -249,7 +249,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
             constants.solidAccount.owner,
             constants.solidAccount.number,
             uint(- 1), // maxInputWei
-            cache.toLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
+            cache.owedWeiToLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
             tokenPath
         );
 
@@ -263,7 +263,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
                 cache.solidHeldUpdateWithReward,
                 Types.Wei(true, profit),
                 _owedMarket,
-                cache.toLiquidate
+                cache.owedWeiToLiquidate
             );
         } else {
             Require.that(
@@ -292,7 +292,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
                 cache.solidHeldUpdateWithReward,
                 Types.Wei(false, profit),
                 _owedMarket,
-                cache.toLiquidate
+                cache.owedWeiToLiquidate
             );
         }
 
@@ -323,14 +323,14 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
         if (liquidHeldValue <= liquidOwedValue) {
             // The user is under-collateralized; there is no reward left to give
             cache.solidHeldUpdateWithReward = cache.liquidHeldWei.value;
-            cache.toLiquidate = DolomiteMarginMath.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
+            cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
         } else {
             cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
                 cache.liquidOwedWei.value,
                 cache.owedPriceAdj,
                 cache.heldPrice
             );
-            cache.toLiquidate = cache.liquidOwedWei.value;
+            cache.owedWeiToLiquidate = cache.liquidOwedWei.value;
         }
     }
 
@@ -419,22 +419,6 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
         }
     }
 
-    /**
-     * Returns true if the supplyValue over-collateralizes the borrowValue by the ratio.
-     */
-    function isCollateralized(
-        uint256 supplyValue,
-        uint256 borrowValue,
-        Decimal.D256 memory ratio
-    )
-    private
-    pure
-    returns (bool)
-    {
-        uint256 requiredMargin = Decimal.mul(borrowValue, ratio);
-        return supplyValue >= borrowValue.add(requiredMargin);
-    }
-
     // ============ Getter Functions ============
 
     /**
@@ -470,7 +454,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
         }
 
         return LiquidatorProxyWithAmmCache({
-            toLiquidate: 0,
+            owedWeiToLiquidate: 0,
             solidHeldUpdateWithReward: 0,
             solidHeldWei: Interest.parToWei(
                 constants.dolomiteMargin.getAccountPar(constants.solidAccount, heldMarket),
@@ -537,7 +521,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: cache.toLiquidate
+                value: cache.owedWeiToLiquidate
             }),
             primaryMarketId: cache.owedMarket,
             secondaryMarketId: cache.heldMarket,
@@ -555,7 +539,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Liquida
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: cache.toLiquidate
+                value: cache.owedWeiToLiquidate
             }),
             primaryMarketId: cache.owedMarket,
             secondaryMarketId: cache.heldMarket,

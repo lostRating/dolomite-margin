@@ -117,6 +117,56 @@ library AccountActionHelper {
         }
     }
 
+    function encodeExpiryLiquidateAction(
+        uint256 _solidAccountId,
+        uint256 _liquidAccountId,
+        uint256 _owedMarketId,
+        uint256 _heldMarketId,
+        uint256 _owedWeiToLiquidate,
+        address _expiryProxy,
+        uint32 _expiry
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+        actionType: Actions.ActionType.Trade,
+            accountId: _solidAccountId,
+            amount: Types.AssetAmount({
+                sign: true,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Delta,
+                value: _owedWeiToLiquidate
+            }),
+            primaryMarketId: _owedMarketId,
+            secondaryMarketId: _heldMarketId,
+            otherAddress: _expiryProxy,
+            otherAccountId: _liquidAccountId,
+            data: abi.encode(_owedMarketId, _expiry)
+        });
+    }
+
+    function encodeLiquidateAction(
+        uint256 _solidAccountId,
+        uint256 _liquidAccountId,
+        uint256 _owedMarketId,
+        uint256 _heldMarketId,
+        uint256 _owedWeiToLiquidate
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType: Actions.ActionType.Liquidate,
+            accountId: 0,
+            amount: Types.AssetAmount({
+                sign: true,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Delta,
+                value: _owedWeiToLiquidate
+            }),
+            primaryMarketId: _owedMarketId,
+            secondaryMarketId: _heldMarketId,
+            otherAddress: address(0),
+            otherAccountId: _liquidAccountId,
+            data: new bytes(0)
+        });
+    }
+
     function encodeTradeAction(
         uint256 _fromAccountId,
         uint256 _toAccountId,

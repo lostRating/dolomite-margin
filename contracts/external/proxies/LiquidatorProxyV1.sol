@@ -62,23 +62,6 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
         uint256[] liquidMarkets;
     }
 
-    struct LiquidatorProxyCache {
-        // mutable
-        uint256 toLiquidate;
-        Types.Wei heldWei;
-        Types.Wei owedWei;
-        uint256 supplyValue;
-        uint256 borrowValue;
-
-        // immutable
-        Decimal.D256 spread;
-        uint256 heldMarket;
-        uint256 owedMarket;
-        uint256 heldPrice;
-        uint256 owedPrice;
-        uint256 owedPriceAdj;
-    }
-
     // ============ Constructor ============
 
     constructor (
@@ -154,7 +137,12 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
                 }
 
                 // get all relevant values
-                LiquidatorProxyCache memory cache = initializeCache(constants, heldMarket, owedMarket);
+                LiquidatorProxyCache memory cache = initializeCache(
+                    constants,
+                    heldMarket,
+                    owedMarket,
+                    /* fetchAccountValues = */ true // solium-disable-line indentation
+                );
 
                 // get the liquidation amount (before liquidator decreases in collateralization)
                 calculateSafeLiquidationAmount(cache);
@@ -163,7 +151,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
                 calculateMaxLiquidationAmount(constants, cache);
 
                 // if nothing to liquidate, do nothing
-                if (cache.toLiquidate == 0) {
+                if (cache.owedWeiToLiquidate == 0) {
                     continue;
                 }
 
@@ -174,7 +162,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
                 );
 
                 // increment the total value liquidated
-                totalValueLiquidated = totalValueLiquidated.add(cache.toLiquidate.mul(cache.owedPrice));
+                totalValueLiquidated = totalValueLiquidated.add(cache.owedWeiToLiquidate.mul(cache.owedPrice));
             }
         }
 
@@ -269,7 +257,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
             constants.minLiquidatorRatio
         );
         if (!liquidatorAboveCollateralization) {
-            cache.toLiquidate = 0;
+            cache.owedWeiToLiquidate = 0;
             return;
         }
 
@@ -287,10 +275,10 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
         uint256 owedValueToTakeOn = Decimal.div(remainingValueBuffer, spreadMarginDiff);
 
         // get the additional amount of owedWei to liquidate
-        uint256 owedWeiToLiquidate = owedValueToTakeOn.div(cache.owedPrice);
+        uint256 owedWeiowedWeiToLiquidate = owedValueToTakeOn.div(cache.owedPrice);
 
         // store the additional amount in the cache
-        cache.toLiquidate = cache.toLiquidate.add(owedWeiToLiquidate);
+        cache.owedWeiToLiquidate = cache.owedWeiToLiquidate.add(owedWeiowedWeiToLiquidate);
     }
 
     // ============ Helper Functions ============
@@ -306,47 +294,13 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
         private
         view
     {
-        // check credentials for msg.sender
-        Require.that(
-            constants.solidAccount.owner == msg.sender
-            || constants.dolomiteMargin.getIsLocalOperator(constants.solidAccount.owner, msg.sender),
-            FILE,
-            "Sender not operator",
-            constants.solidAccount.owner
-        );
-
-        // require that the liquidAccount is liquidatable
-        (
-            Monetary.Value memory liquidSupplyValue,
-            Monetary.Value memory liquidBorrowValue
-        ) = getAdjustedAccountValues(
-            constants.dolomiteMargin,
-            constants.markets,
-            constants.liquidAccount,
-            constants.liquidMarkets
-        );
-        Require.that(
-            liquidSupplyValue.value != 0,
-            FILE,
-            "Liquid account no supply"
-        );
-        Require.that(
-            constants.dolomiteMargin.getAccountStatus(constants.liquidAccount) == Account.Status.Liquid ||
-            !isCollateralized(
-                liquidSupplyValue.value,
-                liquidBorrowValue.value,
-                constants.dolomiteMargin.getMarginRatio()
-            ),
-            FILE,
-            "Liquid account not liquidatable",
-            liquidSupplyValue.value,
-            liquidBorrowValue.value
-        );
+        assert(constants.expiry == 0); // this ensures the `_owedMarketId`, that's set to 0 below, is unused
+        checkBasicRequirements(constants, 0);
     }
 
     /**
      * Changes the cache values to reflect changing the heldWei and owedWei of the liquidator
-     * account. Changes toLiquidate, heldWei, owedWei, supplyValue, and borrowValue.
+     * account. Changes owedWeiToLiquidate, heldWei, owedWei, supplyValue, and borrowValue.
      */
     function setCacheWeiValues(
         LiquidatorProxyCache memory cache,
@@ -388,80 +342,12 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
             cache.borrowValue = cache.borrowValue.add(newOwedValue);
         }
 
-        // update toLiquidate, heldWei, and owedWei
+        // update owedWeiToLiquidate, heldWei, and owedWei
         Types.Wei memory delta = cache.owedWei.sub(newOwedWei);
         assert(!delta.isNegative());
-        cache.toLiquidate = cache.toLiquidate.add(delta.value);
+        cache.owedWeiToLiquidate = cache.owedWeiToLiquidate.add(delta.value);
         cache.heldWei = newHeldWei;
         cache.owedWei = newOwedWei;
-    }
-
-    /**
-     * Returns true if the supplyValue over-collateralizes the borrowValue by the ratio.
-     */
-    function isCollateralized(
-        uint256 supplyValue,
-        uint256 borrowValue,
-        Decimal.D256 memory ratio
-    )
-        private
-        pure
-        returns(bool)
-    {
-        uint256 requiredMargin = Decimal.mul(borrowValue, ratio);
-        return supplyValue >= borrowValue.add(requiredMargin);
-    }
-
-    // ============ Getter Functions ============
-
-    /**
-     * Pre-populates cache values for some pair of markets.
-     */
-    function initializeCache(
-        Constants memory constants,
-        uint256 heldMarket,
-        uint256 owedMarket
-    )
-        private
-        view
-        returns (LiquidatorProxyCache memory)
-    {
-        (
-            Monetary.Value memory supplyValue,
-            Monetary.Value memory borrowValue
-        ) = getAccountValues(
-            constants.dolomiteMargin,
-            constants.markets,
-            constants.solidAccount,
-            constants.dolomiteMargin.getAccountMarketsWithBalances(constants.solidAccount)
-        );
-
-        MarketInfo memory heldMarketInfo = binarySearch(constants.markets, heldMarket);
-        MarketInfo memory owedMarketInfo = binarySearch(constants.markets, owedMarket);
-
-        uint256 heldPrice = heldMarketInfo.price.value;
-        uint256 owedPrice = owedMarketInfo.price.value;
-        Decimal.D256 memory spread = constants.dolomiteMargin.getLiquidationSpreadForPair(heldMarket, owedMarket);
-
-        return LiquidatorProxyCache({
-            heldWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.solidAccount, heldMarket),
-                heldMarketInfo.index
-            ),
-            owedWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.solidAccount, owedMarket),
-                owedMarketInfo.index
-            ),
-            toLiquidate: 0,
-            supplyValue: supplyValue.value,
-            borrowValue: borrowValue.value,
-            heldMarket: heldMarket,
-            owedMarket: owedMarket,
-            spread: spread,
-            heldPrice: heldPrice,
-            owedPrice: owedPrice,
-            owedPriceAdj: Decimal.mul(owedPrice, Decimal.onePlus(spread))
-        });
     }
 
     // ============ Operation-Construction Functions ============
@@ -494,7 +380,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: cache.toLiquidate
+                value: cache.owedWeiToLiquidate
             }),
             primaryMarketId: cache.owedMarket,
             secondaryMarketId: cache.heldMarket,
