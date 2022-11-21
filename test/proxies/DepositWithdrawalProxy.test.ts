@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { address, Integer, INTEGERS, TxResult } from '../../src';
+import { address, BalanceCheckFlag, Integer, INTEGERS, TxResult } from '../../src';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { resetEVM, snapshot } from '../helpers/EVM';
@@ -21,6 +21,7 @@ const wei = new BigNumber('12000000000000000000');
 const accountIndex = new BigNumber(123);
 const defaultIsClosing = false;
 const defaultIsRecyclable = false;
+const defaultBalanceCheckFlag = BalanceCheckFlag.Both;
 
 describe('DepositWithdrawalProxy', () => {
   before(async () => {
@@ -168,13 +169,13 @@ describe('DepositWithdrawalProxy', () => {
 
   describe('withdrawWei', () => {
     it('should work normally', async () => {
-      await dolomiteMargin.depositProxy.withdrawWei(accountIndex, market, wei);
+      await dolomiteMargin.depositProxy.withdrawWei(accountIndex, market, wei, defaultBalanceCheckFlag);
       await expectProtocolBalanceWei(accountIndex, market, INTEGERS.ZERO);
       await expectWalletBalanceWei(market, wei.times(2));
     });
 
     it('should work when withdrawing max uint', async () => {
-      await dolomiteMargin.depositProxy.withdrawWei(accountIndex, market, INTEGERS.MAX_UINT);
+      await dolomiteMargin.depositProxy.withdrawWei(accountIndex, market, INTEGERS.MAX_UINT, defaultBalanceCheckFlag);
       await expectProtocolBalanceWei(accountIndex, market, INTEGERS.ZERO);
       await expectWalletBalanceWei(market, wei.times(2));
     });
@@ -185,7 +186,7 @@ describe('DepositWithdrawalProxy', () => {
       await dolomiteMargin.depositProxy.initializeETHMarket(dolomiteMargin.weth.address);
 
       const balanceBefore = new BigNumber(await dolomiteMargin.web3.eth.getBalance(user));
-      const txResult = await dolomiteMargin.depositProxy.withdrawETH(accountIndex, wei);
+      const txResult = await dolomiteMargin.depositProxy.withdrawETH(accountIndex, wei, defaultBalanceCheckFlag);
       await expectProtocolBalanceWei(accountIndex, ethMarket, INTEGERS.ZERO);
       await expectETHBalanceInWei(txResult, balanceBefore, wei, true);
       await expectETHBalance(dolomiteMargin.depositProxy.address, INTEGERS.ZERO);
@@ -196,7 +197,11 @@ describe('DepositWithdrawalProxy', () => {
       await dolomiteMargin.depositProxy.initializeETHMarket(dolomiteMargin.weth.address);
 
       const balanceBefore = new BigNumber(await dolomiteMargin.web3.eth.getBalance(user));
-      const txResult = await dolomiteMargin.depositProxy.withdrawETH(accountIndex, INTEGERS.MAX_UINT);
+      const txResult = await dolomiteMargin.depositProxy.withdrawETH(
+        accountIndex,
+        INTEGERS.MAX_UINT,
+        defaultBalanceCheckFlag,
+      );
       await expectProtocolBalanceWei(accountIndex, ethMarket, INTEGERS.ZERO);
       await expectETHBalanceInWei(txResult, balanceBefore, wei, true);
       await expectETHBalance(dolomiteMargin.depositProxy.address, INTEGERS.ZERO);
@@ -205,7 +210,7 @@ describe('DepositWithdrawalProxy', () => {
 
     it('should not work when not initialized', async () => {
       await expectThrow(
-        dolomiteMargin.depositProxy.withdrawETH(accountIndex, INTEGERS.MAX_UINT),
+        dolomiteMargin.depositProxy.withdrawETH(accountIndex, INTEGERS.MAX_UINT, defaultBalanceCheckFlag),
         'DepositWithdrawalProxy: not initialized',
       );
     });
@@ -213,13 +218,17 @@ describe('DepositWithdrawalProxy', () => {
 
   describe('withdrawWeiFromDefaultAccount', () => {
     it('should work normally', async () => {
-      await dolomiteMargin.depositProxy.withdrawWeiFromDefaultAccount(market, wei);
+      await dolomiteMargin.depositProxy.withdrawWeiFromDefaultAccount(market, wei, defaultBalanceCheckFlag);
       await expectProtocolBalanceWei(INTEGERS.ZERO, market, INTEGERS.ZERO);
       await expectWalletBalanceWei(market, wei.times(2));
     });
 
     it('should work when withdrawing max uint', async () => {
-      await dolomiteMargin.depositProxy.withdrawWeiFromDefaultAccount(market, INTEGERS.MAX_UINT);
+      await dolomiteMargin.depositProxy.withdrawWeiFromDefaultAccount(
+        market,
+        INTEGERS.MAX_UINT,
+        defaultBalanceCheckFlag,
+      );
       await expectProtocolBalanceWei(INTEGERS.ZERO, market, INTEGERS.ZERO);
       await expectWalletBalanceWei(market, wei.times(2));
     });
@@ -230,7 +239,7 @@ describe('DepositWithdrawalProxy', () => {
       await dolomiteMargin.depositProxy.initializeETHMarket(dolomiteMargin.weth.address);
 
       const balanceBefore = new BigNumber(await dolomiteMargin.web3.eth.getBalance(user));
-      const txResult = await dolomiteMargin.depositProxy.withdrawETHFromDefaultAccount(wei);
+      const txResult = await dolomiteMargin.depositProxy.withdrawETHFromDefaultAccount(wei, defaultBalanceCheckFlag);
       await expectProtocolBalanceWei(INTEGERS.ZERO, ethMarket, INTEGERS.ZERO);
       await expectETHBalanceInWei(txResult, balanceBefore, wei, true);
       await expectETHBalance(dolomiteMargin.depositProxy.address, INTEGERS.ZERO);
@@ -241,7 +250,10 @@ describe('DepositWithdrawalProxy', () => {
       await dolomiteMargin.depositProxy.initializeETHMarket(dolomiteMargin.weth.address);
 
       const balanceBefore = new BigNumber(await dolomiteMargin.web3.eth.getBalance(user));
-      const txResult = await dolomiteMargin.depositProxy.withdrawETHFromDefaultAccount(INTEGERS.MAX_UINT);
+      const txResult = await dolomiteMargin.depositProxy.withdrawETHFromDefaultAccount(
+        INTEGERS.MAX_UINT,
+        defaultBalanceCheckFlag,
+      );
       await expectProtocolBalanceWei(INTEGERS.ZERO, ethMarket, INTEGERS.ZERO);
       await expectETHBalanceInWei(txResult, balanceBefore, wei, true);
       await expectETHBalance(dolomiteMargin.depositProxy.address, INTEGERS.ZERO);
@@ -275,13 +287,13 @@ describe('DepositWithdrawalProxy', () => {
 
   describe('withdrawPar', () => {
     it('should work normally', async () => {
-      await dolomiteMargin.depositProxy.withdrawPar(accountIndex, market, par);
+      await dolomiteMargin.depositProxy.withdrawPar(accountIndex, market, par, defaultBalanceCheckFlag);
       await expectProtocolBalancePar(accountIndex, market, INTEGERS.ZERO);
       await expectWalletBalancePar(market, par.times(2));
     });
 
     it('should work when withdrawing max uint', async () => {
-      await dolomiteMargin.depositProxy.withdrawPar(accountIndex, market, INTEGERS.MAX_UINT);
+      await dolomiteMargin.depositProxy.withdrawPar(accountIndex, market, INTEGERS.MAX_UINT, defaultBalanceCheckFlag);
       await expectProtocolBalancePar(accountIndex, market, INTEGERS.ZERO);
       await expectWalletBalancePar(market, par.times(2));
     });
@@ -289,13 +301,17 @@ describe('DepositWithdrawalProxy', () => {
 
   describe('withdrawParFromDefaultAccount', () => {
     it('should work normally', async () => {
-      await dolomiteMargin.depositProxy.withdrawParFromDefaultAccount(market, par);
+      await dolomiteMargin.depositProxy.withdrawParFromDefaultAccount(market, par, defaultBalanceCheckFlag);
       await expectProtocolBalancePar(INTEGERS.ZERO, market, INTEGERS.ZERO);
       await expectWalletBalancePar(market, par.times(2));
     });
 
     it('should work when withdrawing max uint', async () => {
-      await dolomiteMargin.depositProxy.withdrawParFromDefaultAccount(market, INTEGERS.MAX_UINT);
+      await dolomiteMargin.depositProxy.withdrawParFromDefaultAccount(
+        market,
+        INTEGERS.MAX_UINT,
+        defaultBalanceCheckFlag,
+      );
       await expectProtocolBalancePar(INTEGERS.ZERO, market, INTEGERS.ZERO);
       await expectWalletBalancePar(market, par.times(2));
     });

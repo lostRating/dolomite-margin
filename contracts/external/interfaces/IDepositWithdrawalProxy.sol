@@ -139,8 +139,7 @@ interface IDepositWithdrawalProxy {
      */
     function depositParIntoDefaultAccount(
         uint256 _marketId,
-        uint256 _amountPar,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        uint256 _amountPar
     ) external;
 
     /**

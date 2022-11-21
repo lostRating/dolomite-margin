@@ -20,8 +20,6 @@ pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { IDolomiteMargin } from  "../../protocol/interfaces/IDolomiteMargin.sol";
@@ -36,6 +34,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
 import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 import { AccountMarginHelper } from "../helpers/AccountMarginHelper.sol";
+import { ERC20Helper } from "../helpers/ERC20Helper.sol";
 
 import { TypedSignature } from "../lib/TypedSignature.sol";
 import { DolomiteAmmLibrary } from "../lib/DolomiteAmmLibrary.sol";
@@ -53,7 +52,6 @@ import { IDolomiteAmmRouterProxy } from "../interfaces/IDolomiteAmmRouterProxy.s
  * Contract for routing trades to the Dolomite AMM pools and potentially opening margin positions
  */
 contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
-    using SafeERC20 for IERC20;
     using SafeMath for uint;
 
     // ==================== Constants ====================
@@ -100,15 +98,21 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     public
     ensure(_params.deadline)
     returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity) {
-        (amountAWei, amountBWei) = _addLiquidityCalculations(
+        IDolomiteAmmFactory dolomiteAmmFactory = DOLOMITE_AMM_FACTORY;
+        // create the pair if it doesn't exist yet
+        if (dolomiteAmmFactory.getPair(_params.tokenA, _params.tokenB) == address(0)) {
+            dolomiteAmmFactory.createPair(_params.tokenA, _params.tokenB);
+        }
+
+        (amountAWei, amountBWei) = getAddLiquidityAmounts(
             _params.tokenA,
             _params.tokenB,
-            _params.amountADesired,
-            _params.amountBDesired,
+            _params.amountADesiredWei,
+            _params.amountBDesiredWei,
             _params.amountAMinWei,
             _params.amountBMinWei
         );
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
+        address pair = DolomiteAmmLibrary.pairFor(address(dolomiteAmmFactory), _params.tokenA, _params.tokenB);
 
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
         uint256 marketIdA = dolomiteMargin.getMarketIdByTokenAddress(_params.tokenA);
@@ -156,9 +160,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
 
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
         address pair = DOLOMITE_AMM_FACTORY.getPair(_params.tokenA, _params.tokenB);
-        if (IERC20(pair).allowance(address(this), address(dolomiteMargin)) < liquidity) {
-            IERC20(pair).safeApprove(address(dolomiteMargin), uint256(-1));
-        }
+        ERC20Helper.checkAllowanceAndApprove(pair, address(dolomiteMargin), liquidity);
 
         AccountActionHelper.deposit(
             dolomiteMargin,
@@ -173,6 +175,48 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
                 value: liquidity
             })
         );
+    }
+
+    function getAddLiquidityAmounts(
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountADesiredWei,
+        uint256 _amountBDesiredWei,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei
+    ) public view returns (uint256 amountAWei, uint256 amountBWei) {
+        IDolomiteAmmFactory dolomiteAmmFactory = DOLOMITE_AMM_FACTORY;
+        (uint256 reserveAWei, uint256 reserveBWei) = DolomiteAmmLibrary.getReservesWei(
+            address(dolomiteAmmFactory),
+            _tokenA,
+            _tokenB
+        );
+        if (reserveAWei == 0 && reserveBWei == 0) {
+            (amountAWei, amountBWei) = (_amountADesiredWei, _amountBDesiredWei);
+        } else {
+            uint256 amountBOptimal = DolomiteAmmLibrary.quote(_amountADesiredWei, reserveAWei, reserveBWei);
+            if (amountBOptimal <= _amountBDesiredWei) {
+                Require.that(
+                    amountBOptimal >= _amountBMinWei,
+                    FILE,
+                    "insufficient B amount",
+                    amountBOptimal,
+                    _amountBMinWei
+                );
+                (amountAWei, amountBWei) = (_amountADesiredWei, amountBOptimal);
+            } else {
+                uint256 amountAOptimal = DolomiteAmmLibrary.quote(_amountBDesiredWei, reserveBWei, reserveAWei);
+                assert(amountAOptimal <= _amountADesiredWei);
+                Require.that(
+                    amountAOptimal >= _amountAMinWei,
+                    FILE,
+                    "insufficient A amount",
+                    amountAOptimal,
+                    _amountAMinWei
+                );
+                (amountAWei, amountBWei) = (amountAOptimal, _amountBDesiredWei);
+            }
+        }
     }
 
     function swapExactTokensForTokens(
@@ -304,12 +348,12 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     }
 
     function removeLiquidity(
-        address _to,
-        RemoveLiquidityParams memory _params
+        RemoveLiquidityParams memory _params,
+        address _to
     ) public ensure(_params.deadline) returns (uint256 amountAWei, uint256 amountBWei) {
         address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
         // send liquidity to pair
-        IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, _params.liquidity);
+        IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, _params.liquidityWei);
 
         (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(pair).burn(_to, _params.toAccountNumber);
         (address token0,) = DolomiteAmmLibrary.sortTokens(_params.tokenA, _params.tokenB);
@@ -331,12 +375,12 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     }
 
     function removeLiquidityWithPermit(
-        address _to,
         RemoveLiquidityParams memory _params,
+        address _to,
         PermitSignature memory _permit
     ) public returns (uint256 amountAWei, uint256 amountBWei) {
         address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
-        uint256 value = _permit.approveMax ? uint(- 1) : _params.liquidity;
+        uint256 value = _permit.approveMax ? uint(- 1) : _params.liquidityWei;
         IDolomiteAmmPair(pair).permit(
             msg.sender,
             address(this),
@@ -347,12 +391,12 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             _permit.s
         );
 
-        (amountAWei, amountBWei) = removeLiquidity(_to, _params);
+        (amountAWei, amountBWei) = removeLiquidity(_params, _to);
     }
 
     function removeLiquidityFromWithinDolomite(
-        uint256 _fromAccountNumber,
         RemoveLiquidityParams memory _params,
+        uint256 _fromAccountNumber,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) public ensure(_params.deadline) returns (uint256 amountAWei, uint256 amountBWei) {
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
@@ -369,7 +413,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
                 sign: false,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Delta,
-                value: _params.liquidity
+                value: _params.liquidityWei
             }),
             _balanceCheckFlag
         );
@@ -609,85 +653,6 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         return marketPath;
     }
 
-    function _encodeExpirationAction(
-        ModifyPositionParams memory _params,
-        Account.Info memory _account,
-        uint256 _accountId,
-        uint256 _owedMarketId
-    ) internal view returns (Actions.ActionArgs memory) {
-        Require.that(
-            _params.expiryTimeDelta == uint32(_params.expiryTimeDelta),
-            FILE,
-            "invalid expiry time"
-        );
-
-        IExpiry.SetExpiryArg[] memory expiryArgs = new IExpiry.SetExpiryArg[](1);
-        expiryArgs[0] = IExpiry.SetExpiryArg({
-            account : _account,
-            marketId : _owedMarketId,
-            timeDelta : uint32(_params.expiryTimeDelta),
-            forceUpdate : true
-        });
-
-        return Actions.ActionArgs({
-            actionType : Actions.ActionType.Call,
-            accountId : _accountId,
-            // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
-            primaryMarketId : uint(- 1),
-            secondaryMarketId : uint(- 1),
-            otherAddress : EXPIRY,
-            otherAccountId : uint(- 1),
-            data : abi.encode(IExpiry.CallFunctionType.SetExpiry, expiryArgs)
-        });
-    }
-
-    function _addLiquidityCalculations(
-        address _tokenA,
-        address _tokenB,
-        uint256 _amountADesiredWei,
-        uint256 _amountBDesiredWei,
-        uint256 _amountAMinWei,
-        uint256 _amountBMinWei
-    ) internal returns (uint256 amountAWei, uint256 amountBWei) {
-        IDolomiteAmmFactory dolomiteAmmFactory = DOLOMITE_AMM_FACTORY;
-        // create the pair if it doesn't exist yet
-        if (dolomiteAmmFactory.getPair(_tokenA, _tokenB) == address(0)) {
-            dolomiteAmmFactory.createPair(_tokenA, _tokenB);
-        }
-        (uint256 reserveAWei, uint256 reserveBWei) = DolomiteAmmLibrary.getReservesWei(
-            address(dolomiteAmmFactory),
-            _tokenA,
-            _tokenB
-        );
-        if (reserveAWei == 0 && reserveBWei == 0) {
-            (amountAWei, amountBWei) = (_amountADesiredWei, _amountBDesiredWei);
-        } else {
-            uint256 amountBOptimal = DolomiteAmmLibrary.quote(_amountADesiredWei, reserveAWei, reserveBWei);
-            if (amountBOptimal <= _amountBDesiredWei) {
-                Require.that(
-                    amountBOptimal >= _amountBMinWei,
-                    FILE,
-                    "insufficient B amount",
-                    amountBOptimal,
-                    _amountBMinWei
-                );
-                (amountAWei, amountBWei) = (_amountADesiredWei, amountBOptimal);
-            } else {
-                uint256 amountAOptimal = DolomiteAmmLibrary.quote(_amountBDesiredWei, reserveBWei, reserveAWei);
-                assert(amountAOptimal <= _amountADesiredWei);
-                Require.that(
-                    amountAOptimal >= _amountAMinWei,
-                    FILE,
-                    "insufficient A amount",
-                    amountAOptimal,
-                    _amountAMinWei
-                );
-                (amountAWei, amountBWei) = (amountAOptimal, _amountBDesiredWei);
-            }
-        }
-    }
-
     function _getAccountsForModifyPosition(
         ModifyPositionCache memory _cache,
         address[] memory _pools
@@ -755,11 +720,12 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             );
 
             if (expiryActionCount == 1) {
-                actions[actions.length - 1] = _encodeExpirationAction(
-                    _cache.params,
+                actions[actions.length - 1] = AccountActionHelper.encodeExpirationAction(
                     _accounts[_accounts.length - 1],
-                    0,
-                    _cache.marketPath[0] /* the market at index 0 is being borrowed and traded */
+                    /* _accountId = */ 0, // solium-disable-line indentation
+                    /* _owedMarketId = */ _cache.marketPath[0], // solium-disable-line indentation
+                    EXPIRY,
+                    _cache.params.expiryTimeDelta
                 );
             }
         }
@@ -770,7 +736,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
                 FILE,
                 "invalid other address"
             );
-            actions[i] = AccountActionHelper.encodeTradeAction(
+            actions[i] = AccountActionHelper.encodeInternalTradeAction(
                 _accounts.length - 1, // use toAccountId for the trade
                 i + 1,
                 _cache.marketPath[i],

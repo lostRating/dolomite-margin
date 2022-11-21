@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2019 dYdX Trading Inc.
+    Copyright 2022 Dolomite.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -39,6 +39,7 @@ import { LiquidatorProxyHelper } from "../helpers/LiquidatorProxyHelper.sol";
 import { IExpiry } from "../interfaces/IExpiry.sol";
 
 import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
+import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
 
 
 /**
@@ -48,7 +49,7 @@ import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
  * Contract for liquidating other accounts in DolomiteMargin and atomically selling off collateral via Paraswap
  * liquidity aggregation
  */
-contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, LiquidatorProxyHelper {
+contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTraderProxyWithBackup {
     using DolomiteMarginMath for uint256;
     using SafeMath for uint256;
     using Types for Types.Par;
@@ -56,77 +57,47 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, LiquidatorPr
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "LiquidatorProxyV2";
-
-    // ============ Events ============
-
-    /**
-     * @param solidAccountOwner         The liquidator's address
-     * @param solidAccountOwner         The liquidator's account number
-     * @param heldMarket                The held market (collateral) that will be received by the liquidator
-     * @param heldDeltaWeiWithReward    The amount of heldMarket the liquidator will receive, including the reward
-     *                                  (positive number)
-     * @param profitHeldWei             The amount of profit the liquidator will realize by performing the liquidation
-     *                                  and atomically selling off the collateral. Can be negative or positive.
-     * @param owedMarket                The debt market that will be received by the liquidator
-     * @param owedDeltaWei              The amount of owedMarket that will be received by the liquidator (negative
-     *                                  number)
-     */
-    event LogLiquidateWithParaswap(
-        address indexed solidAccountOwner,
-        uint256 solidAccountNumber,
-        uint256 heldMarket,
-        uint256 heldDeltaWeiWithReward,
-        Types.Wei profitHeldWei, // calculated as `heldWeiWithReward - soldHeldWeiToBreakEven`
-        uint256 owedMarket,
-        uint256 owedDeltaWei
-    );
+    bytes32 private constant FILE = "LiquidatorProxyV2";
 
     // ============ Storage ============
 
-    IDolomiteMargin DOLOMITE_MARGIN;
     IExpiry EXPIRY_PROXY;
-    address PARASWAP_ROUTER;
-    address TOKEN_TRANSFER_PROXY;
 
     // ============ Constructor ============
 
     constructor (
-        address dolomiteMargin,
-        address expiryProxy,
-        address paraswapRouter,
-        address tokenTransferProxy
+        address _expiryProxy,
+        address _paraswapAugustusRouter,
+        address _paraswapTransferProxy,
+        address _dolomiteMargin
     )
-    public
+    public ParaswapTraderProxyWithBackup(_paraswapAugustusRouter, _paraswapTransferProxy, _dolomiteMargin)
     {
-        DOLOMITE_MARGIN = IDolomiteMargin(dolomiteMargin);
-        EXPIRY_PROXY = IExpiry(expiryProxy);
-        PARASWAP_ROUTER = paraswapRouter;
-        TOKEN_TRANSFER_PROXY = tokenTransferProxy;
+        EXPIRY_PROXY = IExpiry(_expiryProxy);
     }
 
     // ============ Public Functions ============
 
     /**
-     * Liquidate liquidAccount using solidAccount. This contract and the msg.sender to this contract
-     * must both be operators for the solidAccount.
+     * Liquidate liquidAccount using solidAccount. This contract and the msg.sender to this contract must both be
+     * operators for the solidAccount.
      *
-     * @param  solidAccount                 The account that will do the liquidating
-     * @param  liquidAccount                The account that will be liquidated
-     * @param  owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
-     * @param  heldMarket                   The held market whose collateral will be recovered to take on the debt of
+     * @param _solidAccount                 The account that will do the liquidating
+     * @param _liquidAccount                The account that will be liquidated
+     * @param _owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
+     * @param _heldMarket                   The held market whose collateral will be recovered to take on the debt of
      *                                      `owedMarket`
-     * @param  expiry                       The time at which the position expires, if this liquidation is for closing
+     * @param _expiry                       The time at which the position expires, if this liquidation is for closing
      *                                      an expired position. Else, 0.
-     * @param  paraswapCallData             The calldata to be passed along to Paraswap's router for liquidation
+     * @param _paraswapCallData             The calldata to be passed along to Paraswap's router for liquidation
      */
     function liquidate(
-        Account.Info memory solidAccount,
-        Account.Info memory liquidAccount,
-        uint256 owedMarket,
-        uint256 heldMarket,
-        uint256 expiry,
-        bytes memory paraswapCallData
+        Account.Info memory _solidAccount,
+        Account.Info memory _liquidAccount,
+        uint256 _owedMarket,
+        uint256 _heldMarket,
+        uint256 _expiry,
+        bytes memory _paraswapCallData
     )
     public
     nonReentrant
@@ -135,57 +106,31 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, LiquidatorPr
         Constants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
 
-        Require.that(
-            owedMarket != heldMarket,
-            FILE,
-            "owedMarket equals heldMarket",
-            owedMarket,
-            heldMarket
-        );
+        _checkConstants(constants, _liquidAccount, _owedMarket, _heldMarket, _expiry);
 
-        Require.that(
-            !constants.dolomiteMargin.getAccountPar(liquidAccount, owedMarket).isPositive(),
-            FILE,
-            "owed market cannot be positive",
-            owedMarket
-        );
-
-        Require.that(
-            constants.dolomiteMargin.getAccountPar(liquidAccount, heldMarket).isPositive(),
-            FILE,
-            "held market cannot be negative",
-            heldMarket
-        );
-
-        Require.that(
-            uint32(expiry) == expiry,
-            FILE,
-            "expiry overflow",
-            expiry
-        );
-
-        constants.solidAccount = solidAccount;
-        constants.liquidAccount = liquidAccount;
-        constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(liquidAccount);
-        constants.markets = getMarketInfos(
+        constants.solidAccount = _solidAccount;
+        constants.liquidAccount = _liquidAccount;
+        constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(_liquidAccount);
+        constants.markets = _getMarketInfos(
             constants.dolomiteMargin,
-            constants.dolomiteMargin.getAccountMarketsWithBalances(solidAccount),
+            constants.dolomiteMargin.getAccountMarketsWithBalances(_solidAccount),
             constants.liquidMarkets
         );
-        constants.expiryProxy = expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0));
-        constants.expiry = uint32(expiry);
+        constants.expiryProxy = _expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0));
+        constants.expiry = uint32(_expiry);
 
-        LiquidatorProxyCache memory cache = initializeCache(
+        LiquidatorProxyCache memory cache = _initializeCache(
             constants,
-            heldMarket,
-            owedMarket
+            _heldMarket,
+            _owedMarket,
+            /* _fetchAccountValues = */ false // solium-disable-line indentation
         );
 
         // validate the msg.sender and that the liquidAccount can be liquidated
-        checkBasicRequirements(constants, heldMarket, owedMarket);
+        _checkBasicRequirements(constants, _owedMarket);
 
         // get the max liquidation amount
-        calculateMaxLiquidationAmount(cache);
+        _calculateAndSetMaxLiquidationAmount(cache);
 
         // if nothing to liquidate, do nothing
         Require.that(
@@ -194,173 +139,82 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, LiquidatorPr
             "nothing to liquidate"
         );
 
-        uint256 totalSolidHeldWei = cache.solidHeldUpdateWithReward;
-        if (cache.solidHeldWei.sign) {
-            // If the solid account has held wei, add the amount the solid account will receive from liquidation to its
-            // total held wei
-            // We do this so we can accurately track how much the solid account has (and will have after the swap), in
-            // case we need to input it exactly to Router#getParamsForSwapExactTokensForTokens
-            totalSolidHeldWei = totalSolidHeldWei.add(cache.solidHeldWei.value);
-        }
-
-        (
-            Account.Info[] memory accounts,
-            Actions.ActionArgs[] memory actions
-        ) = ROUTER_PROXY.getParamsForSwapTokensForExactTokens(
-            constants.solidAccount.owner,
-            constants.solidAccount.number,
-            uint(- 1), // maxInputWei
-            cache.owedWeiToLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
-            tokenPath
-        );
-
-        if (cache.solidHeldUpdateWithReward >= actions[0].amount.value) {
-            uint256 profit = cache.solidHeldUpdateWithReward.sub(actions[0].amount.value);
-            uint256 _owedMarket = owedMarket; // used to prevent the "stack too deep" error
-            emit LogLiquidateWithAmm(
-                constants.solidAccount.owner,
-                constants.solidAccount.number,
-                heldMarket,
-                cache.solidHeldUpdateWithReward,
-                Types.Wei(true, profit),
-                _owedMarket,
-                cache.owedWeiToLiquidate
-            );
-        } else {
-            Require.that(
-                !revertOnFailToSellCollateral,
-                FILE,
-                "totalSolidHeldWei is too small",
-                totalSolidHeldWei,
-                actions[0].amount.value
-            );
-
-            // This value needs to be calculated before `actions` is overwritten below with the new swap parameters
-            uint256 profit = actions[0].amount.value.sub(cache.solidHeldUpdateWithReward);
-            (accounts, actions) = ROUTER_PROXY.getParamsForSwapExactTokensForTokens(
-                constants.solidAccount.owner,
-                constants.solidAccount.number,
-                totalSolidHeldWei, // inputWei
-                minOwedOutputAmount,
-                tokenPath
-            );
-
-            uint256 _owedMarket = owedMarket; // used to prevent the "stack too deep" error
-            emit LogLiquidateWithAmm(
-                constants.solidAccount.owner,
-                constants.solidAccount.number,
-                heldMarket,
-                cache.solidHeldUpdateWithReward,
-                Types.Wei(false, profit),
-                _owedMarket,
-                cache.owedWeiToLiquidate
-            );
-        }
-
-        accounts = constructAccountsArray(constants, accounts);
+        Account.Info[] memory accounts = _constructAccountsArray(constants);
 
         // execute the liquidations
         constants.dolomiteMargin.operate(
             accounts,
-            constructActionsArray(constants, cache, accounts, actions) //solium-disable-line arg-overflow
+            _constructActionsArray(
+                constants,
+                cache,
+                /* _solidAccountId = */ 0, // solium-disable-line indentation
+                /* _liquidAccount = */ 1, // solium-disable-line indentation
+                _paraswapCallData
+            )
         );
-    }
-
-    // ============ Calculation Functions ============
-
-    /**
-     * Calculate the additional owedAmount that can be liquidated until the collateralization of the
-     * liquidator account reaches the minLiquidatorRatio. By this point, the cache will be set such
-     * that the amount of owedMarket is non-positive and the amount of heldMarket is non-negative.
-     */
-    function calculateMaxLiquidationAmount(
-        LiquidatorProxyCache memory cache
-    )
-    private
-    pure
-    {
-        uint256 liquidHeldValue = cache.heldPrice.mul(cache.liquidHeldWei.value);
-        uint256 liquidOwedValue = cache.owedPriceAdj.mul(cache.liquidOwedWei.value);
-        if (liquidHeldValue <= liquidOwedValue) {
-            // The user is under-collateralized; there is no reward left to give
-            cache.solidHeldUpdateWithReward = cache.liquidHeldWei.value;
-            cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(
-                cache.liquidHeldWei.value,
-                cache.heldPrice,
-                cache.owedPriceAdj
-            );
-        } else {
-            cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
-                cache.liquidOwedWei.value,
-                cache.owedPriceAdj,
-                cache.heldPrice
-            );
-            cache.owedWeiToLiquidate = cache.liquidOwedWei.value;
-        }
     }
 
     // ============ Operation-Construction Functions ============
 
-    function constructAccountsArray(
-        Constants memory constants,
-        Account.Info[] memory accountsForTrade
+    function _constructAccountsArray(
+        Constants memory _constants
     )
     private
     pure
     returns (Account.Info[] memory)
     {
-        Account.Info[] memory accounts = new Account.Info[](accountsForTrade.length + 1);
-        for (uint256 i = 0; i < accountsForTrade.length; i++) {
-            accounts[i] = accountsForTrade[i];
-        }
-        assert(
-            accounts[0].owner == constants.solidAccount.owner &&
-            accounts[0].number == constants.solidAccount.number
-        );
-
-        accounts[accounts.length - 1] = constants.liquidAccount;
+        Account.Info[] memory accounts = new Account.Info[](2);
+        accounts[0] = _constants.solidAccount;
+        accounts[1] = _constants.liquidAccount;
         return accounts;
     }
 
-    function constructActionsArray(
-        Constants memory constants,
-        LiquidatorProxyCache memory cache,
-        Account.Info[] memory accounts,
-        Actions.ActionArgs[] memory actionsForTrade
+    function _constructActionsArray(
+        Constants memory _constants,
+        LiquidatorProxyCache memory _cache,
+        uint256 _solidAccountId,
+        uint256 _liquidAccountId,
+        bytes memory _paraswapCallData
     )
     private
-    pure
+    view
     returns (Actions.ActionArgs[] memory)
     {
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](actionsForTrade.length + 1);
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
 
-        if (constants.expiry > 0) {
+        if (_constants.expiry > 0) {
             // First action is a trade for closing the expired account
             // accountId is solidAccount; otherAccountId is liquidAccount
             actions[0] = AccountActionHelper.encodeExpiryLiquidateAction(
-                /* _solidAccountId = */ 0, // solium-disable-line indentation
-                /* _liquidAccountId = */ accounts.length - 1, // solium-disable-line indentation
-                constants.owedMarket,
-                cache.heldMarket,
-                cache.owedWeiToLiquidate,
-                address(cache.expiryProxy),
-                constants.expiry
+                _solidAccountId,
+                _liquidAccountId,
+                _cache.owedMarket,
+                _cache.heldMarket,
+                _cache.owedWeiToLiquidate,
+                address(_constants.expiryProxy),
+                _constants.expiry
             );
         } else {
             // First action is a liquidation
             // accountId is solidAccount; otherAccountId is liquidAccount
             actions[0] = AccountActionHelper.encodeLiquidateAction(
-                /* _solidAccountId = */ 0, // solium-disable-line indentation
-                /* _liquidAccountId = */ accounts.length - 1, // solium-disable-line indentation
-                cache.owedMarket,
-                cache.heldMarket,
-                cache.owedWeiToLiquidate
+                _solidAccountId,
+                _liquidAccountId,
+                _cache.owedMarket,
+                _cache.heldMarket,
+                _cache.owedWeiToLiquidate
             );
         }
 
-        for (uint256 i = 0; i < actionsForTrade.length; i++) {
-            actions[i + 1] = actionsForTrade[i];
-        }
+        actions[1] = AccountActionHelper.encodeExternalSellAction(
+            _solidAccountId,
+            _cache.heldMarket,
+            _cache.owedMarket,
+            /* _trader = */ address(this), // solium-disable-line indentation
+            _cache.solidHeldUpdateWithReward,
+            _cache.owedWeiToLiquidate,
+            _paraswapCallData
+        );
 
         return actions;
     }

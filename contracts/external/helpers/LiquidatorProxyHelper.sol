@@ -27,9 +27,11 @@ import { IExpiry } from "../interfaces/IExpiry.sol";
 import { Account } from "../../protocol/lib/Account.sol";
 import { Bits } from "../../protocol/lib/Bits.sol";
 import { Decimal } from "../../protocol/lib/Decimal.sol";
+import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
 import { Interest } from "../../protocol/lib/Interest.sol";
 import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
+import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
 
@@ -73,7 +75,8 @@ contract LiquidatorProxyHelper {
     struct LiquidatorProxyCache {
         // mutable
         uint256 owedWeiToLiquidate;
-        // The amount of heldMarket the solidAccount will receive. Includes the liquidation reward.
+        // The amount of heldMarket the solidAccount will receive. Includes the liquidation reward. Useful as the
+        // `amountIn` for a trade
         uint256 solidHeldUpdateWithReward;
         Types.Wei solidHeldWei;
         Types.Wei solidOwedWei;
@@ -93,35 +96,30 @@ contract LiquidatorProxyHelper {
 
     // ============ Internal Functions ============
 
-    // ============ Getter Functions ============
-
-
     /**
      * Pre-populates cache values for some pair of markets.
      */
-    function initializeCache(
-        Constants memory constants,
-        uint256 heldMarket,
-        uint256 owedMarket,
-        bool fetchAccountValues
+    function _initializeCache(
+        Constants memory _constants,
+        uint256 _heldMarket,
+        uint256 _owedMarket,
+        bool _fetchAccountValues
     )
-    private
+    internal
     view
     returns (LiquidatorProxyCache memory)
     {
-        MarketInfo memory heldMarketInfo = binarySearch(constants.markets, heldMarket);
-        MarketInfo memory owedMarketInfo = binarySearch(constants.markets, owedMarket);
-        uint256 heldPrice = heldMarketInfo.price.value;
-        uint256 owedPrice = owedMarketInfo.price.value;
+        MarketInfo memory heldMarketInfo = _binarySearch(_constants.markets, _heldMarket);
+        MarketInfo memory owedMarketInfo = _binarySearch(_constants.markets, _owedMarket);
 
         Monetary.Value memory solidSupplyValue;
         Monetary.Value memory solidBorrowValue;
-        if (fetchAccountValues) {
-            (solidSupplyValue, solidBorrowValue) = getAccountValues(
-                constants.dolomiteMargin,
-                constants.markets,
-                constants.solidAccount,
-                constants.dolomiteMargin.getAccountMarketsWithBalances(constants.solidAccount)
+        if (_fetchAccountValues) {
+            (solidSupplyValue, solidBorrowValue) = _getAccountValues(
+                _constants.dolomiteMargin,
+                _constants.markets,
+                _constants.solidAccount,
+                _constants.dolomiteMargin.getAccountMarketsWithBalances(_constants.solidAccount)
             );
         } else {
             solidSupplyValue = Monetary.Value({
@@ -132,45 +130,45 @@ contract LiquidatorProxyHelper {
             });
         }
 
-        Decimal.D256 memory spread = constants.dolomiteMargin.getLiquidationSpreadForPair(heldMarket, owedMarket);
+        Decimal.D256 memory spread = _constants.dolomiteMargin.getLiquidationSpreadForPair(_heldMarket, _owedMarket);
         uint256 owedPriceAdj;
-        if (constants.expiry > 0) {
-            (, Monetary.Price memory owedPricePrice) = constants.expiryProxy.getSpreadAdjustedPrices(
-                heldMarket,
-                owedMarket,
-                constants.expiry
+        if (_constants.expiry > 0) {
+            (, Monetary.Price memory owedPricePrice) = _constants.expiryProxy.getSpreadAdjustedPrices(
+                _heldMarket,
+                _owedMarket,
+                _constants.expiry
             );
             owedPriceAdj = owedPricePrice.value;
         } else {
-            owedPriceAdj = Decimal.mul(owedPrice, Decimal.onePlus(spread));
+            owedPriceAdj = Decimal.mul(owedMarketInfo.price.value, Decimal.onePlus(spread));
         }
 
         return LiquidatorProxyCache({
             owedWeiToLiquidate: 0,
             solidHeldUpdateWithReward: 0,
             solidHeldWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.solidAccount, heldMarket),
+                _constants.dolomiteMargin.getAccountPar(_constants.solidAccount, _heldMarket),
                 heldMarketInfo.index
             ),
             solidOwedWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.solidAccount, owedMarket),
+                _constants.dolomiteMargin.getAccountPar(_constants.solidAccount, _owedMarket),
                 owedMarketInfo.index
             ),
             liquidHeldWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.liquidAccount, heldMarket),
+                _constants.dolomiteMargin.getAccountPar(_constants.liquidAccount, _heldMarket),
                 heldMarketInfo.index
             ),
             liquidOwedWei: Interest.parToWei(
-                constants.dolomiteMargin.getAccountPar(constants.liquidAccount, owedMarket),
+                _constants.dolomiteMargin.getAccountPar(_constants.liquidAccount, _owedMarket),
                 owedMarketInfo.index
             ),
             solidSupplyValue: solidSupplyValue.value,
             solidBorrowValue: solidBorrowValue.value,
             spread: spread,
-            heldMarket: heldMarket,
-            owedMarket: owedMarket,
-            heldPrice: heldPrice,
-            owedPrice: owedPrice,
+            heldMarket: _heldMarket,
+            owedMarket: _owedMarket,
+            heldPrice: heldMarketInfo.price.value,
+            owedPrice: owedMarketInfo.price.value,
             owedPriceAdj: owedPriceAdj
         });
     }
@@ -181,32 +179,78 @@ contract LiquidatorProxyHelper {
      *  - Require that the liquid account is liquidatable based on the accounts global value (all assets held and owed,
      *    not just what's being liquidated)
      */
-    function checkBasicRequirements(
-        Constants memory constants,
-        uint256 owedMarket
+    function _checkConstants(
+        Constants memory _constants,
+        Account.Info memory _liquidAccount,
+        uint256 _owedMarket,
+        uint256 _heldMarket,
+        uint256 _expiry
     )
-    private
+    internal
+    view
+    {
+        Require.that(
+            _owedMarket != _heldMarket,
+            FILE,
+            "owedMarket equals heldMarket",
+            _owedMarket,
+            _heldMarket
+        );
+
+        Require.that(
+            !_constants.dolomiteMargin.getAccountPar(_liquidAccount, _owedMarket).isPositive(),
+            FILE,
+            "owed market cannot be positive",
+            _owedMarket
+        );
+
+        Require.that(
+            _constants.dolomiteMargin.getAccountPar(_liquidAccount, _heldMarket).isPositive(),
+            FILE,
+            "held market cannot be negative",
+            _heldMarket
+        );
+
+        Require.that(
+            uint32(_expiry) == _expiry,
+            FILE,
+            "expiry overflow",
+            _expiry
+        );
+    }
+
+    /**
+     * Make some basic checks before attempting to liquidate an account.
+     *  - Require that the msg.sender has the permission to use the liquidator account
+     *  - Require that the liquid account is liquidatable based on the accounts global value (all assets held and owed,
+     *    not just what's being liquidated)
+     */
+    function _checkBasicRequirements(
+        Constants memory _constants,
+        uint256 _owedMarket
+    )
+    internal
     view
     {
         // check credentials for msg.sender
         Require.that(
-            constants.solidAccount.owner == msg.sender
-            || constants.dolomiteMargin.getIsLocalOperator(constants.solidAccount.owner, msg.sender),
+            _constants.solidAccount.owner == msg.sender
+            || _constants.dolomiteMargin.getIsLocalOperator(_constants.solidAccount.owner, msg.sender),
             FILE,
             "Sender not operator",
-            constants.solidAccount.owner
+            _constants.solidAccount.owner
         );
 
-        if (constants.expiry == 0) {
+        if (_constants.expiry == 0) {
             // user is getting liquidated, not expired. Check liquid account is indeed liquid
             (
                 Monetary.Value memory liquidSupplyValue,
                 Monetary.Value memory liquidBorrowValue
-            ) = getAdjustedAccountValues(
-                constants.dolomiteMargin,
-                constants.markets,
-                constants.liquidAccount,
-                constants.liquidMarkets
+            ) = _getAdjustedAccountValues(
+                _constants.dolomiteMargin,
+                _constants.markets,
+                _constants.liquidAccount,
+                _constants.liquidMarkets
             );
             Require.that(
                 liquidSupplyValue.value != 0,
@@ -214,24 +258,24 @@ contract LiquidatorProxyHelper {
                 "Liquid account no supply"
             );
             Require.that(
-                constants.dolomiteMargin.getAccountStatus(constants.liquidAccount) == Account.Status.Liquid
-                || !isCollateralized(
+                _constants.dolomiteMargin.getAccountStatus(_constants.liquidAccount) == Account.Status.Liquid
+                || !_isCollateralized(
                     liquidSupplyValue.value,
                     liquidBorrowValue.value,
-                    constants.dolomiteMargin.getMarginRatio()
+                    _constants.dolomiteMargin.getMarginRatio()
                 ),
                 FILE,
                 "Liquid account not liquidatable"
             );
         } else {
             // check the expiration is valid; to get here we already know constants.expiry != 0
-            uint32 expiry = constants.expiryProxy.getExpiry(constants.liquidAccount, owedMarket);
+            uint32 expiry = _constants.expiryProxy.getExpiry(_constants.liquidAccount, _owedMarket);
             Require.that(
-                expiry == constants.expiry,
+                expiry == _constants.expiry,
                 FILE,
                 "expiry mismatch",
                 expiry,
-                constants.expiry
+                _constants.expiry
             );
             Require.that(
                 expiry <= Time.currentTime(),
@@ -243,9 +287,40 @@ contract LiquidatorProxyHelper {
     }
 
     /**
+     * Calculate the additional owedAmount that can be liquidated until the collateralization of the liquidator account
+     * reaches the minLiquidatorRatio. By this point, the cache will be set such that the amount of owedMarket is
+     * non-positive and the amount of heldMarket is non-negative.
+     */
+    function _calculateAndSetMaxLiquidationAmount(
+        LiquidatorProxyCache memory _cache
+    )
+    internal
+    pure
+    {
+        uint256 liquidHeldValue = _cache.heldPrice.mul(_cache.liquidHeldWei.value);
+        uint256 liquidOwedValue = _cache.owedPriceAdj.mul(_cache.liquidOwedWei.value);
+        if (liquidHeldValue <= liquidOwedValue) {
+            // The user is under-collateralized; there is no reward left to give
+            _cache.solidHeldUpdateWithReward = _cache.liquidHeldWei.value;
+            _cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(
+                _cache.liquidHeldWei.value,
+                _cache.heldPrice,
+                _cache.owedPriceAdj
+            );
+        } else {
+            _cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
+                _cache.liquidOwedWei.value,
+                _cache.owedPriceAdj,
+                _cache.heldPrice
+            );
+            _cache.owedWeiToLiquidate = _cache.liquidOwedWei.value;
+        }
+    }
+
+    /**
      * Returns true if the supplyValue over-collateralizes the borrowValue by the ratio.
      */
-    function isCollateralized(
+    function _isCollateralized(
         uint256 supplyValue,
         uint256 borrowValue,
         Decimal.D256 memory ratio
@@ -262,7 +337,7 @@ contract LiquidatorProxyHelper {
      * Gets the current total supplyValue and borrowValue for some account. Takes into account what
      * the current index will be once updated.
      */
-    function getAccountValues(
+    function _getAccountValues(
         IDolomiteMargin dolomiteMargin,
         MarketInfo[] memory marketInfos,
         Account.Info memory account,
@@ -275,7 +350,7 @@ contract LiquidatorProxyHelper {
         Monetary.Value memory
     )
     {
-        return getAccountValues(
+        return _getAccountValues(
             dolomiteMargin,
             marketInfos,
             account,
@@ -288,7 +363,7 @@ contract LiquidatorProxyHelper {
      * Gets the adjusted current total supplyValue and borrowValue for some account. Takes into account what
      * the current index will be once updated and the spread premium.
      */
-    function getAdjustedAccountValues(
+    function _getAdjustedAccountValues(
         IDolomiteMargin dolomiteMargin,
         MarketInfo[] memory marketInfos,
         Account.Info memory account,
@@ -301,7 +376,7 @@ contract LiquidatorProxyHelper {
         Monetary.Value memory
     )
     {
-        return getAccountValues(
+        return _getAccountValues(
             dolomiteMargin,
             marketInfos,
             account,
@@ -310,9 +385,7 @@ contract LiquidatorProxyHelper {
         );
     }
 
-    // ============ Internal Functions ============
-
-    function getMarketInfos(
+    function _getMarketInfos(
         IDolomiteMargin dolomiteMargin,
         uint256[] memory solidMarkets,
         uint256[] memory liquidMarkets
@@ -348,7 +421,7 @@ contract LiquidatorProxyHelper {
         return marketInfos;
     }
 
-    function binarySearch(
+    function _binarySearch(
         MarketInfo[] memory markets,
         uint marketId
     ) internal pure returns (MarketInfo memory) {
@@ -362,7 +435,7 @@ contract LiquidatorProxyHelper {
 
     // ============ Private Functions ============
 
-    function getAccountValues(
+    function _getAccountValues(
         IDolomiteMargin dolomiteMargin,
         MarketInfo[] memory marketInfos,
         Account.Info memory account,
@@ -381,7 +454,7 @@ contract LiquidatorProxyHelper {
 
         for (uint256 i = 0; i < marketIds.length; i++) {
             Types.Par memory par = dolomiteMargin.getAccountPar(account, marketIds[i]);
-            MarketInfo memory marketInfo = binarySearch(marketInfos, marketIds[i]);
+            MarketInfo memory marketInfo = _binarySearch(marketInfos, marketIds[i]);
             Types.Wei memory userWei = Interest.parToWei(par, marketInfo.index);
             uint256 assetValue = userWei.value.mul(marketInfo.price.value);
             Decimal.D256 memory spreadPremium = Decimal.one();

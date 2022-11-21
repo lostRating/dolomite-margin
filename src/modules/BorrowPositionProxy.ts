@@ -1,6 +1,6 @@
 import { Contracts } from '../lib/Contracts';
 import {
-  address,
+  address, BalanceCheckFlag,
   ContractCallOptions,
   Integer,
   TxResult,
@@ -26,6 +26,7 @@ export class BorrowPositionProxy {
     toAccountIndex: Integer,
     marketId: Integer,
     amountWei: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -34,6 +35,7 @@ export class BorrowPositionProxy {
         toAccountIndex.toFixed(),
         marketId.toFixed(),
         amountWei.toFixed(),
+        balanceCheckFlag,
       ),
       options,
     );
@@ -60,6 +62,7 @@ export class BorrowPositionProxy {
     toAccountIndex: Integer,
     marketId: Integer,
     amountWei: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -68,6 +71,7 @@ export class BorrowPositionProxy {
         toAccountIndex.toFixed(),
         marketId.toFixed(),
         amountWei.toFixed(),
+        balanceCheckFlag,
       ),
       options,
     );

@@ -65,7 +65,7 @@ library AccountBalanceHelper {
         Require.that(
             par.isPositive() || par.isZero(),
             FILE,
-            "from account cannot go negative",
+            "account cannot go negative",
             _owner,
             _accountIndex,
             _marketId

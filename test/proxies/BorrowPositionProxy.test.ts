@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { address, Integer, INTEGERS } from '../../src';
+import { address, BalanceCheckFlag, Integer, INTEGERS } from '../../src';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
@@ -15,6 +15,7 @@ const market1 = INTEGERS.ZERO;
 const market2 = INTEGERS.ONE;
 const par1 = new BigNumber(500);
 const par2 = new BigNumber(100);
+const defaultBalanceCheckFlag = BalanceCheckFlag.Both;
 
 describe('BorrowPositionProxy', () => {
   before(async () => {
@@ -50,6 +51,7 @@ describe('BorrowPositionProxy', () => {
         accountIndexBorrow,
         market1,
         par1,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -68,6 +70,7 @@ describe('BorrowPositionProxy', () => {
         accountIndexBorrow,
         market1,
         par1,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -79,6 +82,7 @@ describe('BorrowPositionProxy', () => {
         accountIndex0,
         market2,
         par2,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -92,6 +96,7 @@ describe('BorrowPositionProxy', () => {
         accountIndexBorrow,
         market2,
         par2.div(2),
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -112,6 +117,7 @@ describe('BorrowPositionProxy', () => {
         accountIndexBorrow,
         market1,
         par1,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -123,6 +129,7 @@ describe('BorrowPositionProxy', () => {
         accountIndex0,
         market2,
         par2,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -154,6 +161,7 @@ describe('BorrowPositionProxy', () => {
         accountIndexBorrow,
         market1,
         par1,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 
@@ -165,6 +173,7 @@ describe('BorrowPositionProxy', () => {
         accountIndex0,
         market2,
         par2,
+        defaultBalanceCheckFlag,
         { from: owner1 },
       );
 

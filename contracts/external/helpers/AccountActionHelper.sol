@@ -26,6 +26,8 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { IExpiry } from "../interfaces/IExpiry.sol";
+
 import { AccountBalanceHelper } from "./AccountBalanceHelper.sol";
 
 
@@ -41,7 +43,13 @@ library AccountActionHelper {
 
     bytes32 constant FILE = "AccountActionHelper";
 
+    uint256 constant ALL = uint256(-1);
+
     // ============ Functions ============
+
+    function all() internal pure returns (uint256) {
+        return ALL;
+    }
 
     function deposit(
         IDolomiteMargin _dolomiteMargin,
@@ -117,6 +125,40 @@ library AccountActionHelper {
         }
     }
 
+    function encodeExpirationAction(
+        Account.Info memory _account,
+        uint256 _accountId,
+        uint256 _owedMarketId,
+        address _expiry,
+        uint256 _expiryTimeDelta
+    ) internal pure returns (Actions.ActionArgs memory) {
+        Require.that(
+            _expiryTimeDelta == uint32(_expiryTimeDelta),
+            FILE,
+            "invalid expiry time"
+        );
+
+        IExpiry.SetExpiryArg[] memory expiryArgs = new IExpiry.SetExpiryArg[](1);
+        expiryArgs[0] = IExpiry.SetExpiryArg({
+            account : _account,
+            marketId : _owedMarketId,
+            timeDelta : uint32(_expiryTimeDelta),
+            forceUpdate : true
+        });
+
+        return Actions.ActionArgs({
+            actionType : Actions.ActionType.Call,
+            accountId : _accountId,
+            // solium-disable-next-line arg-overflow
+            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
+            primaryMarketId : 0,
+            secondaryMarketId : 0,
+            otherAddress : _expiry,
+            otherAccountId : 0,
+            data : abi.encode(IExpiry.CallFunctionType.SetExpiry, expiryArgs)
+        });
+    }
+
     function encodeExpiryLiquidateAction(
         uint256 _solidAccountId,
         uint256 _liquidAccountId,
@@ -152,7 +194,7 @@ library AccountActionHelper {
     ) internal pure returns (Actions.ActionArgs memory) {
         return Actions.ActionArgs({
             actionType: Actions.ActionType.Liquidate,
-            accountId: 0,
+            accountId: _solidAccountId,
             amount: Types.AssetAmount({
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
@@ -167,7 +209,29 @@ library AccountActionHelper {
         });
     }
 
-    function encodeTradeAction(
+    function encodeExternalSellAction(
+        uint256 _fromAccountId,
+        uint256 _primaryMarketId,
+        uint256 _secondaryMarketId,
+        address _trader,
+        uint256 _amountInWei,
+        uint256 _amountOutMinWei,
+        bytes memory _orderData
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType : Actions.ActionType.Sell,
+            accountId : _fromAccountId,
+            // solium-disable-next-line arg-overflow
+            amount : Types.AssetAmount(false, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
+            primaryMarketId : _primaryMarketId,
+            secondaryMarketId : _secondaryMarketId,
+            otherAddress : _trader,
+            otherAccountId : 0,
+            data : abi.encode(_amountOutMinWei, _orderData)
+        });
+    }
+
+    function encodeInternalTradeAction(
         uint256 _fromAccountId,
         uint256 _toAccountId,
         uint256 _primaryMarketId,

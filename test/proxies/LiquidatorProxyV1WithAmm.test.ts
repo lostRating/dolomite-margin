@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { AccountStatus, address, Index, Integer, INTEGERS } from '../../src';
+import { AccountStatus, address, BalanceCheckFlag, Index, Integer, INTEGERS } from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import DolomiteMarginMath from '../../src/modules/DolomiteMarginMath';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
@@ -1251,6 +1251,7 @@ async function addLiquidity(
     INTEGERS.ONE,
     INTEGERS.ONE,
     new BigNumber('123456789123'),
+    BalanceCheckFlag.Both,
     { from: walletAddress },
   );
 }

@@ -4,7 +4,7 @@ import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
-import { address, INTEGERS } from '../../src';
+import { address, BalanceCheckFlag, INTEGERS } from '../../src';
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
@@ -158,6 +158,7 @@ async function addDolomiteLiquidity(
       INTEGERS.ONE,
       INTEGERS.ONE,
       new BigNumber('123456789123'),
+      BalanceCheckFlag.Both,
       { from: walletAddress },
     )
     .catch((reason) => {

@@ -1,6 +1,15 @@
 import BigNumber from 'bignumber.js';
 import { promisify } from 'es6-promisify';
-import { address, ADDRESSES, AmountDenomination, AmountReference, Integer, INTEGERS, TxResult } from '../../src';
+import {
+  address,
+  ADDRESSES,
+  AmountDenomination,
+  AmountReference,
+  BalanceCheckFlag,
+  Integer,
+  INTEGERS,
+  TxResult
+} from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
@@ -29,6 +38,7 @@ const parB = new BigNumber('2000000');
 const parC = new BigNumber('300000000000000000000');
 const prices = [new BigNumber('1e20'), new BigNumber('1e32'), new BigNumber('1e18'), new BigNumber('1e21')];
 const defaultDeadline = new BigNumber('123456789123');
+const defaultBalanceCheckFlag = BalanceCheckFlag.Both;
 const defaultIsClosing = false;
 const defaultIsRecyclable = false;
 
@@ -450,6 +460,30 @@ describe('DolomiteAmmRouterProxy', () => {
         const balance1 = await dolomiteMargin.getters.getAccountWei(token_ab, INTEGERS.ZERO, marketId1);
         expect(reserves.reserve1).to.eql(balance1);
       });
+
+      it('should work when cross margin is enabled and balance goes below 0', async () => {
+        const marketA = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenA.address);
+        const marketB = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenB.address);
+        await dolomiteMargin.testing.setAccountBalance(owner1, INTEGERS.ZERO, marketA, parA.times('100'));
+
+        await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidity(
+          owner1,
+          INTEGERS.ZERO,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA.times('1.01'),
+          parB.times('1.01'),
+          INTEGERS.ONE,
+          parB,
+          defaultDeadline,
+          BalanceCheckFlag.None,
+          { from: owner1 },
+        );
+
+        const balanceB = await dolomiteMargin.getters.getAccountWei(owner1, INTEGERS.ZERO, marketB);
+        console.log('balanceB', balanceB.toFixed());
+        expect(balanceB.isLessThan(INTEGERS.ZERO)).to.eql(true);
+      });
     });
 
     describe('Failure cases', () => {
@@ -465,6 +499,7 @@ describe('DolomiteAmmRouterProxy', () => {
             INTEGERS.ONE,
             INTEGERS.ONE,
             new BigNumber(Math.floor((new Date().getTime() / 1000) - 3600)),
+            defaultBalanceCheckFlag,
             { from: owner1 },
           ),
           'DolomiteAmmRouterProxy: deadline expired',
@@ -483,6 +518,7 @@ describe('DolomiteAmmRouterProxy', () => {
             INTEGERS.ONE,
             INTEGERS.ONE,
             defaultDeadline,
+            defaultBalanceCheckFlag,
             { from: owner1 },
           ),
           `OperationImpl: Undercollateralized account <${owner1.toLowerCase()}, 0>`,
@@ -501,6 +537,7 @@ describe('DolomiteAmmRouterProxy', () => {
             parA,
             INTEGERS.ONE,
             defaultDeadline,
+            defaultBalanceCheckFlag,
             { from: owner1 },
           ),
           'DolomiteAmmRouterProxy: insufficient A amount',
@@ -519,9 +556,32 @@ describe('DolomiteAmmRouterProxy', () => {
             INTEGERS.ONE,
             parB,
             defaultDeadline,
+            defaultBalanceCheckFlag,
             { from: owner1 },
           ),
           'DolomiteAmmRouterProxy: insufficient B amount',
+        );
+      });
+
+      it('should not work when the user balance goes below 0', async () => {
+        const marketA = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenA.address);
+        await dolomiteMargin.testing.setAccountBalance(owner1, INTEGERS.ZERO, marketA, parA.times('100'));
+
+        await expectThrow(
+          dolomiteMargin.dolomiteAmmRouterProxy.addLiquidity(
+            owner1,
+            INTEGERS.ZERO,
+            dolomiteMargin.testing.tokenA.address,
+            dolomiteMargin.testing.tokenB.address,
+            parA.times('1.01'),
+            parB.times('1.01'),
+            INTEGERS.ONE,
+            parB,
+            defaultDeadline,
+            defaultBalanceCheckFlag,
+            { from: owner1 },
+          ),
+          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, 0, ${marketA.toFixed()}>`,
         );
       });
     });
@@ -839,12 +899,13 @@ describe('DolomiteAmmRouterProxy', () => {
             {
               tokenPath: defaultPath,
               depositToken: ADDRESSES.ZERO,
-              isPositiveMarginDeposit: true,
-              accountNumber: INTEGERS.ZERO.toFixed(0),
+              fromAccountNumber: INTEGERS.ZERO.toFixed(0),
+              toAccountNumber: INTEGERS.ZERO.toFixed(0),
               amountIn: createAmount(parA.div(100)),
               amountOut: createAmount(INTEGERS.ZERO),
               marginDeposit: INTEGERS.ZERO.toFixed(0),
               expiryTimeDelta: INTEGERS.ZERO.toFixed(0),
+              balanceCheckFlag: defaultBalanceCheckFlag,
             },
             defaultDeadline.toFixed(0),
           ),
@@ -943,18 +1004,20 @@ describe('DolomiteAmmRouterProxy', () => {
           dolomiteMargin.testing.tokenB.address,
         );
 
-        const accountNumber = INTEGERS.ONE;
+        const fromAccountNumber = INTEGERS.ZERO;
+        const toAccountNumber = INTEGERS.ONE;
         const expiryTimeDelta = new BigNumber('0');
         const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           parA.div(100),
           INTEGERS.ONE,
           defaultPath,
           dolomiteMargin.testing.tokenB.address,
-          true,
           parB.div(10),
           expiryTimeDelta,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
 
@@ -986,18 +1049,20 @@ describe('DolomiteAmmRouterProxy', () => {
           dolomiteMargin.testing.tokenB.address,
         );
 
-        const accountNumber = INTEGERS.ONE;
+        const fromAccountNumber = INTEGERS.ZERO;
+        const toAccountNumber = INTEGERS.ONE;
         const expiryTimeDelta = new BigNumber('0');
         const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           parA.div(100),
           INTEGERS.ONE,
           defaultPath,
           dolomiteMargin.testing.tokenB.address,
-          true,
           INTEGERS.MAX_UINT,
           expiryTimeDelta,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
 
@@ -1029,18 +1094,20 @@ describe('DolomiteAmmRouterProxy', () => {
           dolomiteMargin.testing.tokenB.address,
         );
 
-        const accountNumber = new BigNumber('123');
+        const fromAccountNumber = INTEGERS.ZERO;
+        const toAccountNumber = new BigNumber('123');
         const expiryTimeDelta = new BigNumber('3600');
         const txResult1 = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           parA.div(100),
           INTEGERS.ONE,
           defaultPath,
           dolomiteMargin.testing.tokenB.address,
-          true,
           parB.div(10),
           expiryTimeDelta,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
         await checkSwapLogs(txResult1, defaultPath);
@@ -1051,17 +1118,18 @@ describe('DolomiteAmmRouterProxy', () => {
 
         const otherPath = [defaultPath[1], defaultPath[0]];
         const owedMarketId = await dolomiteMargin.getters.getMarketIdByTokenAddress(defaultPath[0]);
-        const debtAmount = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, owedMarketId);
+        const debtAmount = await dolomiteMargin.getters.getAccountWei(owner1, toAccountNumber, owedMarketId);
         const txResult2 = await dolomiteMargin.dolomiteAmmRouterProxy.swapTokensForExactTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           parB,
           debtAmount.times('1.0001').integerValue().abs(), // The '1.0001' accounts for any interest accrual
           otherPath,
           dolomiteMargin.testing.tokenB.address,
-          false,
           INTEGERS.MAX_UINT, // withdraw all
           INTEGERS.ZERO,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
         await checkSwapLogs(txResult2, otherPath);
@@ -1080,18 +1148,20 @@ describe('DolomiteAmmRouterProxy', () => {
           dolomiteMargin.testing.tokenB.address,
         );
 
-        const accountNumber = new BigNumber('123');
+        const fromAccountNumber = INTEGERS.ZERO;
+        const toAccountNumber = new BigNumber('123');
         const expiryTimeDelta = new BigNumber('3600');
         const txResult1 = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           parA.div(100),
           INTEGERS.ONE,
           defaultPath,
           dolomiteMargin.testing.tokenB.address,
-          true,
           parB.div(10),
           expiryTimeDelta,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
         await checkSwapLogs(txResult1, defaultPath);
@@ -1102,17 +1172,18 @@ describe('DolomiteAmmRouterProxy', () => {
 
         const otherPath = [defaultPath[1], defaultPath[0]];
         const heldMarketId = await dolomiteMargin.getters.getMarketIdByTokenAddress(defaultPath[1]);
-        const heldAmount = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, heldMarketId);
+        const heldAmount = await dolomiteMargin.getters.getAccountWei(owner1, toAccountNumber, heldMarketId);
         const txResult2 = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           heldAmount,
           INTEGERS.ZERO,
           otherPath,
           dolomiteMargin.testing.tokenA.address,
-          false,
           INTEGERS.MAX_UINT, // withdraw all
           INTEGERS.ZERO,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
         await checkSwapLogs(txResult2, otherPath);
@@ -1131,18 +1202,20 @@ describe('DolomiteAmmRouterProxy', () => {
           dolomiteMargin.testing.tokenB.address,
         );
 
-        const accountNumber = new BigNumber('123');
+        const fromAccountNumber = INTEGERS.ZERO;
+        const toAccountNumber = new BigNumber('123');
         const expiryTimeDelta = new BigNumber('3600');
         const txResult1 = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           parA.div(100),
           INTEGERS.ONE,
           defaultPath,
           dolomiteMargin.testing.tokenC.address,
-          true,
           INTEGERS.MAX_UINT,
           expiryTimeDelta,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
         await checkSwapLogs(txResult1, defaultPath);
@@ -1156,17 +1229,18 @@ describe('DolomiteAmmRouterProxy', () => {
 
         const otherPath = [defaultPath[1], defaultPath[0]];
         const heldMarketId = await dolomiteMargin.getters.getMarketIdByTokenAddress(defaultPath[1]);
-        const heldAmount = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, heldMarketId);
+        const heldAmount = await dolomiteMargin.getters.getAccountWei(owner1, fromAccountNumber, heldMarketId);
         const txResult2 = await dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
-          accountNumber,
+          fromAccountNumber,
+          toAccountNumber,
           heldAmount,
           INTEGERS.ZERO,
           otherPath,
           dolomiteMargin.testing.tokenC.address,
-          false,
           INTEGERS.MAX_UINT, // withdraw all
           INTEGERS.ZERO,
           defaultDeadline,
+          defaultBalanceCheckFlag,
           { from: owner1 },
         );
         await checkSwapLogs(txResult2, otherPath);
@@ -1178,8 +1252,8 @@ describe('DolomiteAmmRouterProxy', () => {
         const collateralMarketId = await dolomiteMargin.getters.getMarketIdByTokenAddress(
           dolomiteMargin.testing.tokenC.address
         );
-        expect(await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, heldMarketId)).to.eql(INTEGERS.ZERO);
-        expect(await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, collateralMarketId))
+        expect(await dolomiteMargin.getters.getAccountWei(owner1, fromAccountNumber, heldMarketId)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.getters.getAccountWei(owner1, fromAccountNumber, collateralMarketId))
           .to.eql(INTEGERS.ZERO);
       });
     });
@@ -1300,6 +1374,7 @@ async function addLiquidity(
     INTEGERS.ONE,
     INTEGERS.ONE,
     defaultDeadline,
+    defaultBalanceCheckFlag,
     { from: walletAddress },
   );
 
@@ -1367,6 +1442,7 @@ async function swapExactTokensForTokens(
     amountOutMin,
     path,
     defaultDeadline,
+    defaultBalanceCheckFlag,
     { from: walletAddress },
   );
 
@@ -1391,6 +1467,7 @@ async function swapTokensForExactTokens(
     amountOut,
     path,
     defaultDeadline,
+    defaultBalanceCheckFlag,
     { from: walletAddress },
   );
 

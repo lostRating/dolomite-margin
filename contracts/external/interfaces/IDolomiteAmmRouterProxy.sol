@@ -92,8 +92,8 @@ interface IDolomiteAmmRouterProxy {
         uint256 fromAccountNumber;
         address tokenA;
         address tokenB;
-        uint256 amountADesired;
-        uint256 amountBDesired;
+        uint256 amountADesiredWei;
+        uint256 amountBDesiredWei;
         uint256 amountAMinWei;
         uint256 amountBMinWei;
         uint256 deadline;
@@ -104,7 +104,7 @@ interface IDolomiteAmmRouterProxy {
         uint256 toAccountNumber;
         address tokenA;
         address tokenB;
-        uint256 liquidity;
+        uint256 liquidityWei;
         uint256 amountAMinWei;
         uint256 amountBMinWei;
         uint256 deadline;
@@ -132,6 +132,15 @@ interface IDolomiteAmmRouterProxy {
     )
     external
     returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity);
+
+    function getAddLiquidityAmounts(
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountADesiredWei,
+        uint256 _amountBDesiredWei,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei
+    ) external view returns (uint256 amountAWei, uint256 amountBWei);
 
     function swapExactTokensForTokens(
         uint256 _accountNumber,
@@ -172,19 +181,19 @@ interface IDolomiteAmmRouterProxy {
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory);
 
     function removeLiquidity(
-        address _to,
-        RemoveLiquidityParams calldata _params
+        RemoveLiquidityParams calldata _params,
+        address _to
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function removeLiquidityWithPermit(
-        address _to,
         RemoveLiquidityParams calldata _params,
+        address _to,
         PermitSignature calldata _permit
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function removeLiquidityFromWithinDolomite(
-        uint256 _fromAccountNumber,
         RemoveLiquidityParams calldata _params,
+        uint256 _fromAccountNumber,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 

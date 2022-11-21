@@ -1,15 +1,8 @@
 // noinspection JSUnusedGlobalSymbols
 
-import { BigNumber } from '../index';
+import { BalanceCheckFlag, BigNumber } from '../index';
 import { Contracts } from '../lib/Contracts';
-import {
-  address,
-  AmountDenomination,
-  AmountReference,
-  ContractCallOptions,
-  Integer,
-  TxResult,
-} from '../types';
+import { address, AmountDenomination, AmountReference, ContractCallOptions, Integer, TxResult, } from '../types';
 import { DolomiteAmmFactory } from './DolomiteAmmFactory';
 import { DolomiteAmmPair } from './DolomiteAmmPair';
 
@@ -136,19 +129,22 @@ export class DolomiteAmmRouterProxy {
     amountAMin: Integer,
     amountBMin: Integer,
     deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.dolomiteAmmRouterProxy.methods.addLiquidity(
-        to,
-        accountNumber.toFixed(0),
+      this.contracts.dolomiteAmmRouterProxy.methods.addLiquidity({
         tokenA,
         tokenB,
-        amountADesired.toFixed(0),
-        amountBDesired.toFixed(0),
-        amountAMin.toFixed(0),
-        amountBMin.toFixed(0),
-        deadline.toFixed(0),
+        balanceCheckFlag,
+        fromAccountNumber: accountNumber.toFixed(0),
+        amountADesiredWei: amountADesired.toFixed(0),
+        amountBDesiredWei: amountBDesired.toFixed(0),
+        amountAMinWei: amountAMin.toFixed(0),
+        amountBMinWei: amountBMin.toFixed(0),
+        deadline: deadline.toFixed(0),
+      },
+        to,
       ),
       options,
     );
@@ -156,7 +152,7 @@ export class DolomiteAmmRouterProxy {
 
   public async removeLiquidity(
     to: address,
-    fromAccountNumber: Integer,
+    toAccountNumber: Integer,
     tokenA: address,
     tokenB: address,
     liquidity: Integer,
@@ -167,14 +163,16 @@ export class DolomiteAmmRouterProxy {
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
       this.contracts.dolomiteAmmRouterProxy.methods.removeLiquidity(
+        {
+          tokenA,
+          tokenB,
+          toAccountNumber: toAccountNumber.toFixed(0),
+          liquidityWei: liquidity.toFixed(0),
+          amountAMinWei: amountAMin.toFixed(0),
+          amountBMinWei: amountBMin.toFixed(0),
+          deadline: deadline.toFixed(0),
+        },
         to,
-        fromAccountNumber.toFixed(0),
-        tokenA,
-        tokenB,
-        liquidity.toFixed(0),
-        amountAMin.toFixed(0),
-        amountBMin.toFixed(0),
-        deadline.toFixed(0),
       ),
       options,
     );
@@ -182,7 +180,7 @@ export class DolomiteAmmRouterProxy {
 
   public async removeLiquidityWithPermit(
     to: address,
-    fromAccountNumber: Integer,
+    toAccountNumber: Integer,
     tokenA: address,
     tokenB: address,
     liquidity: Integer,
@@ -194,14 +192,16 @@ export class DolomiteAmmRouterProxy {
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
       this.contracts.dolomiteAmmRouterProxy.methods.removeLiquidityWithPermit(
+        {
+          tokenA,
+          tokenB,
+          toAccountNumber: toAccountNumber.toFixed(0),
+          liquidityWei: liquidity.toFixed(0),
+          amountAMinWei: amountAMin.toFixed(0),
+          amountBMinWei: amountBMin.toFixed(0),
+          deadline: deadline.toFixed(0),
+        },
         to,
-        fromAccountNumber.toFixed(0),
-        tokenA,
-        tokenB,
-        liquidity.toFixed(0),
-        amountAMin.toFixed(0),
-        amountBMin.toFixed(0),
-        deadline.toFixed(0),
         permit,
       ),
       options,
@@ -214,6 +214,7 @@ export class DolomiteAmmRouterProxy {
     amountOutMin: Integer,
     tokenPath: address[],
     deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -223,21 +224,23 @@ export class DolomiteAmmRouterProxy {
         amountOutMin.toFixed(0),
         tokenPath,
         deadline.toFixed(0),
+        balanceCheckFlag,
       ),
       options,
     );
   }
 
   public async swapExactTokensForTokensAndModifyPosition(
-    accountNumber: Integer,
+    fromAccountNumber: Integer,
+    toAccountNumber: Integer,
     amountIn: Integer,
     amountOutMin: Integer,
     tokenPath: address[],
     depositToken: address,
-    isPositiveMarginDeposit: boolean,
     marginDeposit: Integer,
     expiryTimeDelta: Integer,
     deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     const createAmount = (value: Integer) => {
@@ -254,8 +257,9 @@ export class DolomiteAmmRouterProxy {
         {
           tokenPath,
           depositToken,
-          isPositiveMarginDeposit,
-          accountNumber: accountNumber.toFixed(0),
+          balanceCheckFlag,
+          fromAccountNumber: fromAccountNumber.toFixed(0),
+          toAccountNumber: toAccountNumber.toFixed(0),
           amountIn: createAmount(amountIn),
           amountOut: createAmount(amountOutMin),
           marginDeposit: marginDeposit.toFixed(0),
@@ -273,6 +277,7 @@ export class DolomiteAmmRouterProxy {
     amountOut: Integer,
     tokenPath: address[],
     deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -282,21 +287,23 @@ export class DolomiteAmmRouterProxy {
         amountOut.toFixed(0),
         tokenPath,
         deadline.toFixed(0),
+        balanceCheckFlag,
       ),
       options,
     );
   }
 
   public async swapTokensForExactTokensAndModifyPosition(
-    accountNumber: Integer,
+    fromAccountNumber: Integer,
+    toAccountNumber: Integer,
     amountInMax: Integer,
     amountOut: Integer,
     tokenPath: address[],
     depositToken: address,
-    isPositiveMarginDeposit: boolean,
     marginDeposit: Integer,
     expiryTimeDelta: Integer,
     deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     const createAmount = (value: Integer) => {
@@ -313,8 +320,9 @@ export class DolomiteAmmRouterProxy {
         {
           tokenPath,
           depositToken,
-          isPositiveMarginDeposit,
-          accountNumber: accountNumber.toFixed(0),
+          balanceCheckFlag,
+          fromAccountNumber: fromAccountNumber.toFixed(0),
+          toAccountNumber: toAccountNumber.toFixed(0),
           amountIn: createAmount(amountInMax),
           amountOut: createAmount(amountOut),
           marginDeposit: marginDeposit.toFixed(0),
