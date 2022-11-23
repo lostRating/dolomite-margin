@@ -705,7 +705,7 @@ describe('LiquidatorProxyV1', () => {
             par.times('110'),
           ),
         ]);
-        await dolomiteMargin.liquidatorProxy.liquidate(
+        await dolomiteMargin.liquidatorProxyV1.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -735,7 +735,7 @@ describe('LiquidatorProxyV1', () => {
             par.times('110'),
           ),
         ]);
-        await dolomiteMargin.liquidatorProxy.liquidate(
+        await dolomiteMargin.liquidatorProxyV1.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -771,7 +771,7 @@ describe('LiquidatorProxyV1', () => {
           ),
         ]);
         await expectThrow(
-          dolomiteMargin.liquidatorProxy.liquidate(
+          dolomiteMargin.liquidatorProxyV1.liquidate(
             owner1,
             accountNumber1,
             owner2,
@@ -809,7 +809,7 @@ describe('LiquidatorProxyV1', () => {
           ),
         ]);
         await expectThrow(
-          dolomiteMargin.liquidatorProxy.liquidate(
+          dolomiteMargin.liquidatorProxyV1.liquidate(
             owner1,
             accountNumber1,
             owner2,
@@ -859,7 +859,7 @@ describe('LiquidatorProxyV1', () => {
             par.times('0.11'),
           ),
         ]);
-        await dolomiteMargin.liquidatorProxy.liquidate(
+        await dolomiteMargin.liquidatorProxyV1.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -898,7 +898,7 @@ describe('LiquidatorProxyV1', () => {
             par.times('110'),
           ),
         ]);
-        await dolomiteMargin.liquidatorProxy.liquidate(
+        await dolomiteMargin.liquidatorProxyV1.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -1047,7 +1047,7 @@ async function setUpBasicBalances() {
 
 async function liquidate() {
   const preferences = [market1, market2, market3, market4];
-  return await dolomiteMargin.liquidatorProxy.liquidate(
+  return await dolomiteMargin.liquidatorProxyV1.liquidate(
     owner1,
     accountNumber1,
     owner2,

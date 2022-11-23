@@ -168,7 +168,7 @@ describe('AddManyMarkets', () => {
     owedMarket: Integer,
     heldMarket: Integer,
   ) => {
-    await dolomiteMargin.liquidatorProxy.liquidate(
+    await dolomiteMargin.liquidatorProxyV1.liquidate(
       solidOwner,
       solidAccountNumber,
       liquidOwner,

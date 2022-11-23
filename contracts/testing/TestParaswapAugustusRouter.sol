@@ -18,18 +18,29 @@
 
 pragma solidity ^0.5.7;
 
+import "./TestParaswapTransferProxy.sol";
 import "./TestToken.sol";
 
 
-contract TestUniswapV3MultiRouter {
+contract TestParaswapAugustusRouter {
+
+    TestParaswapTransferProxy TRANSFER_PROXY;
+
+    constructor(address _transferProxy) public {
+        TRANSFER_PROXY = TestParaswapTransferProxy(_transferProxy);
+    }
 
     /**
-     * This function is called blindly by `AmmRebalancerProxyV2` via the pass through "_uniswapV3CallData" variable
+     * This function is called blindly by `LiquidatorProxyV2WithExternalLiquidity` via the pass through
+     * `_paraswapCalldata` variable
      */
     function call(
-        address token,
-        uint amountOut
+        address tokenIn,
+        uint256 amountIn,
+        address tokenOut,
+        uint256 amountOut
     ) external {
-        TestToken(token).addBalance(msg.sender, amountOut);
+        TRANSFER_PROXY.doTransfer(tokenIn, msg.sender, address(this), amountIn);
+        TestToken(tokenOut).addBalance(msg.sender, amountOut);
     }
 }

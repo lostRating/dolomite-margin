@@ -61,19 +61,26 @@ interface IDolomiteAmmRouterProxy {
     // ============ Structs ============
 
     struct ModifyPositionParams {
-        uint256 fromAccountNumber;
-        uint256 toAccountNumber;
+        /// the account number that's executing the trade
+        uint256 tradeAccountNumber;
+        /// used for transferring in/out of the position
+        uint256 otherAccountNumber;
         Types.AssetAmount amountIn;
         Types.AssetAmount amountOut;
         address[] tokenPath;
         /// the token to be deposited/withdrawn to/from account number. To not perform any margin deposits or
         /// withdrawals, simply set this to `address(0)`
-        address depositToken;
+        address marginTransferToken;
         /// the amount of the margin deposit/withdrawal, in wei. Whether or not this is a deposit or withdrawal depends
-        /// on what fromAccountNumber or toAccountNumber are set to.
-        uint256 marginDeposit;
+        /// on what fromAccountNumber or toAccountNumber are set to. Setting this value to `uint(-1)` will deposit or
+        /// withdraw all assets from the source account number
+        uint256 marginTransferWei;
+        /// true to deposit into `tradeAccountNumber` from `otherAccountNumber` , false to withdraw from it.
+        bool isDepositIntoTradeAccount;
         /// the amount of seconds from the time at which the position is opened to expiry. 0 for no expiration
         uint256 expiryTimeDelta;
+        /// Setting this to `FROM` will check `tradeAccountNumber`. Setting this to `TO` will check
+        /// `otherAccountNumber`. Setting this to `BOTH` will check `tradeAccountNumber` and `otherAccountNumber`.
         AccountBalanceHelper.BalanceCheckFlag balanceCheckFlag;
     }
 
@@ -84,6 +91,7 @@ interface IDolomiteAmmRouterProxy {
         address account;
         uint[] marketPath;
         uint[] amountsWei;
+        uint256 marginDepositMarketId;
         /// this value is calculated for emitting an event only
         uint256 marginDepositDeltaWei;
     }

@@ -28,8 +28,8 @@ import { DolomiteAmmPair } from './modules/DolomiteAmmPair';
 import { DolomiteAmmRouterProxy } from './modules/DolomiteAmmRouterProxy';
 import { Expiry } from './modules/Expiry';
 import { Getters } from './modules/Getters';
-import { LiquidatorProxy } from './modules/LiquidatorProxy';
-import { LiquidatorProxyWithAmm } from './modules/LiquidatorProxyWithAmm';
+import { LiquidatorProxyV1 } from './modules/LiquidatorProxyV1';
+import { LiquidatorProxyV1WithAmm } from './modules/LiquidatorProxyV1WithAmm';
 import { Logs } from './modules/Logs';
 import { Operation } from './modules/operate/Operation';
 import { ChainlinkPriceOracleV1 } from './modules/oracles/ChainlinkPriceOracleV1';
@@ -44,15 +44,11 @@ import { TransferProxy } from './modules/TransferProxy';
 import { BorrowPositionProxy } from './modules/BorrowPositionProxy';
 import { WalletLogin } from './modules/WalletLogin';
 import { Weth } from './modules/Weth';
-import {
-  address,
-  DolomiteMarginOptions,
-  EthereumAccount,
-  Networks,
-} from './types';
+import { address, DolomiteMarginOptions, EthereumAccount, Networks, } from './types';
 import { MultiCall } from './modules/MultiCall';
 import { ArbitrumGasInfo } from './modules/ArbitrumGasInfo';
 import { DepositProxy } from './modules/DepositProxy';
+import { LiquidatorProxyV2WithExternalLiquidity } from './modules/LiquidatorProxyV2WithExternalLiquidity';
 
 export class DolomiteMargin {
   public networkId: number;
@@ -68,8 +64,9 @@ export class DolomiteMargin {
   public admin: Admin;
   public getters: Getters;
   public signedOperations: SignedOperations;
-  public liquidatorProxy: LiquidatorProxy;
-  public liquidatorProxyWithAmm: LiquidatorProxyWithAmm;
+  public liquidatorProxyV1: LiquidatorProxyV1;
+  public liquidatorProxyV1WithAmm: LiquidatorProxyV1WithAmm;
+  public liquidatorProxyV2WithExternalLiquidity: LiquidatorProxyV2WithExternalLiquidity;
   public dolomiteAmmFactory: DolomiteAmmFactory;
   public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
   public ammRebalancerProxyV1: AmmRebalancerProxyV1;
@@ -116,8 +113,9 @@ export class DolomiteMargin {
     this.admin = new Admin(this.contracts);
     this.getters = new Getters(this.contracts);
     this.signedOperations = new SignedOperations(this.contracts, this.web3, networkId);
-    this.liquidatorProxy = new LiquidatorProxy(this.contracts);
-    this.liquidatorProxyWithAmm = new LiquidatorProxyWithAmm(this.contracts);
+    this.liquidatorProxyV1 = new LiquidatorProxyV1(this.contracts);
+    this.liquidatorProxyV1WithAmm = new LiquidatorProxyV1WithAmm(this.contracts);
+    this.liquidatorProxyV2WithExternalLiquidity = new LiquidatorProxyV2WithExternalLiquidity(this.contracts);
     this.ammRebalancerProxyV1 = new AmmRebalancerProxyV1(this.contracts);
     this.ammRebalancerProxyV2 = new AmmRebalancerProxyV2(this.contracts);
     this.depositProxy = new DepositProxy(this.contracts);
@@ -142,6 +140,13 @@ export class DolomiteMargin {
     }
   }
 
+  /**
+   * @return The address of the main DolomiteMargin smart contract
+   */
+  public get address(): address {
+    return this.contracts.dolomiteMargin.options.address;
+  }
+
   public setProvider(provider: Provider, networkId: number): void {
     this.web3.setProvider(provider);
     this.contracts.setProvider(provider, networkId);
@@ -155,13 +160,6 @@ export class DolomiteMargin {
 
   public getDefaultAccount(): address {
     return this.web3.eth.defaultAccount;
-  }
-
-  /**
-   * @return The address of the main DolomiteMargin smart contract
-   */
-  public get address(): address {
-    return this.contracts.dolomiteMargin.options.address;
   }
 
   // ============ Helper Functions ============

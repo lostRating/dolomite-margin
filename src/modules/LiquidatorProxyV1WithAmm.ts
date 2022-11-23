@@ -1,7 +1,7 @@
 import { Contracts } from '../lib/Contracts';
 import { address, ContractCallOptions, Integer, TxResult } from '../types';
 
-export class LiquidatorProxyWithAmm {
+export class LiquidatorProxyV1WithAmm {
   private contracts: Contracts;
 
   constructor(contracts: Contracts) {
@@ -32,7 +32,7 @@ export class LiquidatorProxyWithAmm {
    * @param  revertOnFailToSellCollateral True to revert the transaction completely if all collateral from the
    *                                      liquidation cannot repay the owed debt. False to swallow the error and sell
    *                                      whatever is possible. If set to false, the liquidator must have sufficient
-   *                                      assets to be prevent becoming liquidated or under-collateralized.
+   *                                      assets to prevent being liquidated or under-collateralized.
    * @param  options                      Additional options to be passed through to the web3 call.
    */
   public async liquidate(

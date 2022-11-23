@@ -34,6 +34,7 @@ import { default as TestChainlinkPriceOracleV1 } from '../build/contracts/TestCh
 import { default as TestGMXVault } from '../build/contracts/TestGMXVault.json';
 import { default as TestGLPManager } from '../build/contracts/TestGLPManager.json';
 import { default as TestGLP } from '../build/contracts/TestGLP.json';
+import { default as TestParaswapAugustusRouter } from '../build/contracts/TestParaswapAugustusRouter.json';
 
 export default {
   CustomTestToken,
@@ -72,4 +73,5 @@ export default {
   TestGMXVault,
   TestGLPManager,
   TestGLP,
+  TestParaswapAugustusRouter,
 };

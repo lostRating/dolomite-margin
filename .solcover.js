@@ -14,6 +14,8 @@ module.exports = {
     'external/oracles/TestChainlinkPriceOracleV1.sol',
     'external/multisig/MultiSig.sol',
     'external/multisig/DelayedMultiSig.sol',
+    'external/proxies/LiquidatorProxyV3WithDolomiteLiquidityToken.sol',
+    'external/proxies/LiquidatorProxyV4WithExternalLiquidityToken.sol',
     'external/rebalancers/',
     'external/uniswap-v2/',
     'external/utils/MultiCall.sol',

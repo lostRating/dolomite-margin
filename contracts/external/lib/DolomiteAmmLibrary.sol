@@ -32,7 +32,7 @@ library DolomiteAmmLibrary {
     using SafeMath for uint;
 
     bytes32 private constant FILE = "DolomiteAmmLibrary";
-    bytes32 private constant PAIR_INIT_CODE_HASH = 0x3a71df2e5dedc0551796096fa5135dd704506f5cdcd786351b313d77f498666e;
+    bytes32 private constant PAIR_INIT_CODE_HASH = 0x459da9d9ba203a8449d4d7d3a2807c1dbd927b63ea20a3ba68455c01b3e0c751;
 
     function getPairInitCodeHash(address factory) internal pure returns (bytes32) {
         // Instead of only returning PAIR_INIT_CODE_HASH, this value is used to make running test coverage possible;
@@ -209,13 +209,12 @@ library DolomiteAmmLibrary {
             "insufficient output amount"
         );
         Require.that(
-            reserveIn > 0 && reserveOut > 0,
+            reserveIn > 0 && reserveOut > 0 && reserveOut > amountOut,
             FILE,
             "insufficient liquidity"
         );
         uint numerator = reserveIn.mul(amountOut).mul(1000);
         uint denominator = reserveOut.sub(amountOut).mul(997);
-        // reverts from the 'sub'
         amountIn = numerator.div(denominator).add(1);
     }
 

@@ -106,7 +106,13 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
         Constants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
 
-        _checkConstants(constants, _liquidAccount, _owedMarket, _heldMarket, _expiry);
+        _checkConstants(
+            constants,
+            _liquidAccount,
+            _owedMarket,
+            _heldMarket,
+            _expiry
+        );
 
         constants.solidAccount = _solidAccount;
         constants.liquidAccount = _liquidAccount;

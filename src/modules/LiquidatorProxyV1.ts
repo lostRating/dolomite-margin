@@ -8,7 +8,7 @@ import {
 } from '../types';
 import { decimalToString } from '../lib/Helpers';
 
-export class LiquidatorProxy {
+export class LiquidatorProxyV1 {
   private contracts: Contracts;
 
   constructor(contracts: Contracts) {

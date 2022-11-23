@@ -438,7 +438,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
 
-        await dolomiteMargin.liquidatorProxyWithAmm.liquidate(
+        await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -927,7 +927,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
 
-        await dolomiteMargin.liquidatorProxyWithAmm.liquidate(
+        await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -1179,7 +1179,7 @@ async function liquidate(
   minOwedOutputAmount: Integer = INTEGERS.ONE,
   revertOnFailToSellCollateral: boolean = false,
 ) {
-  const txResult = await dolomiteMargin.liquidatorProxyWithAmm.liquidate(
+  const txResult = await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
     owner1,
     accountNumber1,
     owner2,

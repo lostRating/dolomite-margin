@@ -43,8 +43,11 @@ const {
 const {
   getChainlinkPriceOracleContract,
   getChainlinkPriceOracleV1Params,
-  getGlpPriceOracleV1Params,
 } = require('./oracle_helpers');
+const {
+  getParaswapAugustusRouter,
+  getParaswapTransferProxy,
+} = require('./liquidator_helpers');
 const {
   getWethAddress,
   getWrappedCurrencyAddress,
@@ -114,6 +117,7 @@ const DolomiteAmmRouterProxy = artifacts.require('DolomiteAmmRouterProxy');
 const Expiry = artifacts.require('Expiry');
 const LiquidatorProxyV1 = artifacts.require('LiquidatorProxyV1');
 const LiquidatorProxyV1WithAmm = artifacts.require('LiquidatorProxyV1WithAmm');
+const LiquidatorProxyV2WithExternalLiquidity = artifacts.require('LiquidatorProxyV2WithExternalLiquidity');
 const PayableProxy = artifacts.require('PayableProxy');
 const SignedOperationProxy = artifacts.require('SignedOperationProxy');
 const TestAmmRebalancerProxy = artifacts.require('TestAmmRebalancerProxy');
@@ -137,6 +141,10 @@ const TestGLP = artifacts.require('TestGLP');
 const TestFGLP = artifacts.require('TestFGLP');
 const TestGLPManager = artifacts.require('TestGLPManager');
 const TestGMXVault = artifacts.require('TestGMXVault');
+
+// Paraswap
+const TestParaswapAugustusRouter = artifacts.require('TestParaswapAugustusRouter');
+const TestParaswapTransferProxy = artifacts.require('TestParaswapTransferProxy');
 
 // ============ Main Migration ============
 
@@ -583,6 +591,27 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
+  const liquidatorProxyV2WithExternalLiquidity = LiquidatorProxyV2WithExternalLiquidity;
+  if (shouldOverwrite(liquidatorProxyV2WithExternalLiquidity, network)) {
+    if (isDevNetwork(network)) {
+      await deployer.deploy(TestParaswapTransferProxy);
+      await deployer.deploy(TestParaswapAugustusRouter, TestParaswapTransferProxy.address);
+    }
+
+    await deployer.deploy(
+      liquidatorProxyV2WithExternalLiquidity,
+      Expiry.address,
+      getParaswapAugustusRouter(network, TestParaswapAugustusRouter),
+      getParaswapTransferProxy(network, TestParaswapTransferProxy),
+      dolomiteMargin.address,
+    );
+  } else {
+    await deployer.deploy(
+      liquidatorProxyV2WithExternalLiquidity,
+      getNoOverwriteParams(),
+    );
+  }
+
   const signedOperationProxy = SignedOperationProxy;
   if (shouldOverwrite(signedOperationProxy, network)) {
     await deployer.deploy(
@@ -636,6 +665,10 @@ async function deploySecondLayer(deployer, network, accounts) {
     ),
     dolomiteMargin.ownerSetGlobalOperator(
       LiquidatorProxyV1WithAmm.address,
+      true,
+    ),
+    dolomiteMargin.ownerSetGlobalOperator(
+      LiquidatorProxyV2WithExternalLiquidity.address,
       true,
     ),
   ]);

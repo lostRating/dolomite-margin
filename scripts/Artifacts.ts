@@ -11,6 +11,7 @@ import { default as PayableProxy } from '../build/contracts/PayableProxy.json';
 import { default as SignedOperationProxy } from '../build/contracts/SignedOperationProxy.json';
 import { default as LiquidatorProxyV1 } from '../build/contracts/LiquidatorProxyV1.json';
 import { default as LiquidatorProxyV1WithAmm } from '../build/contracts/LiquidatorProxyV1WithAmm.json';
+import { default as LiquidatorProxyV2WithExternalLiquidity } from '../build/contracts/LiquidatorProxyV2WithExternalLiquidity.json';
 import { default as DolomiteAmmRouterProxy } from '../build/contracts/DolomiteAmmRouterProxy.json';
 import { default as PolynomialInterestSetter } from '../build/contracts/PolynomialInterestSetter.json';
 import { default as DoubleExponentInterestSetter } from '../build/contracts/DoubleExponentInterestSetter.json';
@@ -60,6 +61,7 @@ export default {
   SignedOperationProxy,
   LiquidatorProxyV1,
   LiquidatorProxyV1WithAmm,
+  LiquidatorProxyV2WithExternalLiquidity,
   AmmRebalancerProxyV1,
   AmmRebalancerProxyV2,
   DolomiteAmmRouterProxy,
