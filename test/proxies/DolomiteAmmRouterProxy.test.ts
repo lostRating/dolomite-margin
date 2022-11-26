@@ -10,7 +10,7 @@ import {
   INTEGERS,
   TxResult
 } from '../../src';
-import { expectThrow } from '../helpers/Expect';
+import { expectThrow, expectThrowInvalidBalance } from '../helpers/Expect';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
@@ -581,7 +581,7 @@ describe('DolomiteAmmRouterProxy', () => {
         await dolomiteMargin.testing.setAccountBalance(owner1, accountNumber, marketB, parB);
         await dolomiteMargin.testing.setAccountBalance(owner1, accountNumber, marketC, parC.times('100'));
 
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.addLiquidity(
             owner1,
             accountNumber,
@@ -595,7 +595,9 @@ describe('DolomiteAmmRouterProxy', () => {
             defaultBalanceCheckFlag,
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, 0, ${marketA.toFixed()}>`,
+          owner1,
+          accountNumber,
+          marketA
         );
         let balanceA = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, marketA);
         expect(balanceA).to.eql(INTEGERS.ZERO);
@@ -606,7 +608,7 @@ describe('DolomiteAmmRouterProxy', () => {
         await dolomiteMargin.testing.setAccountBalance(owner1, accountNumber, marketB, INTEGERS.ZERO);
         await dolomiteMargin.testing.setAccountBalance(owner1, accountNumber, marketC, parC.times('100'));
 
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.addLiquidity(
             owner1,
             accountNumber,
@@ -620,7 +622,9 @@ describe('DolomiteAmmRouterProxy', () => {
             defaultBalanceCheckFlag,
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, 0, ${marketB.toFixed()}>`,
+          owner1,
+          accountNumber,
+          marketB,
         );
 
         balanceA = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, marketA);
@@ -1058,7 +1062,7 @@ describe('DolomiteAmmRouterProxy', () => {
         const marketC = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenC.address);
         const accountNumber = INTEGERS.ZERO;
 
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokens(
             accountNumber,
             parA.times('1.1'),
@@ -1068,12 +1072,14 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.Both,
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${accountNumber.toFixed()}, ${marketA.toFixed()}>`,
+          owner1,
+          accountNumber,
+          marketA,
         );
         const balanceA = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, marketA);
         expect(balanceA.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
 
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokens(
             accountNumber,
             parB.times('1.1'),
@@ -1083,14 +1089,16 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.Both,
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${accountNumber.toFixed()}, ${marketB.toFixed()}>`,
+          owner1,
+          accountNumber,
+          marketB,
         );
         const balanceB = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, marketB);
         expect(balanceB.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
 
         const tradeAccountNumber = new BigNumber('123');
         await dolomiteMargin.testing.setAccountBalance(owner1, accountNumber, marketC, parC);
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
             tradeAccountNumber,
             accountNumber,
@@ -1105,9 +1113,11 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.Both, // BOTH is equal to `tradeAccountNumber` & `otherAccountNumber` which equals `123` & `0`
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${tradeAccountNumber.toFixed()}, ${marketA.toFixed()}>`,
+          owner1,
+          tradeAccountNumber,
+          marketA,
         );
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
             tradeAccountNumber,
             accountNumber,
@@ -1122,9 +1132,11 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.From, // BOTH is equal to `tradeAccountNumber` & `otherAccountNumber` which equals `123` & `0`
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${tradeAccountNumber.toFixed()}, ${marketA.toFixed()}>`,
+          owner1,
+          tradeAccountNumber,
+          marketA,
         );
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
             tradeAccountNumber,
             accountNumber,
@@ -1139,7 +1151,9 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.To, // TO is equal to the `otherAccountNumber` which equals `0`
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${accountNumber.toFixed()}, ${marketC.toFixed()}>`,
+          owner1,
+          accountNumber,
+          marketC,
         );
         const balanceC = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, marketC);
         expect(balanceC.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
@@ -1164,7 +1178,7 @@ describe('DolomiteAmmRouterProxy', () => {
         await swapExactTokensForTokens(owner1, parA, defaultPath);
 
         // It should fail when you input `From` or Both
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapTokensForExactTokensAndModifyPosition(
             tradeAccountNumber,
             accountNumber,
@@ -1179,9 +1193,11 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.From, // FROM is equal to the `tradeAccountNumber` which equals `0`
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${tradeAccountNumber.toFixed()}, ${marketC.toFixed()}>`,
+          owner1,
+          tradeAccountNumber,
+          marketC,
         );
-        await expectThrow(
+        await expectThrowInvalidBalance(
           dolomiteMargin.dolomiteAmmRouterProxy.swapTokensForExactTokensAndModifyPosition(
             tradeAccountNumber,
             accountNumber,
@@ -1196,7 +1212,9 @@ describe('DolomiteAmmRouterProxy', () => {
             BalanceCheckFlag.Both, // TO is equal to the `otherAccountNumber` which equals `0`
             { from: owner1 },
           ),
-          `AccountBalanceHelper: account cannot go negative <${owner1.toLowerCase()}, ${tradeAccountNumber.toFixed()}, ${marketC.toFixed()}>`,
+          owner1,
+          tradeAccountNumber,
+          marketC,
         );
       });
     });
@@ -1842,11 +1860,264 @@ describe('DolomiteAmmRouterProxy', () => {
   });
 
   describe('#addLiquidityAndDepositIntoDolomite', () => {
-    // TODO
+    describe('Success cases', () => {
+      it('should work under normal conditions', async () => {
+        const token_ab_marketId = await createLpTokenMarket(token_ab);
+
+        const accountNumber = INTEGERS.ZERO;
+        const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidityAndDepositIntoDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA,
+          parB,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        console.log('\t#addLiquidityAndDepositIntoDolomite gas used: ', txResult.gasUsed);
+
+        expect(await dolomiteMargin.token.getBalance(token_ab, dolomiteMargin.dolomiteAmmRouterProxy.address)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.token.getBalance(token_ab, owner1)).to.eql(INTEGERS.ZERO);
+        expect((await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId)).isGreaterThan(INTEGERS.ZERO)).to.eql(true);
+      });
+    });
   });
 
   describe('#removeLiquidityFromWithinDolomite', () => {
-    // TODO
+    describe('Success cases', () => {
+      it('should work under normal conditions', async () => {
+        const token_ab_marketId = await createLpTokenMarket(token_ab);
+        const accountNumber = INTEGERS.ZERO;
+        await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidityAndDepositIntoDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA,
+          parB,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        expect(await dolomiteMargin.token.getBalance(token_ab, dolomiteMargin.dolomiteAmmRouterProxy.address)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.token.getBalance(token_ab, owner1)).to.eql(INTEGERS.ZERO);
+
+        const liquidity = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId);
+        expect(liquidity.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
+
+        const oldTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidityFromWithinDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          liquidity,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+        console.log('\t#removeLiquidityFromWithinDolomite gas used: ', txResult.gasUsed);
+
+        expect(await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId)).to.eql(INTEGERS.ZERO);
+
+        const newTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        expect(oldTotalSupply).to.eql(newTotalSupply.plus(liquidity));
+      });
+
+      it('should work for withdraw all', async () => {
+        const token_ab_marketId = await createLpTokenMarket(token_ab);
+        const accountNumber = INTEGERS.ZERO;
+        await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidityAndDepositIntoDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA,
+          parB,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        expect(await dolomiteMargin.token.getBalance(token_ab, dolomiteMargin.dolomiteAmmRouterProxy.address)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.token.getBalance(token_ab, owner1)).to.eql(INTEGERS.ZERO);
+
+        const liquidity = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId);
+        expect(liquidity.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
+
+        const oldTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidityFromWithinDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          INTEGERS.MAX_UINT,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        console.log('\t#removeLiquidityFromWithinDolomite gas used: ', txResult.gasUsed);
+
+        expect(await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId)).to.eql(INTEGERS.ZERO);
+
+        const newTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        expect(oldTotalSupply).to.eql(newTotalSupply.plus(liquidity));
+      });
+
+      it('should work when account goes negative and checkBalanceFlag is set to None', async () => {
+        const token_ab_marketId = await createLpTokenMarket(token_ab);
+        const accountNumber = INTEGERS.ZERO;
+        await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidityAndDepositIntoDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA,
+          parB,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        expect(await dolomiteMargin.token.getBalance(token_ab, dolomiteMargin.dolomiteAmmRouterProxy.address)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.token.getBalance(token_ab, owner1)).to.eql(INTEGERS.ZERO);
+
+        const liquidity = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId);
+        expect(liquidity.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
+
+        const oldTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidityFromWithinDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          liquidity.plus(1),
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          BalanceCheckFlag.None,
+        );
+
+        console.log('\t#removeLiquidityFromWithinDolomite gas used: ', txResult.gasUsed);
+
+        expect(await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId)).to.eql(new BigNumber(-1));
+
+        const newTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        expect(oldTotalSupply).to.eql(newTotalSupply.plus(liquidity.plus(1)));
+      });
+
+      it('should work when account goes negative and checkBalanceFlag is set to To', async () => {
+        const token_ab_marketId = await createLpTokenMarket(token_ab);
+        const accountNumber = INTEGERS.ZERO;
+        await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidityAndDepositIntoDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA,
+          parB,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        expect(await dolomiteMargin.token.getBalance(token_ab, dolomiteMargin.dolomiteAmmRouterProxy.address)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.token.getBalance(token_ab, owner1)).to.eql(INTEGERS.ZERO);
+
+        const liquidity = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId);
+        expect(liquidity.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
+
+        const oldTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        const txResult = await dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidityFromWithinDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          liquidity.plus(1),
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          BalanceCheckFlag.To,
+        );
+
+        console.log('\t#removeLiquidityFromWithinDolomite gas used: ', txResult.gasUsed);
+
+        expect(await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId)).to.eql(new BigNumber(-1));
+
+        const newTotalSupply = await dolomiteMargin.token.getTotalSupply(token_ab);
+        expect(oldTotalSupply).to.eql(newTotalSupply.plus(liquidity.plus(1)));
+      });
+    });
+
+    describe('Failure cases', () => {
+      it('should fail when account goes negative and checkBalanceFlag is set to From or Both', async () => {
+        const token_ab_marketId = await createLpTokenMarket(token_ab);
+        const accountNumber = INTEGERS.ZERO;
+        await dolomiteMargin.dolomiteAmmRouterProxy.addLiquidityAndDepositIntoDolomite(
+          accountNumber,
+          accountNumber,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+          parA,
+          parB,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          defaultDeadline,
+          defaultBalanceCheckFlag,
+        );
+
+        expect(await dolomiteMargin.token.getBalance(token_ab, dolomiteMargin.dolomiteAmmRouterProxy.address)).to.eql(INTEGERS.ZERO);
+        expect(await dolomiteMargin.token.getBalance(token_ab, owner1)).to.eql(INTEGERS.ZERO);
+
+        const liquidity = await dolomiteMargin.getters.getAccountWei(owner1, accountNumber, token_ab_marketId);
+        expect(liquidity.isGreaterThan(INTEGERS.ZERO)).to.eql(true);
+
+        await expectThrowInvalidBalance(
+          dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidityFromWithinDolomite(
+            accountNumber,
+            accountNumber,
+            dolomiteMargin.testing.tokenA.address,
+            dolomiteMargin.testing.tokenB.address,
+            liquidity.plus(1),
+            INTEGERS.ZERO,
+            INTEGERS.ZERO,
+            defaultDeadline,
+            BalanceCheckFlag.From,
+          ),
+          owner1,
+          accountNumber,
+          token_ab_marketId,
+        );
+        await expectThrowInvalidBalance(
+          dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidityFromWithinDolomite(
+            accountNumber,
+            accountNumber,
+            dolomiteMargin.testing.tokenA.address,
+            dolomiteMargin.testing.tokenB.address,
+            liquidity.plus(1),
+            INTEGERS.ZERO,
+            INTEGERS.ZERO,
+            defaultDeadline,
+            BalanceCheckFlag.Both,
+          ),
+          owner1,
+          accountNumber,
+          token_ab_marketId,
+        );
+      });
+    });
   });
 });
 
@@ -2030,4 +2301,32 @@ async function setUpBasicBalances() {
     dolomiteMargin.testing.setAccountBalance(owner2, INTEGERS.ZERO, marketB, parB),
     dolomiteMargin.testing.setAccountBalance(owner2, INTEGERS.ZERO, marketC, parC),
   ]);
+}
+
+async function createLpTokenMarket(lpToken: address): Promise<Integer> {
+  await dolomiteMargin.testing.priceOracle.setPrice(lpToken, new BigNumber('1e18'));
+  await dolomiteMargin.admin.addMarket(
+    lpToken,
+    dolomiteMargin.testing.priceOracle.address,
+    dolomiteMargin.testing.interestSetter.address,
+    INTEGERS.ZERO,
+    INTEGERS.ZERO,
+    INTEGERS.ZERO,
+    false,
+    false,
+    { from: admin },
+  );
+  const lpTokenMarketId = await dolomiteMargin.getters.getMarketIdByTokenAddress(lpToken);
+
+  const balance = await dolomiteMargin.token.getBalance(lpToken, owner2);
+  await dolomiteMargin.token.setAllowance(lpToken, owner2, dolomiteMargin.address, balance);
+  await dolomiteMargin.depositWithdrawalProxy.depositWei(INTEGERS.ZERO, lpTokenMarketId, balance, { from: owner2 });
+
+  // give some extra balance so owner1 can borrow LP tokens without going underwater.
+  const marketIdA = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenA.address);
+  const marketIdB = await dolomiteMargin.getters.getMarketIdByTokenAddress(dolomiteMargin.testing.tokenB.address);
+  await dolomiteMargin.testing.setAccountBalance(owner1, INTEGERS.ZERO, marketIdA, parA.times(2));
+  await dolomiteMargin.testing.setAccountBalance(owner1, INTEGERS.ZERO, marketIdB, parB.times(2));
+
+  return lpTokenMarketId;
 }

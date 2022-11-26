@@ -125,6 +125,67 @@ library AccountActionHelper {
         }
     }
 
+    /**
+     * Transfers `_marketId` from `_fromAccount` to `_toAccount`
+     */
+    function transfer(
+        IDolomiteMargin _dolomiteMargin,
+        address _accountOwner,
+        uint256 _fromAccountNumber,
+        uint256 _toAccountNumber,
+        uint256 _marketId,
+        Types.AssetAmount memory _amount,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+    ) internal {
+        Account.Info[] memory accounts = new Account.Info[](2);
+        accounts[0] = Account.Info({
+            owner: _accountOwner,
+            number: _fromAccountNumber
+        });
+        accounts[1] = Account.Info({
+            owner: _accountOwner,
+            number: _toAccountNumber
+        });
+
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
+        actions[0] = Actions.ActionArgs({
+            actionType: Actions.ActionType.Transfer,
+            accountId: 0,
+            amount: _amount,
+            primaryMarketId: _marketId,
+            secondaryMarketId: 0,
+            otherAddress: address(0),
+            otherAccountId: 1,
+            data: bytes("")
+        });
+
+        _dolomiteMargin.operate(accounts, actions);
+
+        if (
+            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
+            || _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
+        ) {
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                _dolomiteMargin,
+                _accountOwner,
+                _fromAccountNumber,
+                _marketId
+            );
+        }
+
+        if (
+            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
+            || _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To
+        ) {
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                _dolomiteMargin,
+                _accountOwner,
+                _toAccountNumber,
+                _marketId
+            );
+        }
+    }
+
     function encodeExpirationAction(
         Account.Info memory _account,
         uint256 _accountId,

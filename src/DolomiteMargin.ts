@@ -71,7 +71,7 @@ export class DolomiteMargin {
   public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
   public ammRebalancerProxyV1: AmmRebalancerProxyV1;
   public ammRebalancerProxyV2: AmmRebalancerProxyV2;
-  public depositProxy: DepositProxy;
+  public depositWithdrawalProxy: DepositProxy;
   public transferProxy: TransferProxy;
   public borrowPositionProxy: BorrowPositionProxy;
   public multiCall: MultiCall;
@@ -118,7 +118,7 @@ export class DolomiteMargin {
     this.liquidatorProxyV2WithExternalLiquidity = new LiquidatorProxyV2WithExternalLiquidity(this.contracts);
     this.ammRebalancerProxyV1 = new AmmRebalancerProxyV1(this.contracts);
     this.ammRebalancerProxyV2 = new AmmRebalancerProxyV2(this.contracts);
-    this.depositProxy = new DepositProxy(this.contracts);
+    this.depositWithdrawalProxy = new DepositProxy(this.contracts);
     this.transferProxy = new TransferProxy(this.contracts);
     this.borrowPositionProxy = new BorrowPositionProxy(this.contracts);
     this.multiCall = new MultiCall(this.contracts);

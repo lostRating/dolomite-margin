@@ -372,6 +372,13 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
         address pair = _getPairFromParams(_params);
 
+        // initialized as a variable to prevent "stack too deep"
+        Types.AssetAmount memory assetAmount = Types.AssetAmount({
+            sign: false,
+            denomination: Types.AssetDenomination.Wei,
+            ref: _params.liquidityWei == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
+            value: _params.liquidityWei == uint(-1) ? 0 : _params.liquidityWei
+        });
         // send liquidity to pair
         AccountActionHelper.withdraw(
             dolomiteMargin,
@@ -379,12 +386,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             _fromAccountNumber,
             pair,
             dolomiteMargin.getMarketIdByTokenAddress(pair),
-            Types.AssetAmount({
-                sign: false,
-                denomination: Types.AssetDenomination.Wei,
-                ref: Types.AssetReference.Delta,
-                value: _params.liquidityWei
-            }),
+            assetAmount,
             _balanceCheckFlag
         );
 

@@ -150,6 +150,37 @@ export class DolomiteAmmRouterProxy {
     );
   }
 
+  public async addLiquidityAndDepositIntoDolomite(
+    fromAccountNumber: Integer,
+    toAccountNumber: Integer,
+    tokenA: address,
+    tokenB: address,
+    amountADesired: Integer,
+    amountBDesired: Integer,
+    amountAMin: Integer,
+    amountBMin: Integer,
+    deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.dolomiteAmmRouterProxy.methods.addLiquidityAndDepositIntoDolomite({
+        tokenA,
+        tokenB,
+        balanceCheckFlag,
+        fromAccountNumber: fromAccountNumber.toFixed(0),
+        amountADesiredWei: amountADesired.toFixed(0),
+        amountBDesiredWei: amountBDesired.toFixed(0),
+        amountAMinWei: amountAMin.toFixed(0),
+        amountBMinWei: amountBMin.toFixed(0),
+        deadline: deadline.toFixed(0),
+      },
+        toAccountNumber.toFixed(),
+      ),
+      options,
+    );
+  }
+
   public async removeLiquidity(
     to: address,
     toAccountNumber: Integer,
@@ -173,6 +204,36 @@ export class DolomiteAmmRouterProxy {
           deadline: deadline.toFixed(0),
         },
         to,
+      ),
+      options,
+    );
+  }
+
+  public async removeLiquidityFromWithinDolomite(
+    fromAccountNumber: Integer,
+    toAccountNumber: Integer,
+    tokenA: address,
+    tokenB: address,
+    liquidity: Integer,
+    amountAMin: Integer,
+    amountBMin: Integer,
+    deadline: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.dolomiteAmmRouterProxy.methods.removeLiquidityFromWithinDolomite(
+        {
+          tokenA,
+          tokenB,
+          toAccountNumber: toAccountNumber.toFixed(0),
+          liquidityWei: liquidity.toFixed(0),
+          amountAMinWei: amountAMin.toFixed(0),
+          amountBMinWei: amountBMin.toFixed(0),
+          deadline: deadline.toFixed(0),
+        },
+        fromAccountNumber.toFixed(0),
+        balanceCheckFlag,
       ),
       options,
     );

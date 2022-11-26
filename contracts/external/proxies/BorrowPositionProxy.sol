@@ -30,6 +30,7 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
 import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
@@ -60,40 +61,21 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
         uint256 _amountWei,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external {
-        Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
-        accounts[1] = Account.Info(msg.sender, _toAccountIndex);
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        Types.AssetAmount memory assetAmount = Types.AssetAmount({
-            sign: false,
-            denomination: Types.AssetDenomination.Wei,
-            ref: Types.AssetReference.Delta,
-            value: _amountWei
-        });
-        actions[0] = Actions.ActionArgs({
-            actionType : Actions.ActionType.Transfer,
-            accountId : 0,
-            amount : assetAmount,
-            primaryMarketId : _marketId,
-            secondaryMarketId : 0,
-            otherAddress : address(0),
-            otherAccountId : 1,
-            data : bytes("")
-        });
-
         // Emit this before the call to DolomiteMargin so indexers get it before the Transfer events are emitted
         emit BorrowPositionOpen(msg.sender, _toAccountIndex);
 
-        IDolomiteMargin dolomiteMargin = IDolomiteMargin(DOLOMITE_MARGIN);
-        dolomiteMargin.operate(accounts, actions);
-
-        _verifyAccountBalances(
-            dolomiteMargin,
+        AccountActionHelper.transfer(
+            IDolomiteMargin(DOLOMITE_MARGIN),
             msg.sender,
             _fromAccountIndex,
             _toAccountIndex,
             _marketId,
+            Types.AssetAmount({
+                sign: false,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Delta,
+                value: _amountWei
+            }),
             _balanceCheckFlag
         );
     }
@@ -138,37 +120,18 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
         uint256 _amountWei,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     ) external {
-        Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
-        accounts[1] = Account.Info(msg.sender, _toAccountIndex);
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        Types.AssetAmount memory assetAmount = Types.AssetAmount({
-            sign: false,
-            denomination: Types.AssetDenomination.Wei,
-            ref: Types.AssetReference.Delta,
-            value: _amountWei
-        });
-        actions[0] = Actions.ActionArgs({
-            actionType : Actions.ActionType.Transfer,
-            accountId : 0,
-            amount : assetAmount,
-            primaryMarketId : _marketId,
-            secondaryMarketId : 0,
-            otherAddress : address(0),
-            otherAccountId : 1,
-            data : bytes("")
-        });
-
-        IDolomiteMargin dolomiteMargin = IDolomiteMargin(DOLOMITE_MARGIN);
-        dolomiteMargin.operate(accounts, actions);
-
-        _verifyAccountBalances(
-            dolomiteMargin,
+        AccountActionHelper.transfer(
+            IDolomiteMargin(DOLOMITE_MARGIN),
             msg.sender,
             _fromAccountIndex,
             _toAccountIndex,
             _marketId,
+            Types.AssetAmount({
+                sign: false,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Delta,
+                value: _amountWei
+            }),
             _balanceCheckFlag
         );
     }
@@ -176,81 +139,31 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
     function repayAllForBorrowPosition(
         uint256 _fromAccountIndex,
         uint256 _borrowAccountIndex,
-        uint256 _marketId
-    ) external {
-        Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, _borrowAccountIndex);
-        accounts[1] = Account.Info(msg.sender, _fromAccountIndex);
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        // This works by transferring all debt from _borrowAccountIndex to _fromAccountIndex
-        Types.AssetAmount memory assetAmount = Types.AssetAmount({
-            sign: false,
-            denomination: Types.AssetDenomination.Wei,
-            ref: Types.AssetReference.Target,
-            value: 0
-        });
-        actions[0] = Actions.ActionArgs({
-            actionType : Actions.ActionType.Transfer,
-            accountId : 0,
-            amount : assetAmount,
-            primaryMarketId : _marketId,
-            secondaryMarketId : 0,
-            otherAddress : address(0),
-            otherAccountId : 1,
-            data : bytes("")
-        });
-
-        IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
-    }
-
-    // ========================= Internal Functions =========================
-
-    function _verifyAccountBalances(
-        IDolomiteMargin _dolomiteMargin,
-        address _account,
-        uint256 _fromAccountIndex,
-        uint256 _toAccountIndex,
         uint256 _marketId,
         AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
-    ) internal view {
-        if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both) {
-            // Neither account can be negative
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
-                _dolomiteMargin,
-                _account,
-                _fromAccountIndex,
-                _marketId
-            );
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
-                _dolomiteMargin,
-                _account,
-                _toAccountIndex,
-                _marketId
-            );
+    ) external {
+        // reverse the ordering of the `_borrowAccountIndex` and `_fromAccountIndex`, so using `Target = 0` calculates
+        // on `_borrowAccountIndex`. We then need to reverse the `AccountBalanceHelper.BalanceCheckFlag` if it's set to
+        // `from` or `to`.
+        if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To) {
+            _balanceCheckFlag = AccountBalanceHelper.BalanceCheckFlag.From;
         } else if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From) {
-            // The From account cannot be negative
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
-                _dolomiteMargin,
-                _account,
-                _toAccountIndex,
-                _marketId
-            );
-        } else if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To) {
-            // Only the from account can be negative
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
-                _dolomiteMargin,
-                _account,
-                _fromAccountIndex,
-                _marketId
-            );
-        } else {
-            Require.that(
-                _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.None,
-                FILE,
-                "Invalid _balanceCheckFlag"
-            );
+            _balanceCheckFlag = AccountBalanceHelper.BalanceCheckFlag.To;
         }
-    }
 
+        AccountActionHelper.transfer(
+            IDolomiteMargin(DOLOMITE_MARGIN),
+            msg.sender,
+            _borrowAccountIndex,
+            _fromAccountIndex,
+            _marketId,
+            Types.AssetAmount({
+                sign: false,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Target,
+                value: 0
+            }),
+            _balanceCheckFlag
+        );
+    }
 }

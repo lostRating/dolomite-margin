@@ -1,3 +1,6 @@
+import BigNumber from 'bignumber.js';
+import { address } from '../../src';
+
 const REQUIRE_MSG = 'Returned error: VM Exception while processing transaction: revert';
 const ASSERT_MSG = 'Returned error: VM Exception while processing transaction: invalid opcode';
 const OOG_MSG = 'Returned error: VM Exception while processing transaction: out of gas';
@@ -10,6 +13,27 @@ export async function expectThrow(promise: Promise<any>, reason?: string) {
   } catch (e) {
     assertCertainError(e, REQUIRE_MSG);
     if (reason && process.env.COVERAGE !== 'true') {
+      assertCertainError(e, `${REQUIRE_MSG} ${reason}`);
+    }
+  }
+}
+
+// For solidity function calls that violate verifyBalanceIsNonNegative()
+export async function expectThrowInvalidBalance(
+  promise: Promise<any>,
+  account: address,
+  accountIndex: BigNumber | string | number,
+  marketId: BigNumber | string | number,
+) {
+  try {
+    await promise;
+    throw new Error('Did not throw');
+  } catch (e) {
+    assertCertainError(e, REQUIRE_MSG);
+    const accountIndexString = accountIndex instanceof BigNumber ? accountIndex.toFixed() : accountIndex.toString;
+    const marketIdString = marketId instanceof BigNumber ? marketId.toFixed() : marketId.toString;
+    const reason = `AccountBalanceHelper: account cannot go negative <${account.toLowerCase()}, ${accountIndexString}, ${marketIdString}>`;
+    if (process.env.COVERAGE !== 'true') {
       assertCertainError(e, `${REQUIRE_MSG} ${reason}`);
     }
   }
