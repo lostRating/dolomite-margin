@@ -29,6 +29,7 @@ export class Testing {
   public tokenA: TestToken;
   public tokenB: TestToken;
   public tokenC: TestToken;
+  public tokenD: TestToken;
   public erroringToken: TestToken;
   public omiseToken: TestToken;
   public autoTrader: TestAutoTrader;
@@ -49,6 +50,7 @@ export class Testing {
     this.tokenA = new TestToken(contracts, token, contracts.tokenA);
     this.tokenB = new TestToken(contracts, token, contracts.tokenB);
     this.tokenC = new TestToken(contracts, token, contracts.tokenC);
+    this.tokenD = new TestToken(contracts, token, contracts.tokenD);
     this.erroringToken = new TestToken(
       contracts,
       token,

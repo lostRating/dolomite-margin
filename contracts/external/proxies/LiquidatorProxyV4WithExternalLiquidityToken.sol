@@ -205,9 +205,9 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
                 _liquidAccountId,
                 _cache.owedMarket,
                 _cache.heldMarket,
-                _cache.owedWeiToLiquidate,
                 address(_constants.expiryProxy),
-                _constants.expiry
+                _constants.expiry,
+                _cache.flipMarkets
             );
         } else {
             // First action is a liquidation

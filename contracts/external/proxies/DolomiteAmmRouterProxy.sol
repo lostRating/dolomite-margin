@@ -53,6 +53,7 @@ import { IDolomiteAmmRouterProxy } from "../interfaces/IDolomiteAmmRouterProxy.s
  */
 contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     using SafeMath for uint;
+    using Types for Types.Wei;
 
     // ==================== Constants ====================
 
@@ -625,29 +626,23 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
                 ).value;
             } else {
                 // the user is withdrawing from a margin account from accounts[0] == tradeAccountNumber
+                Types.Wei memory marginDepositBalanceWei = _cache.dolomiteMargin.getAccountWei(
+                    accounts[0],
+                    _cache.marginDepositMarketId
+                );
                 if (_cache.marketPath[0] == _cache.marginDepositMarketId) {
                     // the trade downsizes the potential withdrawal
-                    _cache.marginDepositDeltaWei = _cache.dolomiteMargin.getAccountWei(
-                        accounts[0],
-                        _cache.marginDepositMarketId
-                    )
-                    .value
-                    .sub(_cache.amountsWei[0]);
+                    _cache.marginDepositDeltaWei = marginDepositBalanceWei
+                        .sub(Types.Wei(true, _cache.amountsWei[0]))
+                        .value;
                 } else if (_cache.marketPath[_cache.marketPath.length - 1] == _cache.marginDepositMarketId) {
                     // the trade upsizes the withdrawal
-                    _cache.marginDepositDeltaWei = _cache.dolomiteMargin.getAccountWei(
-                        accounts[0],
-                        _cache.marginDepositMarketId
-                    )
-                    .value
-                    .add(_cache.amountsWei[_cache.amountsWei.length - 1]);
+                    _cache.marginDepositDeltaWei = marginDepositBalanceWei
+                        .add(Types.Wei(true, _cache.amountsWei[_cache.amountsWei.length - 1]))
+                        .value;
                 } else {
                     // the trade doesn't impact the withdrawal
-                    _cache.marginDepositDeltaWei = _cache.dolomiteMargin.getAccountWei(
-                        accounts[0],
-                        _cache.marginDepositMarketId
-                    )
-                    .value;
+                    _cache.marginDepositDeltaWei = marginDepositBalanceWei.value;
                 }
             }
         } else {
@@ -723,17 +718,20 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             actions = new Actions.ActionArgs[](_pools.length + 1 + expiryActionCount);
 
             _cache.marginDepositMarketId = _cache.dolomiteMargin.getMarketIdByTokenAddress(_cache.params.marginTransferToken);
-            if (_cache.params.isDepositIntoTradeAccount) {
+            {
+                uint256 fromAccountId;
+                uint256 toAccountId;
+                if (_cache.params.isDepositIntoTradeAccount) {
+                    fromAccountId = _accounts.length - 1; // otherAccountNumber
+                    toAccountId = 0; // tradeAccountNumber
+                } else {
+                    fromAccountId = 0; // tradeAccountNumber
+                    toAccountId = _accounts.length - 1; // otherAccountNumber
+                }
+
                 actions[actions.length - 1 - expiryActionCount] = AccountActionHelper.encodeTransferAction(
-                    /* _otherAccountId */ _accounts.length - 1, // solium-disable-line indentation
-                    /* _tradeAccountId */ 0, // solium-disable-line indentation
-                    _cache.marginDepositMarketId,
-                    _cache.params.marginTransferWei
-                );
-            } else {
-                actions[actions.length - 1 - expiryActionCount] = AccountActionHelper.encodeTransferAction(
-                    /* _tradeAccountId */ 0, // solium-disable-line indentation
-                    /* _otherAccountId */ _accounts.length - 1, // solium-disable-line indentation
+                    fromAccountId,
+                    toAccountId,
                     _cache.marginDepositMarketId,
                     _cache.params.marginTransferWei
                 );
@@ -790,6 +788,7 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
             FILE,
             "invalid asset reference"
         );
+        _amount.value = _amount.value == uint256(-1) ? uint128(-1) : _amount.value;
         Require.that(
             uint128(_amount.value) == _amount.value,
             FILE,
@@ -810,53 +809,44 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         ModifyPositionCache memory _cache,
         Account.Info[] memory _accounts
     ) internal {
-        if (_cache.params.marginTransferToken != address(0) && _cache.params.isDepositIntoTradeAccount) {
-            Types.Par memory newOutputPar = _cache.dolomiteMargin.getAccountPar(
-                _accounts[_accounts.length - 1],
-                _cache.marketPath[_cache.marketPath.length - 1]
-            );
+        if (_cache.params.marginTransferToken != address(0)) {
+            Events.BalanceUpdate memory inputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei : Types.Wei(false, _cache.amountsWei[0]),
+                newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marketPath[0])
+            });
+            Events.BalanceUpdate memory outputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei : Types.Wei(true, _cache.amountsWei[_cache.amountsWei.length - 1]),
+                newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marketPath[_cache.marketPath.length - 1])
+            });
+            Events.BalanceUpdate memory marginBalanceUpdate = Events.BalanceUpdate({
+                deltaWei : Types.Wei(true, _cache.marginDepositDeltaWei),
+                newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marginDepositMarketId)
+            });
 
-            emit MarginPositionOpen(
-                msg.sender,
-                _cache.params.tradeAccountNumber,
-                _cache.params.tokenPath[0],
-                _cache.params.tokenPath[_cache.params.tokenPath.length - 1],
-                _cache.params.marginTransferToken,
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(false, _cache.amountsWei[0]),
-                    newPar : _cache.dolomiteMargin.getAccountPar(_accounts[_accounts.length - 1], _cache.marketPath[0])
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(true, _cache.amountsWei[_cache.amountsWei.length - 1]),
-                    newPar : newOutputPar
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(true, _cache.marginDepositDeltaWei),
-                    newPar : newOutputPar
-                })
-            );
-        } else if (_cache.params.marginTransferToken != address(0) && !_cache.params.isDepositIntoTradeAccount) {
-            Types.Par memory newInputPar = _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marketPath[0]);
-
-            emit MarginPositionClose(
-                msg.sender,
-                _cache.params.tradeAccountNumber,
-                _cache.params.tokenPath[0],
-                _cache.params.tokenPath[_cache.params.tokenPath.length - 1],
-                _cache.params.marginTransferToken,
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(false, _cache.amountsWei[0]),
-                    newPar : newInputPar
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(true, _cache.amountsWei[_cache.amountsWei.length - 1]),
-                    newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marketPath.length - 1)
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(false, _cache.marginDepositDeltaWei),
-                    newPar : newInputPar
-                })
-            );
+            if (_cache.params.isDepositIntoTradeAccount) {
+                emit MarginPositionOpen(
+                    msg.sender,
+                    _cache.params.tradeAccountNumber,
+                    _cache.params.tokenPath[0],
+                    _cache.params.tokenPath[_cache.params.tokenPath.length - 1],
+                    _cache.params.marginTransferToken,
+                    inputBalanceUpdate,
+                    outputBalanceUpdate,
+                    marginBalanceUpdate
+                );
+            } else {
+                marginBalanceUpdate.deltaWei.sign = false;
+                emit MarginPositionClose(
+                    msg.sender,
+                    _cache.params.tradeAccountNumber,
+                    _cache.params.tokenPath[0],
+                    _cache.params.tokenPath[_cache.params.tokenPath.length - 1],
+                    _cache.params.marginTransferToken,
+                    inputBalanceUpdate,
+                    outputBalanceUpdate,
+                    marginBalanceUpdate
+                );
+            }
         }
     }
 }

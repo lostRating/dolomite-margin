@@ -225,9 +225,9 @@ library AccountActionHelper {
         uint256 _liquidAccountId,
         uint256 _owedMarketId,
         uint256 _heldMarketId,
-        uint256 _owedWeiToLiquidate,
         address _expiryProxy,
-        uint32 _expiry
+        uint32 _expiry,
+        bool _flipMarkets
     ) internal pure returns (Actions.ActionArgs memory) {
         return Actions.ActionArgs({
         actionType: Actions.ActionType.Trade,
@@ -235,11 +235,11 @@ library AccountActionHelper {
             amount: Types.AssetAmount({
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
-                ref: Types.AssetReference.Delta,
-                value: _owedWeiToLiquidate
+                ref: Types.AssetReference.Target,
+                value: 0
             }),
-            primaryMarketId: _owedMarketId,
-            secondaryMarketId: _heldMarketId,
+            primaryMarketId: !_flipMarkets ? _owedMarketId : _heldMarketId,
+            secondaryMarketId: !_flipMarkets ? _heldMarketId : _owedMarketId,
             otherAddress: _expiryProxy,
             otherAccountId: _liquidAccountId,
             data: abi.encode(_owedMarketId, _expiry)

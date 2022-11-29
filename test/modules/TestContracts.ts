@@ -32,6 +32,7 @@ import { TestOasisDex } from '../../build/testing_wrappers/TestOasisDex';
 import { TestInterestSetter } from '../../build/testing_wrappers/TestInterestSetter';
 import { TestPolynomialInterestSetter } from '../../build/testing_wrappers/TestPolynomialInterestSetter';
 import { TestDoubleExponentInterestSetter } from '../../build/testing_wrappers/TestDoubleExponentInterestSetter';
+import { TestParaswapAugustusRouter } from '../../build/testing_wrappers/TestParaswapAugustusRouter';
 
 // JSON
 import testDolomiteMarginJson from '../../build/testing_contracts/TestDolomiteMargin.json';
@@ -61,6 +62,7 @@ import testAmmRebalancerProxyJson from '../../build/testing_contracts/TestAmmReb
 import testUniswapV3MultiRouterJson from '../../build/testing_contracts/TestUniswapV3MultiRouter.json';
 import testChainlinkFlagsJson from '../../build/testing_contracts/TestChainlinkFlags.json';
 import testChainlinkPriceOracleJson from '../../build/testing_contracts/TestChainlinkPriceOracleV1.json';
+import testParaswapAugustusRouterJson from '../../build/testing_contracts/TestParaswapAugustusRouter.json';
 
 import { address, DolomiteMarginOptions } from '../../src';
 import { Contracts } from '../../src/lib/Contracts';
@@ -102,6 +104,7 @@ export class TestContracts extends Contracts {
   public testUniswapV2Router: UniswapV2Router02;
   public testUniswapV3MultiRouter: TestUniswapV3MultiRouter;
   public testChainlinkFlags: TestChainlinkFlags;
+  public testParaswapAugustusRouter: TestParaswapAugustusRouter;
 
   constructor(
     provider: Provider,
@@ -171,6 +174,9 @@ export class TestContracts extends Contracts {
     this.testChainlinkFlags = new this.web3.eth.Contract(
       testChainlinkFlagsJson.abi,
     ) as TestChainlinkFlags;
+    this.testParaswapAugustusRouter = new this.web3.eth.Contract(
+      testParaswapAugustusRouterJson.abi,
+    ) as TestParaswapAugustusRouter;
 
     this.setProvider(provider, networkId);
     this.setDefaultAccount(this.web3.eth.defaultAccount);
@@ -235,6 +241,7 @@ export class TestContracts extends Contracts {
       { contract: this.testUniswapV3MultiRouter, json: testUniswapV3MultiRouterJson },
       { contract: this.testChainlinkFlags, json: testChainlinkFlagsJson },
       { contract: this.chainlinkPriceOracleV1, json: testChainlinkPriceOracleJson },
+      { contract: this.testParaswapAugustusRouter, json: testParaswapAugustusRouterJson },
     ];
 
     contracts.forEach(contract =>
@@ -281,6 +288,7 @@ export class TestContracts extends Contracts {
     this.testUniswapV2Router.options.from = account;
     this.testUniswapV3MultiRouter.options.from = account;
     this.testChainlinkFlags.options.from = account;
+    this.testParaswapAugustusRouter.options.from = account;
   }
 
   public getDefaultGasLimit(): string | number {

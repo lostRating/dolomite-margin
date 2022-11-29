@@ -18,20 +18,31 @@
 
 pragma solidity ^0.5.7;
 
-import "./TestToken.sol";
+import { Require } from "../protocol/lib/Require.sol";
+
+import { TestToken } from "./TestToken.sol";
 
 
 contract TestParaswapTransferProxy {
+
+    bytes32 internal constant FILE = "TestParaswapTransferProxy";
 
     /**
      * This function is called blindly by `LiquidatorProxyV2WithExternalLiquidity` via the pass through "_paraswapCalldata" variable
      */
     function doTransfer(
-        address token,
-        address from,
-        address to,
-        uint256 amount
+        address _token,
+        address _from,
+        address _to,
+        uint256 _amount
     ) external {
-        TestToken(token).transferFrom(from, to, amount);
+        Require.that(
+            TestToken(_token).balanceOf(_from) >= _amount,
+            FILE,
+            "insufficient balance",
+            TestToken(_token).balanceOf(_from),
+            _amount
+        );
+        TestToken(_token).transferFrom(_from, _to, _amount);
     }
 }

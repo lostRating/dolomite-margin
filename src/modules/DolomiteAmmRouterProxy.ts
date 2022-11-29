@@ -1,6 +1,6 @@
 // noinspection JSUnusedGlobalSymbols
 
-import { BalanceCheckFlag, BigNumber } from '../index';
+import { BalanceCheckFlag } from '../index';
 import { Contracts } from '../lib/Contracts';
 import { address, AmountDenomination, AmountReference, ContractCallOptions, Integer, TxResult, } from '../types';
 import { DolomiteAmmFactory } from './DolomiteAmmFactory';
@@ -35,18 +35,26 @@ export class DolomiteAmmRouterProxy {
   }
 
   public async getDolomiteAmmAmountOut(
-    amountIn: BigNumber,
+    amountIn: Integer,
     tokenIn: address,
     tokenOut: address,
-  ): Promise<BigNumber> {
+  ): Promise<Integer> {
     return this.getDolomiteAmmAmountOutWithPath(amountIn, [tokenIn, tokenOut]);
   }
 
   public async getDolomiteAmmAmountOutWithPath(
-    amountIn: BigNumber,
+    amountIn: Integer,
     path: address[],
-  ): Promise<BigNumber> {
-    const amounts = new Array<BigNumber>(path.length);
+  ): Promise<Integer> {
+    const amounts = await this.getDolomiteAmmAmountsOutWithPath(amountIn, path);
+    return amounts[amounts.length - 1];
+  }
+
+  public async getDolomiteAmmAmountsOutWithPath(
+    amountIn: Integer,
+    path: address[],
+  ): Promise<Integer[]> {
+    const amounts = new Array<Integer>(path.length);
     amounts[0] = amountIn;
     const dolomiteAmmFactory = new DolomiteAmmFactory(this.contracts);
 
@@ -62,14 +70,14 @@ export class DolomiteAmmRouterProxy {
       );
     }
 
-    return amounts[amounts.length - 1];
+    return amounts;
   }
 
   public getDolomiteAmmAmountOutWithReserves(
-    amountIn: BigNumber,
-    reserveIn: BigNumber,
-    reserveOut: BigNumber,
-  ): BigNumber {
+    amountIn: Integer,
+    reserveIn: Integer,
+    reserveOut: Integer,
+  ): Integer {
     const amountInWithFee = amountIn.times('997');
     const numerator = amountInWithFee.times(reserveOut);
     const denominator = reserveIn.times('1000').plus(amountInWithFee);
@@ -77,18 +85,25 @@ export class DolomiteAmmRouterProxy {
   }
 
   public async getDolomiteAmmAmountIn(
-    amountOut: BigNumber,
+    amountOut: Integer,
     tokenIn: address,
     tokenOut: address,
-  ): Promise<BigNumber> {
+  ): Promise<Integer> {
     return this.getDolomiteAmmAmountInWithPath(amountOut, [tokenIn, tokenOut]);
   }
 
   public async getDolomiteAmmAmountInWithPath(
-    amountOut: BigNumber,
+    amountOut: Integer,
     path: address[],
-  ): Promise<BigNumber> {
-    const amounts = new Array<BigNumber>(path.length);
+  ): Promise<Integer> {
+    return (await this.getDolomiteAmmAmountsInWithPath(amountOut, path))[0];
+  }
+
+  public async getDolomiteAmmAmountsInWithPath(
+    amountOut: Integer,
+    path: address[],
+  ): Promise<Integer[]> {
+    const amounts = new Array<Integer>(path.length);
     amounts[amounts.length - 1] = amountOut;
     const dolomiteAmmFactory = new DolomiteAmmFactory(this.contracts);
 
@@ -104,14 +119,14 @@ export class DolomiteAmmRouterProxy {
       );
     }
 
-    return amounts[0];
+    return amounts;
   }
 
   public getDolomiteAmmAmountInWithReserves(
-    amountOut: BigNumber,
-    reserveIn: BigNumber,
-    reserveOut: BigNumber,
-  ): BigNumber {
+    amountOut: Integer,
+    reserveIn: Integer,
+    reserveOut: Integer,
+  ): Integer {
     const numerator = reserveIn.times(amountOut).times('1000');
     const denominator = reserveOut.minus(amountOut).times('997');
     return numerator.dividedToIntegerBy(denominator).plus('1');

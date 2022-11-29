@@ -9,14 +9,18 @@ export class LiquidatorProxyV2WithExternalLiquidity {
     this.contracts = contracts;
   }
 
+  public get address(): address {
+    return this.contracts.liquidatorProxyV2WithExternalLiquidity.options.address;
+  }
+
   // ============ State-Changing Functions ============
 
   /**
    * Liquidate liquidAccount using solidAccount. This contract and the msg.sender to this contract
    * must both be operators for the solidAccount.
    *
-   * @param  accountOwner     The address of the account that will do the liquidating
-   * @param  accountNumber    The index of the account that will do the liquidating
+   * @param  solidOwner       The address of the account that will do the liquidating
+   * @param  solidNumber      The index of the account that will do the liquidating
    * @param  liquidOwner      The address of the account that will be liquidated
    * @param  liquidNumber     The index of account that will be liquidated
    * @param  owedMarket       The owed market whose borrowed value will be added to `toLiquidate`
@@ -27,8 +31,8 @@ export class LiquidatorProxyV2WithExternalLiquidity {
    * @param options           Additional options to be passed through to the web3 call.
    */
   public async liquidate(
-    accountOwner: address,
-    accountNumber: Integer,
+    solidOwner: address,
+    solidNumber: Integer,
     liquidOwner: address,
     liquidNumber: Integer,
     owedMarket: Integer,
@@ -40,8 +44,8 @@ export class LiquidatorProxyV2WithExternalLiquidity {
     return this.contracts.callContractFunction(
       this.contracts.liquidatorProxyV2WithExternalLiquidity.methods.liquidate(
         {
-          owner: accountOwner,
-          number: accountNumber.toFixed(0),
+          owner: solidOwner,
+          number: solidNumber.toFixed(0),
         },
         {
           owner: liquidOwner,

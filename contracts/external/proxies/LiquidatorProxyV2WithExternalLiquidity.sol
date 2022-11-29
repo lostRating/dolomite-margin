@@ -160,7 +160,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         );
     }
 
-    // ============ Operation-Construction Functions ============
+    // ============ Internal Functions ============
 
     function _constructAccountsArray(
         Constants memory _constants
@@ -196,9 +196,9 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
                 _liquidAccountId,
                 _cache.owedMarket,
                 _cache.heldMarket,
-                _cache.owedWeiToLiquidate,
                 address(_constants.expiryProxy),
-                _constants.expiry
+                _constants.expiry,
+                _cache.flipMarkets
             );
         } else {
             // First action is a liquidation

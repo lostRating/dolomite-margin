@@ -92,6 +92,7 @@ contract LiquidatorProxyHelper {
         uint256 heldPrice;
         uint256 owedPrice;
         uint256 owedPriceAdj;
+        bool flipMarkets;
     }
 
     // ============ Internal Functions ============
@@ -169,7 +170,8 @@ contract LiquidatorProxyHelper {
             owedMarket: _owedMarket,
             heldPrice: heldMarketInfo.price.value,
             owedPrice: owedMarketInfo.price.value,
-            owedPriceAdj: owedPriceAdj
+            owedPriceAdj: owedPriceAdj,
+            flipMarkets: false
         });
     }
 
@@ -190,11 +192,15 @@ contract LiquidatorProxyHelper {
     view
     {
         Require.that(
+            address(_constants.dolomiteMargin) != address(0),
+            FILE,
+            "dolomiteMargin not initialized"
+        );
+        Require.that(
             _owedMarket != _heldMarket,
             FILE,
             "owedMarket equals heldMarket",
-            _owedMarket,
-            _heldMarket
+            _owedMarket
         );
 
         Require.that(
@@ -238,11 +244,11 @@ contract LiquidatorProxyHelper {
             || _constants.dolomiteMargin.getIsLocalOperator(_constants.solidAccount.owner, msg.sender),
             FILE,
             "Sender not operator",
-            _constants.solidAccount.owner
+            msg.sender
         );
 
         if (_constants.expiry == 0) {
-            // user is getting liquidated, not expired. Check liquid account is indeed liquid
+            // user is getting liquidated, not expired. Check liquid account is indeed under-collateralized
             (
                 Monetary.Value memory liquidSupplyValue,
                 Monetary.Value memory liquidBorrowValue
@@ -273,7 +279,7 @@ contract LiquidatorProxyHelper {
             Require.that(
                 expiry == _constants.expiry,
                 FILE,
-                "expiry mismatch",
+                "Expiry mismatch",
                 expiry,
                 _constants.expiry
             );
@@ -299,14 +305,15 @@ contract LiquidatorProxyHelper {
     {
         uint256 liquidHeldValue = _cache.heldPrice.mul(_cache.liquidHeldWei.value);
         uint256 liquidOwedValue = _cache.owedPriceAdj.mul(_cache.liquidOwedWei.value);
-        if (liquidHeldValue <= liquidOwedValue) {
-            // The user is under-collateralized; there is no reward left to give
+        if (liquidHeldValue < liquidOwedValue) {
+            // The held collateral is worth less than the debt
             _cache.solidHeldUpdateWithReward = _cache.liquidHeldWei.value;
             _cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(
                 _cache.liquidHeldWei.value,
                 _cache.heldPrice,
                 _cache.owedPriceAdj
             );
+            _cache.flipMarkets = true;
         } else {
             _cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
                 _cache.liquidOwedWei.value,
@@ -494,7 +501,7 @@ contract LiquidatorProxyHelper {
     ) private pure returns (MarketInfo memory) {
         uint len = endExclusive - beginInclusive;
         if (len == 0 || (len == 1 && markets[beginInclusive].marketId != marketId)) {
-            revert("LiquidatorProxyHelper: item not found");
+            revert("LiquidatorProxyHelper: market not found");
         }
 
         uint mid = beginInclusive + len / 2;

@@ -34,6 +34,7 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
 import { LiquidatorProxyHelper } from "../helpers/LiquidatorProxyHelper.sol";
 import { IExpiry } from "../interfaces/IExpiry.sol";
 
@@ -137,38 +138,17 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
     public
     nonReentrant
     {
-        Require.that(
-            _owedMarket != _heldMarket,
-            FILE,
-            "owedMarket equals heldMarket",
-            _owedMarket,
-            _heldMarket
-        );
-
-        Require.that(
-            !DOLOMITE_MARGIN.getAccountPar(_liquidAccount, _owedMarket).isPositive(),
-            FILE,
-            "owed market cannot be positive",
-            _owedMarket
-        );
-
-        Require.that(
-            DOLOMITE_MARGIN.getAccountPar(_liquidAccount, _heldMarket).isPositive(),
-            FILE,
-            "held market cannot be negative",
-            _heldMarket
-        );
-
-        Require.that(
-            uint32(_expiry) == _expiry,
-            FILE,
-            "expiry overflow",
-            _expiry
-        );
-
         // put all values that will not change into a single struct
         Constants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
+        _checkConstants(
+            constants,
+            _liquidAccount,
+            _owedMarket,
+            _heldMarket,
+            _expiry
+        );
+
         constants.solidAccount = _solidAccount;
         constants.liquidAccount = _liquidAccount;
         constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(_liquidAccount);
@@ -188,7 +168,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         );
 
         // validate the msg.sender and that the liquidAccount can be liquidated
-        checkRequirements(
+        _checkRequirements(
             constants,
             _heldMarket,
             _owedMarket,
@@ -196,7 +176,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         );
 
         // get the max liquidation amount
-        calculateMaxLiquidationAmount(cache);
+        _calculateAndSetMaxLiquidationAmount(cache);
 
         // if nothing to liquidate, do nothing
         Require.that(
@@ -220,7 +200,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         ) = ROUTER_PROXY.getParamsForSwapTokensForExactTokens(
             constants.solidAccount.owner,
             constants.solidAccount.number,
-            uint(- 1), // maxInputWei
+            /* _amountInMaxWei = */ uint(- 1), // solium-disable-line indentation
             cache.owedWeiToLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
             _tokenPath
         );
@@ -266,151 +246,113 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
             );
         }
 
-        accounts = constructAccountsArray(constants, accounts);
+        accounts = _constructAccountsArray(constants, accounts);
 
         // execute the liquidations
         constants.dolomiteMargin.operate(
             accounts,
-            constructActionsArray(constants, cache, accounts, actions) //solium-disable-line arg-overflow
+            _constructActionsArray(
+                    constants,
+                    cache,
+                    /* _solidAccountId = */ 0, // solium-disable-line indentation
+                    /* _liquidAccount = */ accounts.length - 1, // solium-disable-line indentation
+                    actions
+                )
         );
     }
 
-    // ============ Calculation Functions ============
-
-    /**
-     * Calculate the additional owedAmount that can be liquidated until the collateralization of the
-     * liquidator account reaches the minLiquidatorRatio. By this point, the cache will be set such
-     * that the amount of owedMarket is non-positive and the amount of heldMarket is non-negative.
-     */
-    function calculateMaxLiquidationAmount(
-        LiquidatorProxyCache memory cache
-    )
-    private
-    pure
-    {
-        uint256 liquidHeldValue = cache.heldPrice.mul(cache.liquidHeldWei.value);
-        uint256 liquidOwedValue = cache.owedPriceAdj.mul(cache.liquidOwedWei.value);
-        if (liquidHeldValue <= liquidOwedValue) {
-            // The user is under-collateralized; there is no reward left to give
-            cache.solidHeldUpdateWithReward = cache.liquidHeldWei.value;
-            cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(cache.liquidHeldWei.value, cache.heldPrice, cache.owedPriceAdj);
-        } else {
-            cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
-                cache.liquidOwedWei.value,
-                cache.owedPriceAdj,
-                cache.heldPrice
-            );
-            cache.owedWeiToLiquidate = cache.liquidOwedWei.value;
-        }
-    }
-
-    // ============ Helper Functions ============
+    // ============ Internal Functions ============
 
     /**
      * Make some basic checks before attempting to liquidate an account.
      *  - Ensure `tokenPath` is aligned with `heldMarket` and `owedMarket`
      *  - Basic checks by calling `checkBasicRequirements`
      */
-    function checkRequirements(
-        Constants memory constants,
-        uint256 heldMarket,
-        uint256 owedMarket,
-        address[] memory tokenPath
+    function _checkRequirements(
+        Constants memory _constants,
+        uint256 _heldMarket,
+        uint256 _owedMarket,
+        address[] memory _tokenPath
     )
-    private
+    internal
     view {
         Require.that(
-            constants.dolomiteMargin.getMarketIdByTokenAddress(tokenPath[0]) == heldMarket,
+            _constants.dolomiteMargin.getMarketIdByTokenAddress(_tokenPath[0]) == _heldMarket,
             FILE,
             "0-index token path incorrect",
-            tokenPath[0]
+            _tokenPath[0]
         );
 
         Require.that(
-            constants.dolomiteMargin.getMarketIdByTokenAddress(tokenPath[tokenPath.length - 1]) == owedMarket,
+            _constants.dolomiteMargin.getMarketIdByTokenAddress(_tokenPath[_tokenPath.length - 1]) == _owedMarket,
             FILE,
             "last-index token path incorrect",
-            tokenPath[tokenPath.length - 1]
+            _tokenPath[_tokenPath.length - 1]
         );
 
-        _checkBasicRequirements(constants, owedMarket);
+        _checkBasicRequirements(_constants, _owedMarket);
     }
 
-    // ============ Operation-Construction Functions ============
-
-    function constructAccountsArray(
-        Constants memory constants,
-        Account.Info[] memory accountsForTrade
+    function _constructAccountsArray(
+        Constants memory _constants,
+        Account.Info[] memory _accountsForTrade
     )
-    private
+    internal
     pure
     returns (Account.Info[] memory)
     {
-        Account.Info[] memory accounts = new Account.Info[](accountsForTrade.length + 1);
-        for (uint256 i = 0; i < accountsForTrade.length; i++) {
-            accounts[i] = accountsForTrade[i];
+        Account.Info[] memory accounts = new Account.Info[](_accountsForTrade.length + 1);
+        for (uint256 i = 0; i < _accountsForTrade.length; i++) {
+            accounts[i] = _accountsForTrade[i];
         }
         assert(
-            accounts[0].owner == constants.solidAccount.owner &&
-            accounts[0].number == constants.solidAccount.number
+            accounts[0].owner == _constants.solidAccount.owner &&
+            accounts[0].number == _constants.solidAccount.number
         );
 
-        accounts[accounts.length - 1] = constants.liquidAccount;
+        accounts[accounts.length - 1] = _constants.liquidAccount;
         return accounts;
     }
 
-    function constructActionsArray(
-        Constants memory constants,
-        LiquidatorProxyCache memory cache,
-        Account.Info[] memory accounts,
-        Actions.ActionArgs[] memory actionsForTrade
+    function _constructActionsArray(
+        Constants memory _constants,
+        LiquidatorProxyCache memory _cache,
+        uint256 _solidAccountId,
+        uint256 _liquidAccountId,
+        Actions.ActionArgs[] memory _actionsForTrade
     )
-    private
+    internal
     pure
     returns (Actions.ActionArgs[] memory)
     {
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](actionsForTrade.length + 1);
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](_actionsForTrade.length + 1);
 
-        if (constants.expiry > 0) {
+        if (_constants.expiry > 0) {
             // First action is a trade for closing the expired account
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Trade,
-            accountId: 0,
-            amount: Types.AssetAmount({
-                sign: true,
-                denomination: Types.AssetDenomination.Wei,
-                ref: Types.AssetReference.Delta,
-                value: cache.owedWeiToLiquidate
-            }),
-            primaryMarketId: cache.owedMarket,
-            secondaryMarketId: cache.heldMarket,
-            otherAddress: address(constants.expiryProxy),
-            otherAccountId: accounts.length - 1,
-            data: abi.encode(cache.owedMarket, constants.expiry)
-            });
+            actions[0] = AccountActionHelper.encodeExpiryLiquidateAction(
+                _solidAccountId,
+                _liquidAccountId,
+                _cache.owedMarket,
+                _cache.heldMarket,
+                address(_constants.expiryProxy),
+                _constants.expiry,
+                _cache.flipMarkets
+            );
         } else {
             // First action is a liquidation
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Liquidate,
-            accountId: 0,
-            amount: Types.AssetAmount({
-                sign: true,
-                denomination: Types.AssetDenomination.Wei,
-                ref: Types.AssetReference.Delta,
-                value: cache.owedWeiToLiquidate
-            }),
-            primaryMarketId: cache.owedMarket,
-            secondaryMarketId: cache.heldMarket,
-            otherAddress: address(0),
-            otherAccountId: accounts.length - 1,
-            data: new bytes(0)
-            });
+            actions[0] = AccountActionHelper.encodeLiquidateAction(
+                _solidAccountId,
+                _liquidAccountId,
+                _cache.owedMarket,
+                _cache.heldMarket,
+                _cache.owedWeiToLiquidate
+            );
         }
 
-        for (uint256 i = 0; i < actionsForTrade.length; i++) {
-            actions[i + 1] = actionsForTrade[i];
+        for (uint256 i = 0; i < _actionsForTrade.length; i++) {
+            actions[i + 1] = _actionsForTrade[i];
         }
 
         return actions;
