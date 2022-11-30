@@ -19,9 +19,14 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
+import { AccountMarginHelper } from "../external/helpers/AccountMarginHelper.sol";
 import { AdvancedMath } from "../external/lib/AdvancedMath.sol";
 import { TypedSignature } from "../external/lib/TypedSignature.sol";
+
 import { IERC20Detailed } from "../protocol/interfaces/IERC20Detailed.sol";
+
+import { Account } from "../protocol/lib/Account.sol";
+import { Cache } from "../protocol/lib/Cache.sol";
 import { DolomiteMarginMath } from "../protocol/lib/DolomiteMarginMath.sol";
 import { EnumerableSet } from "../protocol/lib/EnumerableSet.sol";
 import { Require } from "../protocol/lib/Require.sol";
@@ -38,6 +43,7 @@ import { Types } from "../protocol/lib/Types.sol";
  */
 contract TestLib {
     using EnumerableSet for EnumerableSet.Set;
+    using Cache for Cache.MarketCache;
 
     // ============ Constants ============
 
@@ -46,6 +52,39 @@ contract TestLib {
     // ============ Field Values ============
 
     EnumerableSet.Set internal enumerableSet;
+
+    // ============ Account Margin Helper Functions ============
+
+    function AccountMarginHelperIsMarginAccountWithIndex(uint256 _accountIndex) external pure returns (bool) {
+        return AccountMarginHelper.isMarginAccount(_accountIndex);
+    }
+
+    function AccountMarginHelperIsMarginAccountWithStruct(Account.Info memory _account) public pure returns (bool) {
+        return AccountMarginHelper.isMarginAccount(_account);
+    }
+
+    // ============ Market Cache ============
+
+    function MarketCacheGetBeforeInitialized() external view {
+        Cache.MarketCache memory cache;
+        uint marketId1 = 1;
+        cache.get(marketId1); // fails here
+    }
+
+    function MarketCacheGetAtIndexOOB() external view {
+        Cache.MarketCache memory cache;
+        cache.getAtIndex(123); // fails here
+    }
+
+    function MarketCacheSetAfterAlreadyInitialized() external view {
+        Cache.MarketCache memory cache = Cache.create(1);
+        uint marketId1 = 1;
+        uint marketId2 = 2;
+        cache.set(marketId1);
+
+        cache.markets = new Cache.MarketInfo[](1); // initialize the cache here
+        cache.set(marketId2); // fails here
+    }
 
     // ============ Enumerable Set Functions ============
 

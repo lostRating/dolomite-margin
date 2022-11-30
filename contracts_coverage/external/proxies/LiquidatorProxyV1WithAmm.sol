@@ -163,8 +163,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
         LiquidatorProxyCache memory cache = _initializeCache(
             constants,
             _heldMarket,
-            _owedMarket,
-            /* fetchAccountValues = */ false // solium-disable-line indentation
+            _owedMarket
         );
 
         // validate the msg.sender and that the liquidAccount can be liquidated
@@ -177,13 +176,6 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
 
         // get the max liquidation amount
         _calculateAndSetMaxLiquidationAmount(cache);
-
-        // if nothing to liquidate, do nothing
-        if (cache.owedWeiToLiquidate != 0) { /* FOR COVERAGE TESTING */ }
-        Require.that(cache.owedWeiToLiquidate != 0,
-            FILE,
-            "nothing to liquidate"
-        );
 
         uint256 totalSolidHeldWei = cache.solidHeldUpdateWithReward;
         if (cache.solidHeldWei.sign) {

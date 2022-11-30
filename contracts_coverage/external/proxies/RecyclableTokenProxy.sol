@@ -132,11 +132,12 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
         );
     }
 
-    function recycle() external onlyDolomiteMargin(msg.sender) {
-        if (DOLOMITE_MARGIN.getRecyclableMarkets(1)[0] == MARKET_ID) { /* FOR COVERAGE TESTING */ }
-        Require.that(DOLOMITE_MARGIN.getRecyclableMarkets(1)[0] == MARKET_ID,
+    function recycle() public onlyDolomiteMargin(msg.sender) {
+        // check the head because all newly-recycled markets are prepended to the head of the linked list.
+        if (DOLOMITE_MARGIN.getRecyclableMarkets(1)[0] == MARKET_ID && !isRecycled) { /* FOR COVERAGE TESTING */ }
+        Require.that(DOLOMITE_MARGIN.getRecyclableMarkets(1)[0] == MARKET_ID && !isRecycled,
             FILE,
-            "not recyclable"
+            "already recycled"
         );
 
         isRecycled = true;
@@ -361,11 +362,6 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
 
     function transfer(address recipient, uint256 amount) public onlyDolomiteMargin(msg.sender) returns (bool) {
         // This condition fails when the market is recycled but DolomiteMargin attempts to call this contract still
-        if (DOLOMITE_MARGIN.getMarketTokenAddress(MARKET_ID) == address(this)) { /* FOR COVERAGE TESTING */ }
-        Require.that(DOLOMITE_MARGIN.getMarketTokenAddress(MARKET_ID) == address(this),
-            FILE,
-            "invalid state"
-        );
         if (!isRecycled) { /* FOR COVERAGE TESTING */ }
         Require.that(!isRecycled,
             FILE,
@@ -401,23 +397,13 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             FILE,
             "cannot transfer while recycled"
         );
-        // This condition fails when the market is recycled but DolomiteMargin attempts to call this contract anyway
-        if (DOLOMITE_MARGIN.getMarketTokenAddress(MARKET_ID) == address(this)) { /* FOR COVERAGE TESTING */ }
-        Require.that(DOLOMITE_MARGIN.getMarketTokenAddress(MARKET_ID) == address(this),
-            FILE,
-            "invalid state"
-        );
 
         if (from == address(this)) {
-            // token is being transferred from here to DolomiteMargin, for a deposit. The market's total par was already updated
-            // before the call to `transferFrom`. Make sure enough was transferred in.
+            // token is being transferred from here to DolomiteMargin, for a deposit. The market's total par was already
+            // updated before the call to `transferFrom`. Make sure enough was transferred in.
             // This implementation allows the user to "steal" funds from users that blindly send TOKEN into this
             // contract, without calling properly calling the `deposit` function to set their balances.
-            if (TOKEN.balanceOf(address(this)) >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply) { /* FOR COVERAGE TESTING */ }
-            Require.that(TOKEN.balanceOf(address(this)) >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply,
-                FILE,
-                "insufficient balance for deposit"
-            );
+
             emit Transfer(address(this), to, amount);
         } else {
             // TOKEN is being traded via IExchangeWrapper, transfer the tokens into this contract
@@ -426,16 +412,19 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             // The market's total par was already updated before the call to `transferFrom`. Make sure enough was
             // transferred in. This implementation allows the user to "steal" funds from users that blindly send TOKEN
             // into this contract, without calling properly calling the `deposit` function to set their balances.
-            if (TOKEN.balanceOf(address(this)) >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply) { /* FOR COVERAGE TESTING */ }
-            Require.that(TOKEN.balanceOf(address(this)) >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply,
-                FILE,
-                "insufficient balance for deposit"
-            );
 
             // this transfer event is technically incorrect since the tokens are really sent from address(this) to
             // recipient, not `sender`. However, we'll let it go.
             emit Transfer(from, to, amount);
         }
+
+        uint256 balance = TOKEN.balanceOf(address(this));
+        if (balance >= amount && balance >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply) { /* FOR COVERAGE TESTING */ }
+        Require.that(balance >= amount && balance >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply,
+            FILE,
+            "insufficient balance for deposit"
+        );
+
         return true;
     }
 

@@ -74,11 +74,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
 
     uint private unlocked = 1;
     modifier lock() {
-        if (unlocked == 1) { /* FOR COVERAGE TESTING */ }
-        Require.that(unlocked == 1,
-            FILE,
-            "locked"
-        );
+      /*assert(unlocked == 1);*/
         unlocked = 0;
         _;
         unlocked = 1;

@@ -752,14 +752,11 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
         }
 
         for (uint256 i = 0; i < _pools.length; i++) {
-            if (_accounts[i + 1].owner == _pools[i]) { /* FOR COVERAGE TESTING */ }
-            Require.that(_accounts[i + 1].owner == _pools[i],
-                FILE,
-                "invalid pool owner"
-            );
+          /*assert(_accounts[i + 1].owner == _pools[i]);*/
+            // use _cache.params.tradeAccountId for the trade
             actions[i] = AccountActionHelper.encodeInternalTradeAction(
-                0, // use _cache.params.tradeAccountId for the trade
-                i + 1,
+                /* _fromAccountId = */ 0, // solium-disable-line indentation
+                /* _toAccountId = */ i + 1, // solium-disable-line indentation
                 _cache.marketPath[i],
                 _cache.marketPath[i + 1],
                 _pools[i],

@@ -260,7 +260,7 @@ library Require {
     function stringifyTruncated(
         bytes32 input
     )
-        private
+        internal
         pure
         returns (bytes memory)
     {
