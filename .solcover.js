@@ -14,12 +14,15 @@ module.exports = {
     'external/oracles/TestChainlinkPriceOracleV1.sol',
     'external/multisig/MultiSig.sol',
     'external/multisig/DelayedMultiSig.sol',
+    'external/proxies/LiquidatorProxyV3WithDolomiteLiquidityToken.sol',
+    'external/proxies/LiquidatorProxyV4WithExternalLiquidityToken.sol',
     'external/rebalancers/',
     'external/uniswap-v2/',
     'external/utils/MultiCall.sol',
     'external/utils/ArbitrumMultiCall.sol',
     'testing/',
   ],
+  measureStatementCoverage: false, // done because of this error here: https://github.com/sc-forks/solidity-coverage/blob/master/docs/faq.md#running-out-of-memory
   providerOptions: {
     chainId: chainId,
     keepAliveTimeout: 600000,
@@ -36,7 +39,7 @@ module.exports = {
   client: require('ganache-cli'),
   configureYulOptimizer: true,
   onServerReady: async () => {
-    execSync('rm -rf contracts_temp && sudo cp -r contracts/ contracts_temp/', { stdio: 'inherit' });
+    execSync('rm -rf contracts_coverage && cp -r contracts/ contracts_coverage/', { stdio: 'inherit' });
     execSync('python util/fix_contracts_for_coverage.py', { stdio: 'inherit' });
   },
   onCompileComplete: async () => {

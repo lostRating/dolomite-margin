@@ -42,21 +42,21 @@ contract OnlyDolomiteMargin {
     // ============ Constructor ============
 
     constructor (
-        address dolomiteMargin
+        address _dolomiteMargin
     )
         public
     {
-        DOLOMITE_MARGIN = IDolomiteMargin(dolomiteMargin);
+        DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
     }
 
     // ============ Modifiers ============
 
-    modifier onlyDolomiteMargin(address from) {
+    modifier onlyDolomiteMargin(address _from) {
         Require.that(
-            from == address(DOLOMITE_MARGIN),
+            _from == address(DOLOMITE_MARGIN),
             FILE,
             "Only Dolomite can call function",
-            from
+            _from
         );
         _;
     }

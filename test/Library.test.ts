@@ -29,6 +29,63 @@ describe('Library', () => {
     await resetEVM(snapshotId);
   });
 
+  describe('AccountMarginHelperIsMarginAccount', () => {
+    it('should work for accounts with indices >= 100', async () => {
+      const result1 = await dolomiteMargin.contracts.callConstantContractFunction(
+        dolomiteMargin.contracts.testLib.methods.AccountMarginHelperIsMarginAccountWithIndex('99')
+      );
+      expect(result1).to.be.eql(false);
+
+      const result2 = await dolomiteMargin.contracts.callConstantContractFunction(
+        dolomiteMargin.contracts.testLib.methods.AccountMarginHelperIsMarginAccountWithIndex('100')
+      );
+      expect(result2).to.be.eql(true);
+
+      const result3 = await dolomiteMargin.contracts.callConstantContractFunction(
+        dolomiteMargin.contracts.testLib.methods.AccountMarginHelperIsMarginAccountWithStruct(
+          { owner: ADDRESSES.ZERO, number: '99' },
+        )
+      );
+      expect(result3).to.be.eql(false);
+
+      const result4 = await dolomiteMargin.contracts.callConstantContractFunction(
+        dolomiteMargin.contracts.testLib.methods.AccountMarginHelperIsMarginAccountWithStruct(
+          { owner: ADDRESSES.ZERO, number: '100' },
+        )
+      );
+      expect(result4).to.be.eql(true);
+    });
+  });
+
+  describe('MarketCache', () => {
+    it('should fail when market cache #get is called before initialization', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callConstantContractFunction(
+          dolomiteMargin.contracts.testLib.methods.MarketCacheGetBeforeInitialized(),
+        ),
+        'Cache: not initialized',
+      );
+    });
+
+    it('should fail when cache #getAtIndex is called with index oob', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callConstantContractFunction(
+          dolomiteMargin.contracts.testLib.methods.MarketCacheGetAtIndexOOB(),
+        ),
+        'Cache: invalid index <123, 0>',
+      );
+    });
+
+    it('should fail when market cache calls #set after it already has been initialized', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callConstantContractFunction(
+          dolomiteMargin.contracts.testLib.methods.MarketCacheSetAfterAlreadyInitialized(),
+        ),
+        'Cache: already initialized',
+      );
+    });
+  });
+
   describe('EnumerableSetAdd', () => {
     it('should work when adding and adding multiple times', async () => {
       await dolomiteMargin.contracts.callContractFunction(

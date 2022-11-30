@@ -19,27 +19,28 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
 
-import "@uniswap/lib/contracts/libraries/Babylonian.sol";
+import { Babylonian } from "@uniswap/lib/contracts/libraries/Babylonian.sol";
 
-import "../protocol/interfaces/IExchangeWrapper.sol";
-import "../protocol/interfaces/IDolomiteMargin.sol";
+import { IExchangeWrapper } from "../protocol/interfaces/IExchangeWrapper.sol";
+import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 
-import "../protocol/lib/Account.sol";
-import "../protocol/lib/Actions.sol";
-import "../protocol/lib/Require.sol";
-import "../protocol/lib/Types.sol";
+import { Account } from "../protocol/lib/Account.sol";
+import { Actions } from "../protocol/lib/Actions.sol";
+import { Require } from "../protocol/lib/Require.sol";
+import { Types } from "../protocol/lib/Types.sol";
 
-import "../external/lib/TypedSignature.sol";
-import "../external/lib/DolomiteAmmLibrary.sol";
+import { TypedSignature } from "../external/lib/TypedSignature.sol";
+import { DolomiteAmmLibrary } from "../external/lib/DolomiteAmmLibrary.sol";
 
-import "../external/interfaces/IDolomiteAmmFactory.sol";
-import "../external/interfaces/IDolomiteAmmPair.sol";
-import "../external/interfaces/IUniswapV2Router.sol";
+import { IDolomiteAmmFactory } from "../external/interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../external/interfaces/IDolomiteAmmPair.sol";
+import { IUniswapV2Router } from "../external/interfaces/IUniswapV2Router.sol";
 
-import "../external/helpers/OnlyDolomiteMargin.sol";
+import { OnlyDolomiteMargin } from "../external/helpers/OnlyDolomiteMargin.sol";
+
 
 /**
  * @dev The difference between this contract and `AmmRebalancerProxy` is this does not rebalance using arbitrage with

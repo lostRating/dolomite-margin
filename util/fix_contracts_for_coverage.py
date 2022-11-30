@@ -91,7 +91,7 @@ def main():
 
     dir_path = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
-    for dir,_,_ in os.walk(dir_path+"/contracts_temp"):
+    for dir,_,_ in os.walk(dir_path+"/contracts_coverage"):
         files.extend(glob.glob(os.path.join(dir,pattern)))
 
     numHidden = 0
@@ -99,10 +99,10 @@ def main():
         numHidden += hideAsserts(dir_path, file)
     print(str(numHidden) + " asserts hidden.")
 
-#     numRequires = 0
-#     for file in files:
-#         numRequires += fixRequires(dir_path, file)
-#     print(str(numRequires) + " require()s fixed.")
+    numRequires = 0
+    for file in files:
+        numRequires += fixRequires(dir_path, file)
+    print(str(numRequires) + " require()s fixed.")
 
     sys.exit(0)
 

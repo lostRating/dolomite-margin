@@ -87,7 +87,7 @@ describe('TransferProxy', () => {
   });
 
   describe('#transfer', () => {
-    it('success case', async () => {
+    it('should work normally', async () => {
       await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
@@ -106,7 +106,7 @@ describe('TransferProxy', () => {
       await expectBalances(owner2, market1, par1);
     });
 
-    it('success case for transfer all', async () => {
+    it('should work when amount is set to transfer all', async () => {
       await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
@@ -125,12 +125,19 @@ describe('TransferProxy', () => {
       await expectBalances(owner2, market1, par1);
     });
 
-    it('failure case', async () => {
-      await expectThrow(
-        dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: owner1 }),
-        UNAUTHORIZED_REVERT_REASON
-      );
+    it('should fail if caller is not trusted', async () => {
       expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
+      await expectThrow(
+        dolomiteMargin.transferProxy.transfer(
+          INTEGERS.ZERO,
+          owner2,
+          INTEGERS.ZERO,
+          token1,
+          INTEGERS.MAX_UINT,
+          { from: owner1 },
+        ),
+        'TransferProxy: unauthorized',
+      );
     });
   });
 

@@ -1,14 +1,18 @@
-import { address } from '../../src';
+import { address, ADDRESSES } from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
+import { TestToken } from '../modules/TestToken';
+import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
 let snapshotId: string;
 let admin: address;
 let user: address;
+let tokenA: TestToken;
+let tokenB: TestToken;
 
 describe('DolomiteAmmFactory', () => {
   before(async () => {
@@ -23,6 +27,10 @@ describe('DolomiteAmmFactory', () => {
     expect(await dolomiteMargin.dolomiteAmmFactory.getPairInitCodeHash()).to.eql(
       await dolomiteMargin.dolomiteAmmRouterProxy.getPairInitCodeHash(),
     );
+
+    await setupMarkets(dolomiteMargin, accounts);
+    tokenA = dolomiteMargin.testing.tokenA;
+    tokenB = dolomiteMargin.testing.tokenB;
 
     await mineAvgBlock();
 
@@ -62,6 +70,38 @@ describe('DolomiteAmmFactory', () => {
         await expectThrow(
           dolomiteMargin.dolomiteAmmFactory.setFeeToSetter(user, { from: user }),
           'DolomiteAmmFactory: forbidden',
+        );
+      });
+    });
+  });
+
+  describe('#createPair', () => {
+    describe('Success cases', () => {
+      it('Should work when called by the admin', async () => {
+        await dolomiteMargin.dolomiteAmmFactory.createPair(tokenA.address, tokenB.address);
+      });
+    });
+    describe('Failure cases', () => {
+      it('Should not work when called with the same token addresses', async () => {
+        await expectThrow(
+          dolomiteMargin.dolomiteAmmFactory.createPair(tokenA.address, tokenA.address),
+          'DolomiteAmmFactory: identical address',
+        );
+      });
+
+      it('Should not work when called with the zero address', async () => {
+        await expectThrow(
+          dolomiteMargin.dolomiteAmmFactory.createPair(tokenA.address, ADDRESSES.ZERO),
+          'DolomiteAmmFactory: zero address',
+        );
+      });
+
+      it('Should not work when pair already exists', async () => {
+        await dolomiteMargin.dolomiteAmmFactory.createPair(tokenA.address, tokenB.address);
+
+        await expectThrow(
+          dolomiteMargin.dolomiteAmmFactory.createPair(tokenA.address, tokenB.address),
+          'DolomiteAmmFactory: pair already exists',
         );
       });
     });

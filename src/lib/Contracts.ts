@@ -44,6 +44,7 @@ import interestSetterJson from '../../build/published_contracts/IInterestSetter.
 import priceOracleJson from '../../build/published_contracts/IPriceOracle.json';
 import liquidatorV1Json from '../../build/published_contracts/LiquidatorProxyV1.json';
 import liquidatorV1WithAmmJson from '../../build/published_contracts/LiquidatorProxyV1WithAmm.json';
+import liquidatorV2WithExternalLiquidityJson from '../../build/published_contracts/LiquidatorProxyV2WithExternalLiquidity.json';
 import payableProxyJson from '../../build/published_contracts/PayableProxy.json';
 import polynomialInterestSetterJson from '../../build/published_contracts/PolynomialInterestSetter.json';
 import recyclableTokenProxyJson from '../../build/published_contracts/RecyclableTokenProxy.json';
@@ -70,8 +71,9 @@ import { GLPPriceOracleV1 } from '../../build/wrappers/GLPPriceOracleV1';
 import { IERC20 as ERC20 } from '../../build/wrappers/IERC20';
 import { IInterestSetter as InterestSetter } from '../../build/wrappers/IInterestSetter';
 import { IPriceOracle as PriceOracle } from '../../build/wrappers/IPriceOracle';
-import { LiquidatorProxyV1 as LiquidatorProxyV1 } from '../../build/wrappers/LiquidatorProxyV1';
-import { LiquidatorProxyV1WithAmm as LiquidatorProxyV1WithAmm } from '../../build/wrappers/LiquidatorProxyV1WithAmm';
+import { LiquidatorProxyV1 } from '../../build/wrappers/LiquidatorProxyV1';
+import { LiquidatorProxyV1WithAmm } from '../../build/wrappers/LiquidatorProxyV1WithAmm';
+import { LiquidatorProxyV2WithExternalLiquidity } from '../../build/wrappers/LiquidatorProxyV2WithExternalLiquidity';
 import { MultiCall } from '../../build/wrappers/MultiCall';
 import { ArbitrumMultiCall } from '../../build/wrappers/ArbitrumMultiCall';
 import { PayableProxy as PayableProxy } from '../../build/wrappers/PayableProxy';
@@ -114,6 +116,7 @@ export class Contracts {
   public signedOperationProxy: SignedOperationProxy;
   public liquidatorProxyV1: LiquidatorProxyV1;
   public liquidatorProxyV1WithAmm: LiquidatorProxyV1WithAmm;
+  public liquidatorProxyV2WithExternalLiquidity: LiquidatorProxyV2WithExternalLiquidity;
   public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
   public ammRebalancerProxyV1: AmmRebalancerProxyV1;
   public ammRebalancerProxyV2: AmmRebalancerProxyV2;
@@ -179,6 +182,9 @@ export class Contracts {
     this.liquidatorProxyV1WithAmm = new this.web3.eth.Contract(
       liquidatorV1WithAmmJson.abi,
     ) as LiquidatorProxyV1WithAmm;
+    this.liquidatorProxyV2WithExternalLiquidity = new this.web3.eth.Contract(
+      liquidatorV2WithExternalLiquidityJson.abi,
+    ) as LiquidatorProxyV2WithExternalLiquidity;
     this.dolomiteAmmRouterProxy = new this.web3.eth.Contract(
       dolomiteAmmRouterProxyJson.abi,
     ) as DolomiteAmmRouterProxy;
@@ -274,6 +280,7 @@ export class Contracts {
       { contract: this.signedOperationProxy, json: signedOperationProxyJson },
       { contract: this.liquidatorProxyV1, json: liquidatorV1Json },
       { contract: this.liquidatorProxyV1WithAmm, json: liquidatorV1WithAmmJson },
+      { contract: this.liquidatorProxyV2WithExternalLiquidity, json: liquidatorV2WithExternalLiquidityJson },
       { contract: this.dolomiteAmmRouterProxy, json: dolomiteAmmRouterProxyJson },
       { contract: this.ammRebalancerProxyV1, json: ammRebalancerProxyV1Json },
       { contract: this.ammRebalancerProxyV2, json: ammRebalancerProxyV2Json },
@@ -316,6 +323,7 @@ export class Contracts {
     this.signedOperationProxy.options.from = account;
     this.liquidatorProxyV1.options.from = account;
     this.liquidatorProxyV1WithAmm.options.from = account;
+    this.liquidatorProxyV2WithExternalLiquidity.options.from = account;
     this.dolomiteAmmRouterProxy.options.from = account;
     this.ammRebalancerProxyV1.options.from = account;
     this.ammRebalancerProxyV2.options.from = account;

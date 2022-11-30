@@ -19,11 +19,13 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "../../protocol/lib/Require.sol";
+import { Require } from "../../protocol/lib/Require.sol";
 
-import "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
+import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
 
-import "./DolomiteAmmPair.sol";
+import { DolomiteAmmPair } from "./DolomiteAmmPair.sol";
 
 
 contract DolomiteAmmFactory is IDolomiteAmmFactory {

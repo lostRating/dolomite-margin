@@ -14,6 +14,10 @@ export class TransferProxy {
     this.contracts = contracts;
   }
 
+  public get address(): string {
+    return this.contracts.transferProxy.options.address;
+  }
+
   // ============ View Functions ============
 
   public async dolomiteMargin(): Promise<address> {

@@ -22,6 +22,7 @@ import Web3 from 'web3';
 // Contracts
 import { TestDolomiteMargin } from '../../build/testing_wrappers/TestDolomiteMargin';
 import { TestToken } from '../../build/testing_wrappers/TestToken';
+import { TestDolomiteAmmLibrary } from '../../build/testing_wrappers/TestDolomiteAmmLibrary';
 import { TestLib } from '../../build/testing_wrappers/TestLib';
 import { TestAutoTrader } from '../../build/testing_wrappers/TestAutoTrader';
 import { TestCallee } from '../../build/testing_wrappers/TestCallee';
@@ -32,6 +33,7 @@ import { TestOasisDex } from '../../build/testing_wrappers/TestOasisDex';
 import { TestInterestSetter } from '../../build/testing_wrappers/TestInterestSetter';
 import { TestPolynomialInterestSetter } from '../../build/testing_wrappers/TestPolynomialInterestSetter';
 import { TestDoubleExponentInterestSetter } from '../../build/testing_wrappers/TestDoubleExponentInterestSetter';
+import { TestParaswapAugustusRouter } from '../../build/testing_wrappers/TestParaswapAugustusRouter';
 
 // JSON
 import testDolomiteMarginJson from '../../build/testing_contracts/TestDolomiteMargin.json';
@@ -44,6 +46,7 @@ import tokenFJson from '../../build/testing_contracts/TokenF.json';
 import erroringTokenJson from '../../build/testing_contracts/ErroringToken.json';
 import omiseTokenJson from '../../build/testing_contracts/OmiseToken.json';
 import malformedTokenJson from '../../build/testing_contracts/MalformedToken.json';
+import testDolomiteAmmLibraryJson from '../../build/testing_contracts/TestDolomiteAmmLibrary.json';
 import testLibJson from '../../build/testing_contracts/TestLib.json';
 import testAutoTraderJson from '../../build/testing_contracts/TestAutoTrader.json';
 import testCalleeJson from '../../build/testing_contracts/TestCallee.json';
@@ -61,6 +64,7 @@ import testAmmRebalancerProxyJson from '../../build/testing_contracts/TestAmmReb
 import testUniswapV3MultiRouterJson from '../../build/testing_contracts/TestUniswapV3MultiRouter.json';
 import testChainlinkFlagsJson from '../../build/testing_contracts/TestChainlinkFlags.json';
 import testChainlinkPriceOracleJson from '../../build/testing_contracts/TestChainlinkPriceOracleV1.json';
+import testParaswapAugustusRouterJson from '../../build/testing_contracts/TestParaswapAugustusRouter.json';
 
 import { address, DolomiteMarginOptions } from '../../src';
 import { Contracts } from '../../src/lib/Contracts';
@@ -89,6 +93,7 @@ export class TestContracts extends Contracts {
   public omiseToken: TestToken;
   public testAmmRebalancerProxy: TestAmmRebalancerProxy;
   public testLib: TestLib;
+  public testDolomiteAmmLibrary: TestDolomiteAmmLibrary;
   public testAutoTrader: TestAutoTrader;
   public testCallee: TestCallee;
   public testSimpleCallee: TestSimpleCallee;
@@ -102,6 +107,7 @@ export class TestContracts extends Contracts {
   public testUniswapV2Router: UniswapV2Router02;
   public testUniswapV3MultiRouter: TestUniswapV3MultiRouter;
   public testChainlinkFlags: TestChainlinkFlags;
+  public testParaswapAugustusRouter: TestParaswapAugustusRouter;
 
   constructor(
     provider: Provider,
@@ -128,6 +134,7 @@ export class TestContracts extends Contracts {
     this.testAmmRebalancerProxy = new this.web3.eth.Contract(
       testAmmRebalancerProxyJson.abi,
     ) as TestAmmRebalancerProxy;
+    this.testDolomiteAmmLibrary = new this.web3.eth.Contract(testDolomiteAmmLibraryJson.abi) as TestDolomiteAmmLibrary;
     this.testLib = new this.web3.eth.Contract(testLibJson.abi) as TestLib;
     this.testAutoTrader = new this.web3.eth.Contract(
       testAutoTraderJson.abi,
@@ -171,6 +178,9 @@ export class TestContracts extends Contracts {
     this.testChainlinkFlags = new this.web3.eth.Contract(
       testChainlinkFlagsJson.abi,
     ) as TestChainlinkFlags;
+    this.testParaswapAugustusRouter = new this.web3.eth.Contract(
+      testParaswapAugustusRouterJson.abi,
+    ) as TestParaswapAugustusRouter;
 
     this.setProvider(provider, networkId);
     this.setDefaultAccount(this.web3.eth.defaultAccount);
@@ -214,6 +224,7 @@ export class TestContracts extends Contracts {
       { contract: this.malformedToken, json: malformedTokenJson },
       { contract: this.omiseToken, json: omiseTokenJson },
       { contract: this.testAmmRebalancerProxy, json: testAmmRebalancerProxyJson, },
+      { contract: this.testDolomiteAmmLibrary, json: testDolomiteAmmLibraryJson },
       { contract: this.testLib, json: testLibJson },
       { contract: this.testAutoTrader, json: testAutoTraderJson },
       { contract: this.testCallee, json: testCalleeJson },
@@ -235,6 +246,7 @@ export class TestContracts extends Contracts {
       { contract: this.testUniswapV3MultiRouter, json: testUniswapV3MultiRouterJson },
       { contract: this.testChainlinkFlags, json: testChainlinkFlagsJson },
       { contract: this.chainlinkPriceOracleV1, json: testChainlinkPriceOracleJson },
+      { contract: this.testParaswapAugustusRouter, json: testParaswapAugustusRouterJson },
     ];
 
     contracts.forEach(contract =>
@@ -267,6 +279,7 @@ export class TestContracts extends Contracts {
     this.malformedToken.options.from = account;
     this.omiseToken.options.from = account;
     this.testAmmRebalancerProxy.options.from = account;
+    this.testDolomiteAmmLibrary.options.from = account;
     this.testLib.options.from = account;
     this.testAutoTrader.options.from = account;
     this.testCallee.options.from = account;
@@ -281,6 +294,7 @@ export class TestContracts extends Contracts {
     this.testUniswapV2Router.options.from = account;
     this.testUniswapV3MultiRouter.options.from = account;
     this.testChainlinkFlags.options.from = account;
+    this.testParaswapAugustusRouter.options.from = account;
   }
 
   public getDefaultGasLimit(): string | number {

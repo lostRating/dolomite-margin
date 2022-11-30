@@ -1,5 +1,5 @@
 import { Contracts } from '../lib/Contracts';
-import { address, ContractCallOptions, Integer, TxResult } from '../types';
+import { address, BalanceCheckFlag, ContractCallOptions, Integer, TxResult } from '../types';
 
 export class DepositProxy {
   private contracts: Contracts;
@@ -75,10 +75,16 @@ export class DepositProxy {
     accountIndex: Integer,
     marketId: Integer,
     amountWei: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.depositProxy.methods.withdrawWei(accountIndex.toFixed(), marketId.toFixed(), amountWei.toFixed()),
+      this.contracts.depositProxy.methods.withdrawWei(
+        accountIndex.toFixed(),
+        marketId.toFixed(),
+        amountWei.toFixed(),
+        balanceCheckFlag,
+        ),
       options,
     );
   }
@@ -86,10 +92,11 @@ export class DepositProxy {
   public async withdrawETH(
     accountIndex: Integer,
     amountWei: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.depositProxy.methods.withdrawETH(accountIndex.toFixed(), amountWei.toFixed()),
+      this.contracts.depositProxy.methods.withdrawETH(accountIndex.toFixed(), amountWei.toFixed(), balanceCheckFlag),
       options,
     );
   }
@@ -97,17 +104,26 @@ export class DepositProxy {
   public async withdrawWeiFromDefaultAccount(
     marketId: Integer,
     amountWei: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.depositProxy.methods.withdrawWeiFromDefaultAccount(marketId.toFixed(), amountWei.toFixed()),
+      this.contracts.depositProxy.methods.withdrawWeiFromDefaultAccount(
+        marketId.toFixed(),
+        amountWei.toFixed(),
+        balanceCheckFlag,
+      ),
       options,
     );
   }
 
-  public async withdrawETHFromDefaultAccount(amountWei: Integer, options: ContractCallOptions = {}): Promise<TxResult> {
+  public async withdrawETHFromDefaultAccount(
+    amountWei: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.depositProxy.methods.withdrawETHFromDefaultAccount(amountWei.toFixed()),
+      this.contracts.depositProxy.methods.withdrawETHFromDefaultAccount(amountWei.toFixed(), balanceCheckFlag),
       options,
     );
   }
@@ -139,10 +155,16 @@ export class DepositProxy {
     accountIndex: Integer,
     marketId: Integer,
     amountPar: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.depositProxy.methods.withdrawPar(accountIndex.toFixed(), marketId.toFixed(), amountPar.toFixed()),
+      this.contracts.depositProxy.methods.withdrawPar(
+        accountIndex.toFixed(),
+        marketId.toFixed(),
+        amountPar.toFixed(),
+        balanceCheckFlag,
+        ),
       options,
     );
   }
@@ -150,10 +172,15 @@ export class DepositProxy {
   public async withdrawParFromDefaultAccount(
     marketId: Integer,
     amountPar: Integer,
+    balanceCheckFlag: BalanceCheckFlag,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.depositProxy.methods.withdrawParFromDefaultAccount(marketId.toFixed(), amountPar.toFixed()),
+      this.contracts.depositProxy.methods.withdrawParFromDefaultAccount(
+        marketId.toFixed(),
+        amountPar.toFixed(),
+        balanceCheckFlag,
+        ),
       options,
     );
   }

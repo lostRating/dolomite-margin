@@ -4,7 +4,7 @@ const HDWalletProvider = require('@truffle/hdwallet-provider'); // eslint-disabl
 const path = require('path');
 
 const covReplicaContractsDir = path.join(process.cwd(), '.coverage_contracts');
-const covContractsDir = path.join(process.cwd(), 'contracts_temp');
+const covContractsDir = path.join(process.cwd(), 'contracts_coverage');
 const regContractsDir = path.join(process.cwd(), 'contracts');
 
 module.exports = {

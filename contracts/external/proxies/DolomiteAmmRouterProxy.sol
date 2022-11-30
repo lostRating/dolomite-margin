@@ -19,24 +19,30 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-import "../../protocol/interfaces/IDolomiteMargin.sol";
-import "../../protocol/lib/Events.sol";
+import { IDolomiteMargin } from  "../../protocol/interfaces/IDolomiteMargin.sol";
 
-import "../../protocol/lib/Account.sol";
-import "../../protocol/lib/Actions.sol";
-import "../../protocol/lib/Require.sol";
-import "../../protocol/lib/Types.sol";
+import { Account } from "../../protocol/lib/Account.sol";
+import { Actions } from "../../protocol/lib/Actions.sol";
+import { Events } from "../../protocol/lib/Events.sol";
+import { Interest } from "../../protocol/lib/Interest.sol";
+import { Require } from "../../protocol/lib/Require.sol";
+import { Types } from "../../protocol/lib/Types.sol";
 
-import "../lib/TypedSignature.sol";
-import "../lib/DolomiteAmmLibrary.sol";
+import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
+import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
+import { AccountMarginHelper } from "../helpers/AccountMarginHelper.sol";
+import { ERC20Helper } from "../helpers/ERC20Helper.sol";
 
-import "../interfaces/IExpiry.sol";
-import "../interfaces/IDolomiteAmmFactory.sol";
-import "../interfaces/IDolomiteAmmPair.sol";
-import "../interfaces/IDolomiteAmmRouterProxy.sol";
+import { TypedSignature } from "../lib/TypedSignature.sol";
+import { DolomiteAmmLibrary } from "../lib/DolomiteAmmLibrary.sol";
+
+import { IExpiry } from "../interfaces/IExpiry.sol";
+import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
+import { IDolomiteAmmRouterProxy } from "../interfaces/IDolomiteAmmRouterProxy.sol";
 
 
 /**
@@ -47,36 +53,15 @@ import "../interfaces/IDolomiteAmmRouterProxy.sol";
  */
 contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     using SafeMath for uint;
+    using Types for Types.Wei;
 
-    // ============ Constants ============
+    // ==================== Constants ====================
 
     bytes32 constant internal FILE = "DolomiteAmmRouterProxy";
 
-    // ============ Events ============
+    // ==================== Modifiers ====================
 
-    event MarginPositionOpen(
-        address indexed user,
-        uint indexed accountIndex,
-        address inputToken,
-        address outputToken,
-        address depositToken,
-        Events.BalanceUpdate inputBalanceUpdate, // the amount of borrow amount being sold to purchase collateral
-        Events.BalanceUpdate outputBalanceUpdate, // the amount of collateral purchased by the borrowed amount
-        Events.BalanceUpdate marginDepositUpdate
-    );
-
-    event MarginPositionClose(
-        address indexed user,
-        uint indexed accountIndex,
-        address inputToken,
-        address outputToken,
-        address withdrawalToken,
-        Events.BalanceUpdate inputBalanceUpdate, // the amount of held amount being sold to repay debt
-        Events.BalanceUpdate outputBalanceUpdate, // the amount of borrow amount being repaid
-        Events.BalanceUpdate marginWithdrawalUpdate
-    );
-
-    modifier ensure(uint deadline) {
+    modifier ensure(uint256 deadline) {
         Require.that(
             deadline >= block.timestamp,
             FILE,
@@ -94,749 +79,773 @@ contract DolomiteAmmRouterProxy is IDolomiteAmmRouterProxy, ReentrancyGuard {
     address public EXPIRY;
 
     constructor(
-        address dolomiteMargin,
-        address dolomiteAmmFactory,
-        address expiry
+        address _dolomiteMargin,
+        address _dolomiteAmmFactory,
+        address _expiry
     ) public {
-        DOLOMITE_MARGIN = IDolomiteMargin(dolomiteMargin);
-        DOLOMITE_AMM_FACTORY = IDolomiteAmmFactory(dolomiteAmmFactory);
-        EXPIRY = expiry;
+        DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
+        DOLOMITE_AMM_FACTORY = IDolomiteAmmFactory(_dolomiteAmmFactory);
+        EXPIRY = _expiry;
     }
+
+    // ==================== External Functions ====================
 
     function getPairInitCodeHash() external view returns (bytes32) {
         return DolomiteAmmLibrary.getPairInitCodeHash(address(DOLOMITE_AMM_FACTORY));
     }
 
-    function addLiquidity(
-        address to,
-        uint fromAccountNumber,
-        address tokenA,
-        address tokenB,
-        uint amountADesired,
-        uint amountBDesired,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline
-    )
-    external
-    ensure(deadline)
-    returns (uint amountAWei, uint amountBWei, uint liquidity) {
-        (amountAWei, amountBWei) = _addLiquidity(
-            tokenA,
-            tokenB,
-            amountADesired,
-            amountBDesired,
-            amountAMinWei,
-            amountBMinWei
-        );
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), tokenA, tokenB);
-
-        // solium-disable indentation, arg-overflow
-        {
-            Account.Info[] memory accounts = new Account.Info[](2);
-            accounts[0] = Account.Info(msg.sender, fromAccountNumber);
-            accounts[1] = Account.Info(pair, 0);
-
-            uint marketIdA = DOLOMITE_MARGIN.getMarketIdByTokenAddress(tokenA);
-            uint marketIdB = DOLOMITE_MARGIN.getMarketIdByTokenAddress(tokenB);
-
-            Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
-            actions[0] = _encodeTransferAction(0, 1, marketIdA, amountAWei);
-            actions[1] = _encodeTransferAction(0, 1, marketIdB, amountBWei);
-            DOLOMITE_MARGIN.operate(accounts, actions);
-        }
-        // solium-enable indentation, arg-overflow
-
-        liquidity = IDolomiteAmmPair(pair).mint(to);
-    }
-
     function swapExactTokensForTokens(
-        uint accountNumber,
-        uint amountInWei,
-        uint amountOutMinWei,
-        address[] calldata tokenPath,
-        uint deadline
+        uint256 _accountNumber,
+        uint256 _amountInWei,
+        uint256 _amountOutMinWei,
+        address[] calldata _tokenPath,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
-    ensure(deadline) {
+    ensure(_deadline) {
         _swapExactTokensForTokensAndModifyPosition(
-            ModifyPositionCache({
-                params : ModifyPositionParams({
-                    accountNumber : accountNumber,
-                    amountIn : _defaultAssetAmount(amountInWei),
-                    amountOut : _defaultAssetAmount(amountOutMinWei),
-                    tokenPath : tokenPath,
-                    depositToken : address(0),
-                    isPositiveMarginDeposit : false,
-                    marginDeposit : 0,
-                    expiryTimeDelta : 0
-                }),
-                dolomiteMargin : DOLOMITE_MARGIN,
-                ammFactory : DOLOMITE_AMM_FACTORY,
-                account : msg.sender,
-                marketPath : new uint[](0),
-                amountsWei : new uint[](0),
-                marginDepositDeltaWei : 0
-            })
+            _initializeModifyPositionCache(
+                msg.sender,
+                ModifyPositionParams({
+                    tradeAccountNumber : _accountNumber,
+                    otherAccountNumber : _accountNumber,
+                    amountIn : _toPositiveDeltaWeiAssetAmount(_amountInWei),
+                    amountOut : _toPositiveDeltaWeiAssetAmount(_amountOutMinWei),
+                    tokenPath : _tokenPath,
+                    marginTransferToken : address(0),
+                    marginTransferWei : 0,
+                    isDepositIntoTradeAccount : false,
+                    expiryTimeDelta : 0,
+                    balanceCheckFlag: _balanceCheckFlag
+                })
+            )
         );
     }
 
     function getParamsForSwapExactTokensForTokens(
-        address account,
-        uint accountNumber,
-        uint amountInWei,
-        uint amountOutMinWei,
-        address[] calldata tokenPath
+        address _account,
+        uint256 _accountNumber,
+        uint256 _amountInWei,
+        uint256 _amountOutMinWei,
+        address[] calldata _tokenPath
     )
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory) {
         return _getParamsForSwapExactTokensForTokens(
-            ModifyPositionCache({
-                params : ModifyPositionParams({
-                    accountNumber : accountNumber,
-                    amountIn : _defaultAssetAmount(amountInWei),
-                    amountOut : _defaultAssetAmount(amountOutMinWei),
-                    tokenPath : tokenPath,
-                    depositToken : address(0),
-                    isPositiveMarginDeposit : false,
-                    marginDeposit : 0,
-                    expiryTimeDelta : 0
-                }),
-                dolomiteMargin : DOLOMITE_MARGIN,
-                ammFactory : DOLOMITE_AMM_FACTORY,
-                account : account,
-                marketPath : new uint[](0),
-                amountsWei : new uint[](0),
-                marginDepositDeltaWei : 0
-            })
+            _initializeModifyPositionCache(
+                _account,
+                ModifyPositionParams({
+                    tradeAccountNumber : _accountNumber,
+                    otherAccountNumber : _accountNumber,
+                    amountIn : _toPositiveDeltaWeiAssetAmount(_amountInWei),
+                    amountOut : _toPositiveDeltaWeiAssetAmount(_amountOutMinWei),
+                    tokenPath : _tokenPath,
+                    marginTransferToken : address(0),
+                    marginTransferWei : 0,
+                    isDepositIntoTradeAccount : false,
+                    expiryTimeDelta : 0,
+                    balanceCheckFlag : AccountBalanceHelper.BalanceCheckFlag.None
+                })
+            )
         );
     }
 
     function swapTokensForExactTokens(
-        uint accountNumber,
-        uint amountInMaxWei,
-        uint amountOutWei,
-        address[] calldata tokenPath,
-        uint deadline
+        uint256 _accountNumber,
+        uint256 _amountInMaxWei,
+        uint256 _amountOutWei,
+        address[] calldata _tokenPath,
+        uint256 _deadline,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
     )
     external
-    ensure(deadline) {
+    ensure(_deadline) {
         _swapTokensForExactTokensAndModifyPosition(
-            ModifyPositionCache({
-                params : ModifyPositionParams({
-                    accountNumber : accountNumber,
-                    amountIn : _defaultAssetAmount(amountInMaxWei),
-                    amountOut : _defaultAssetAmount(amountOutWei),
-                    tokenPath : tokenPath,
-                    depositToken : address(0),
-                    isPositiveMarginDeposit : false,
-                    marginDeposit : 0,
-                    expiryTimeDelta : 0
-                }),
-                dolomiteMargin : DOLOMITE_MARGIN,
-                ammFactory : DOLOMITE_AMM_FACTORY,
-                account : msg.sender,
-                marketPath : new uint[](0),
-                amountsWei : new uint[](0),
-                marginDepositDeltaWei : 0
-            })
+            _initializeModifyPositionCache(
+                msg.sender,
+                ModifyPositionParams({
+                    tradeAccountNumber : _accountNumber,
+                    otherAccountNumber : _accountNumber,
+                    amountIn : _toPositiveDeltaWeiAssetAmount(_amountInMaxWei),
+                    amountOut : _toPositiveDeltaWeiAssetAmount(_amountOutWei),
+                    tokenPath : _tokenPath,
+                    marginTransferToken : address(0),
+                    marginTransferWei : 0,
+                    isDepositIntoTradeAccount : false,
+                    expiryTimeDelta : 0,
+                    balanceCheckFlag : _balanceCheckFlag
+                })
+            )
         );
     }
 
     function getParamsForSwapTokensForExactTokens(
-        address account,
-        uint accountNumber,
-        uint amountInMaxWei,
-        uint amountOutWei,
-        address[] calldata tokenPath
+        address _account,
+        uint256 _accountNumber,
+        uint256 _amountInMaxWei,
+        uint256 _amountOutWei,
+        address[] calldata _tokenPath
     )
     external view returns (Account.Info[] memory, Actions.ActionArgs[] memory) {
         return _getParamsForSwapTokensForExactTokens(
-            ModifyPositionCache({
-                params : ModifyPositionParams({
-                    accountNumber : accountNumber,
-                    amountIn : _defaultAssetAmount(amountInMaxWei),
-                    amountOut : _defaultAssetAmount(amountOutWei),
-                    tokenPath : tokenPath,
-                    depositToken : address(0),
-                    isPositiveMarginDeposit : false,
-                    marginDeposit : 0,
-                    expiryTimeDelta : 0
-                }),
-                dolomiteMargin : DOLOMITE_MARGIN,
-                ammFactory : DOLOMITE_AMM_FACTORY,
-                account : account,
-                marketPath : new uint[](0),
-                amountsWei : new uint[](0),
-                marginDepositDeltaWei : 0
-            })
+            _initializeModifyPositionCache(
+                _account,
+                ModifyPositionParams({
+                    tradeAccountNumber : _accountNumber,
+                    otherAccountNumber : _accountNumber,
+                    amountIn : _toPositiveDeltaWeiAssetAmount(_amountInMaxWei),
+                    amountOut : _toPositiveDeltaWeiAssetAmount(_amountOutWei),
+                    tokenPath : _tokenPath,
+                    marginTransferToken : address(0),
+                    marginTransferWei : 0,
+                    isDepositIntoTradeAccount : false,
+                    expiryTimeDelta : 0,
+                    balanceCheckFlag : AccountBalanceHelper.BalanceCheckFlag.None
+                })
+            )
         );
+    }
+
+    // ==================== Public Functions ====================
+
+    function addLiquidity(
+        AddLiquidityParams memory _params,
+        address _toAccount
+    )
+    public
+    ensure(_params.deadline)
+    returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity) {
+        IDolomiteAmmFactory dolomiteAmmFactory = DOLOMITE_AMM_FACTORY;
+        // create the pair if it doesn't exist yet
+        if (dolomiteAmmFactory.getPair(_params.tokenA, _params.tokenB) == address(0)) {
+            dolomiteAmmFactory.createPair(_params.tokenA, _params.tokenB);
+        }
+
+        (amountAWei, amountBWei) = getAddLiquidityAmounts(
+            _params.tokenA,
+            _params.tokenB,
+            _params.amountADesiredWei,
+            _params.amountBDesiredWei,
+            _params.amountAMinWei,
+            _params.amountBMinWei
+        );
+        address pair = DolomiteAmmLibrary.pairFor(address(dolomiteAmmFactory), _params.tokenA, _params.tokenB);
+
+        IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
+        uint256 marketIdA = dolomiteMargin.getMarketIdByTokenAddress(_params.tokenA);
+        uint256 marketIdB = dolomiteMargin.getMarketIdByTokenAddress(_params.tokenB);
+
+        // solium-disable indentation, arg-overflow
+        {
+            Account.Info[] memory accounts = new Account.Info[](2);
+            accounts[0] = Account.Info(msg.sender, _params.fromAccountNumber);
+            accounts[1] = Account.Info(pair, 0);
+
+            Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
+            actions[0] = AccountActionHelper.encodeTransferAction(0, 1, marketIdA, amountAWei);
+            actions[1] = AccountActionHelper.encodeTransferAction(0, 1, marketIdB, amountBWei);
+            dolomiteMargin.operate(accounts, actions);
+        }
+        // solium-enable indentation, arg-overflow
+
+        liquidity = IDolomiteAmmPair(pair).mint(_toAccount);
+
+        if (
+            _params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both ||
+            _params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
+        ) {
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                dolomiteMargin,
+                msg.sender,
+                _params.fromAccountNumber,
+                marketIdA
+            );
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                dolomiteMargin,
+                msg.sender,
+                _params.fromAccountNumber,
+                marketIdB
+            );
+        }
+    }
+
+    function addLiquidityAndDepositIntoDolomite(
+        AddLiquidityParams memory _params,
+        uint256 _toAccountNumber
+    )
+    public
+    ensure(_params.deadline)
+    returns (uint256 amountAWei, uint256 amountBWei, uint256 liquidity) {
+        (amountAWei, amountBWei, liquidity) = addLiquidity(
+            _params,
+            /* _toAccount = */ address(this) // solium-disable-line indentation
+        );
+
+        IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
+        address pair = DOLOMITE_AMM_FACTORY.getPair(_params.tokenA, _params.tokenB);
+        ERC20Helper.checkAllowanceAndApprove(pair, address(dolomiteMargin), liquidity);
+
+        AccountActionHelper.deposit(
+            dolomiteMargin,
+            /* _accountOwner = */ msg.sender, // solium-disable-line indentation
+            /* _fromAccount = */ address(this), // solium-disable-line indentation
+            _toAccountNumber,
+            dolomiteMargin.getMarketIdByTokenAddress(pair),
+            _toPositiveDeltaWeiAssetAmount(liquidity)
+        );
+    }
+
+    function getAddLiquidityAmounts(
+        address _tokenA,
+        address _tokenB,
+        uint256 _amountADesiredWei,
+        uint256 _amountBDesiredWei,
+        uint256 _amountAMinWei,
+        uint256 _amountBMinWei
+    ) public view returns (uint256 amountAWei, uint256 amountBWei) {
+        (uint256 reserveAWei, uint256 reserveBWei) = DolomiteAmmLibrary.getReservesWei(
+            address(DOLOMITE_AMM_FACTORY),
+            _tokenA,
+            _tokenB
+        );
+        if (reserveAWei == 0 && reserveBWei == 0) {
+            (amountAWei, amountBWei) = (_amountADesiredWei, _amountBDesiredWei);
+        } else {
+            uint256 amountBOptimal = DolomiteAmmLibrary.quote(_amountADesiredWei, reserveAWei, reserveBWei);
+            if (amountBOptimal <= _amountBDesiredWei) {
+                Require.that(
+                    amountBOptimal >= _amountBMinWei,
+                    FILE,
+                    "insufficient B amount",
+                    amountBOptimal,
+                    _amountBMinWei
+                );
+                (amountAWei, amountBWei) = (_amountADesiredWei, amountBOptimal);
+            } else {
+                uint256 amountAOptimal = DolomiteAmmLibrary.quote(_amountBDesiredWei, reserveBWei, reserveAWei);
+                assert(amountAOptimal <= _amountADesiredWei);
+                Require.that(
+                    amountAOptimal >= _amountAMinWei,
+                    FILE,
+                    "insufficient A amount",
+                    amountAOptimal,
+                    _amountAMinWei
+                );
+                (amountAWei, amountBWei) = (amountAOptimal, _amountBDesiredWei);
+            }
+        }
     }
 
     function removeLiquidity(
-        address to,
-        uint toAccountNumber,
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline
-    ) public ensure(deadline) returns (uint amountAWei, uint amountBWei) {
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), tokenA, tokenB);
+        RemoveLiquidityParams memory _params,
+        address _to
+    ) public ensure(_params.deadline) returns (uint256 amountAWei, uint256 amountBWei) {
+        address pair = _getPairFromParams(_params);
         // send liquidity to pair
-        IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, liquidity);
-
-        (uint amount0Wei, uint amount1Wei) = IDolomiteAmmPair(pair).burn(to, toAccountNumber);
-        (address token0,) = DolomiteAmmLibrary.sortTokens(tokenA, tokenB);
-        (amountAWei, amountBWei) = tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
-        Require.that(
-            amountAWei >= amountAMinWei,
-            FILE,
-            "insufficient A amount",
-            amountAWei,
-            amountAMinWei
-        );
-        Require.that(
-            amountBWei >= amountBMinWei,
-            FILE,
-            "insufficient B amount",
-            amountBWei,
-            amountBMinWei
-        );
+        IDolomiteAmmPair(pair).transferFrom(msg.sender, pair, _params.liquidityWei);
+        (amountAWei, amountBWei) = _removeLiquidity(_params, _to, pair);
     }
 
     function removeLiquidityWithPermit(
-        address to,
-        uint toAccountNumber,
-        address tokenA,
-        address tokenB,
-        uint liquidity,
-        uint amountAMinWei,
-        uint amountBMinWei,
-        uint deadline,
-        PermitSignature memory permit
-    ) public returns (uint amountAWei, uint amountBWei) {
-        address pair = DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), tokenA, tokenB);
-        uint value = permit.approveMax ? uint(- 1) : liquidity;
+        RemoveLiquidityParams memory _params,
+        address _to,
+        PermitSignature memory _permit
+    ) public returns (uint256 amountAWei, uint256 amountBWei) {
+        address pair = _getPairFromParams(_params);
         IDolomiteAmmPair(pair).permit(
             msg.sender,
             address(this),
-            value,
-            deadline,
-            permit.v,
-            permit.r,
-            permit.s
+            _permit.approveMax ? uint(- 1) : _params.liquidityWei,
+            _params.deadline,
+            _permit.v,
+            _permit.r,
+            _permit.s
         );
 
-        (amountAWei, amountBWei) = removeLiquidity(
-            to,
-            toAccountNumber,
-            tokenA,
-            tokenB,
-            liquidity,
-            amountAMinWei,
-            amountBMinWei,
-            deadline
+        (amountAWei, amountBWei) = removeLiquidity(_params, _to);
+    }
+
+    function removeLiquidityFromWithinDolomite(
+        RemoveLiquidityParams memory _params,
+        uint256 _fromAccountNumber,
+        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+    ) public ensure(_params.deadline) returns (uint256 amountAWei, uint256 amountBWei) {
+        IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
+        address pair = _getPairFromParams(_params);
+
+        // initialized as a variable to prevent "stack too deep"
+        Types.AssetAmount memory assetAmount = Types.AssetAmount({
+            sign: false,
+            denomination: Types.AssetDenomination.Wei,
+            ref: _params.liquidityWei == uint(-1) ? Types.AssetReference.Target : Types.AssetReference.Delta,
+            value: _params.liquidityWei == uint(-1) ? 0 : _params.liquidityWei
+        });
+        // send liquidity to pair
+        AccountActionHelper.withdraw(
+            dolomiteMargin,
+            msg.sender,
+            _fromAccountNumber,
+            pair,
+            dolomiteMargin.getMarketIdByTokenAddress(pair),
+            assetAmount,
+            _balanceCheckFlag
         );
+
+        (amountAWei, amountBWei) = _removeLiquidity(_params, msg.sender, pair);
     }
 
     function swapExactTokensForTokensAndModifyPosition(
-        ModifyPositionParams memory params,
-        uint deadline
-    ) public ensure(deadline) {
-        _swapExactTokensForTokensAndModifyPosition(
-            ModifyPositionCache({
-                params : params,
-                dolomiteMargin : DOLOMITE_MARGIN,
-                ammFactory : DOLOMITE_AMM_FACTORY,
-                account : msg.sender,
-                marketPath : new uint[](0),
-                amountsWei : new uint[](0),
-                marginDepositDeltaWei : 0
-            })
-        );
+        ModifyPositionParams memory _params,
+        uint256 _deadline
+    ) public ensure(_deadline) {
+        _swapExactTokensForTokensAndModifyPosition(_initializeModifyPositionCache(msg.sender, _params));
     }
 
     function swapTokensForExactTokensAndModifyPosition(
-        ModifyPositionParams memory params,
-        uint deadline
-    ) public ensure(deadline) {
-        _swapTokensForExactTokensAndModifyPosition(
-            ModifyPositionCache({
-                params : params,
-                dolomiteMargin : DOLOMITE_MARGIN,
-                ammFactory : DOLOMITE_AMM_FACTORY,
-                account : msg.sender,
-                marketPath : new uint[](0),
-                amountsWei : new uint[](0),
-                marginDepositDeltaWei : 0
-            })
-        );
+        ModifyPositionParams memory _params,
+        uint256 _deadline
+    ) public ensure(_deadline) {
+        _swapTokensForExactTokensAndModifyPosition(_initializeModifyPositionCache(msg.sender, _params));
     }
 
     // *************************
     // ***** Internal Functions
     // *************************
 
+    function _initializeModifyPositionCache(
+        address _account,
+        ModifyPositionParams memory _params
+    ) internal view returns (ModifyPositionCache memory) {
+        return ModifyPositionCache({
+            params : _params,
+            dolomiteMargin : DOLOMITE_MARGIN,
+            ammFactory : DOLOMITE_AMM_FACTORY,
+            account : _account,
+            marketPath : new uint[](0),
+            amountsWei : new uint[](0),
+            marginDepositMarketId : uint(-1),
+            marginDepositDeltaWei : 0
+        });
+    }
+
+    function _getPairFromParams(RemoveLiquidityParams memory _params) internal view returns (address) {
+        return DolomiteAmmLibrary.pairFor(address(DOLOMITE_AMM_FACTORY), _params.tokenA, _params.tokenB);
+    }
+
+    function _removeLiquidity(
+        RemoveLiquidityParams memory _params,
+        address _to,
+        address _pair
+    ) internal returns (uint256 amountAWei, uint256 amountBWei) {
+        (uint256 amount0Wei, uint256 amount1Wei) = IDolomiteAmmPair(_pair).burn(_to, _params.toAccountNumber);
+        (address token0,) = DolomiteAmmLibrary.sortTokens(_params.tokenA, _params.tokenB);
+        (amountAWei, amountBWei) = _params.tokenA == token0 ? (amount0Wei, amount1Wei) : (amount1Wei, amount0Wei);
+        Require.that(
+            amountAWei >= _params.amountAMinWei,
+            FILE,
+            "insufficient A amount",
+            amountAWei,
+            _params.amountAMinWei
+        );
+        Require.that(
+            amountBWei >= _params.amountBMinWei,
+            FILE,
+            "insufficient B amount",
+            amountBWei,
+            _params.amountBMinWei
+        );
+    }
+
     function _swapExactTokensForTokensAndModifyPosition(
-        ModifyPositionCache memory cache
+        ModifyPositionCache memory _cache
     ) internal {
         (
             Account.Info[] memory accounts,
             Actions.ActionArgs[] memory actions
-        ) = _getParamsForSwapExactTokensForTokens(cache);
+        ) = _getParamsForSwapExactTokensForTokens(_cache);
 
-        cache.dolomiteMargin.operate(accounts, actions);
+        _cache.dolomiteMargin.operate(accounts, actions);
 
-        _logEvents(cache, accounts);
+        _verifyAllBalancesForTrade(_cache);
+
+        _logEvents(_cache, accounts);
     }
 
     function _swapTokensForExactTokensAndModifyPosition(
-        ModifyPositionCache memory cache
+        ModifyPositionCache memory _cache
     ) internal {
         (
             Account.Info[] memory accounts,
             Actions.ActionArgs[] memory actions
-        ) = _getParamsForSwapTokensForExactTokens(cache);
+        ) = _getParamsForSwapTokensForExactTokens(_cache);
 
-        cache.dolomiteMargin.operate(accounts, actions);
+        _cache.dolomiteMargin.operate(accounts, actions);
 
-        _logEvents(cache, accounts);
+        _verifyAllBalancesForTrade(_cache);
+
+        _logEvents(_cache, accounts);
+    }
+
+    function _verifyAllBalancesForTrade(
+        ModifyPositionCache memory _cache
+    ) internal view {
+        _verifySingleBalanceForTrade(_cache, _cache.marketPath[0]);
+        _verifySingleBalanceForTrade(_cache, _cache.marketPath[_cache.marketPath.length - 1]);
+        if (
+            _cache.marginDepositMarketId != uint(-1)
+            && _cache.marginDepositMarketId != _cache.marketPath[0]
+            && _cache.marginDepositMarketId != _cache.marketPath[_cache.marketPath.length - 1]
+        ) {
+            _verifySingleBalanceForTrade(_cache, _cache.marginDepositMarketId);
+        }
+    }
+
+
+    function _verifySingleBalanceForTrade(
+        ModifyPositionCache memory _cache,
+        uint256 _marketId
+    ) internal view {
+        if (
+            _cache.params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
+            || _cache.params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
+        ) {
+            AccountBalanceHelper.verifyBalanceIsNonNegative(
+                DOLOMITE_MARGIN,
+                _cache.account,
+                _cache.params.tradeAccountNumber,
+                _marketId
+            );
+        }
+        if (_cache.params.tradeAccountNumber != _cache.params.otherAccountNumber) {
+            if (
+                _cache.params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
+                || _cache.params.balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To
+            ) {
+                AccountBalanceHelper.verifyBalanceIsNonNegative(
+                    DOLOMITE_MARGIN,
+                    _cache.account,
+                    _cache.params.otherAccountNumber,
+                    _marketId
+                );
+            }
+        }
     }
 
     function _getParamsForSwapExactTokensForTokens(
-        ModifyPositionCache memory cache
+        ModifyPositionCache memory _cache
     ) internal view returns (
         Account.Info[] memory,
         Actions.ActionArgs[] memory
     ) {
-        cache.marketPath = _getMarketPathFromTokenPath(cache);
+        _cache.marketPath = _getMarketPathFromTokenPath(_cache);
 
         // Convert from par to wei, if necessary
-        uint amountInWei = _convertAssetAmountToWei(cache.params.amountIn, cache.marketPath[0], cache);
+        uint256 amountInWei = _convertAssetAmountToWei(_cache.params.amountIn, _cache.marketPath[0], _cache);
 
         // Convert from par to wei, if necessary
-        uint amountOutMinWei = _convertAssetAmountToWei(
-            cache.params.amountOut,
-            cache.marketPath[cache.marketPath.length - 1],
-            cache
+        uint256 amountOutMinWei = _convertAssetAmountToWei(
+            _cache.params.amountOut,
+            _cache.marketPath[_cache.marketPath.length - 1],
+            _cache
         );
 
         // amountsWei[0] == amountInWei
         // amountsWei[amountsWei.length - 1] == amountOutWei
-        cache.amountsWei = DolomiteAmmLibrary.getAmountsOutWei(
-            address(cache.ammFactory),
+        _cache.amountsWei = DolomiteAmmLibrary.getAmountsOutWei(
+            address(_cache.ammFactory),
             amountInWei,
-            cache.params.tokenPath
+            _cache.params.tokenPath
         );
 
         Require.that(
-            cache.amountsWei[cache.amountsWei.length - 1] >= amountOutMinWei,
+            _cache.amountsWei[_cache.amountsWei.length - 1] >= amountOutMinWei,
             FILE,
             "insufficient output amount",
-            cache.amountsWei[cache.amountsWei.length - 1],
+            _cache.amountsWei[_cache.amountsWei.length - 1],
             amountOutMinWei
         );
 
-        return _getParamsForSwap(cache);
+        return _getParamsForSwap(_cache);
     }
 
     function _getParamsForSwapTokensForExactTokens(
-        ModifyPositionCache memory cache
+        ModifyPositionCache memory _cache
     ) internal view returns (
         Account.Info[] memory,
         Actions.ActionArgs[] memory
     ) {
-        cache.marketPath = _getMarketPathFromTokenPath(cache);
+        _cache.marketPath = _getMarketPathFromTokenPath(_cache);
 
         // Convert from par to wei, if necessary
-        uint amountInMaxWei = _convertAssetAmountToWei(cache.params.amountIn, cache.marketPath[0], cache);
+        uint256 amountInMaxWei = _convertAssetAmountToWei(_cache.params.amountIn, _cache.marketPath[0], _cache);
 
         // Convert from par to wei, if necessary
-        uint amountOutWei = _convertAssetAmountToWei(
-            cache.params.amountOut,
-            cache.marketPath[cache.marketPath.length - 1],
-            cache
+        uint256 amountOutWei = _convertAssetAmountToWei(
+            _cache.params.amountOut,
+            _cache.marketPath[_cache.marketPath.length - 1],
+            _cache
         );
 
         // cache.amountsWei[0] == amountInWei
         // cache.amountsWei[amountsWei.length - 1] == amountOutWei
-        cache.amountsWei = DolomiteAmmLibrary.getAmountsInWei(
-            address(cache.ammFactory),
+        _cache.amountsWei = DolomiteAmmLibrary.getAmountsInWei(
+            address(_cache.ammFactory),
             amountOutWei,
-            cache.params.tokenPath
+            _cache.params.tokenPath
         );
         Require.that(
-            cache.amountsWei[0] <= amountInMaxWei,
+            _cache.amountsWei[0] <= amountInMaxWei,
             FILE,
             "excessive input amount",
-            cache.amountsWei[0],
+            _cache.amountsWei[0],
             amountInMaxWei
         );
 
-        return _getParamsForSwap(cache);
+        return _getParamsForSwap(_cache);
     }
 
     function _getParamsForSwap(
-        ModifyPositionCache memory cache
+        ModifyPositionCache memory _cache
     ) internal view returns (
         Account.Info[] memory,
         Actions.ActionArgs[] memory
     ) {
-        Require.that(
-            cache.params.amountIn.ref == Types.AssetReference.Delta &&
-                cache.params.amountOut.ref == Types.AssetReference.Delta,
-            FILE,
-            "invalid asset reference"
-        );
-
         // pools.length == cache.params.tokenPath.length - 1
-        address[] memory pools = DolomiteAmmLibrary.getPools(address(cache.ammFactory), cache.params.tokenPath);
+        address[] memory pools = DolomiteAmmLibrary.getPools(address(_cache.ammFactory), _cache.params.tokenPath);
 
-        Account.Info[] memory accounts = _getAccountsForModifyPosition(cache, pools);
-        Actions.ActionArgs[] memory actions = _getActionArgsForModifyPosition(cache, accounts, pools);
+        Account.Info[] memory accounts = _getAccountsForModifyPosition(_cache, pools);
+        Actions.ActionArgs[] memory actions = _getActionArgsForModifyPosition(_cache, accounts, pools);
 
-        if (cache.params.depositToken != address(0) && cache.params.marginDeposit == uint(- 1)) {
-            uint expiryActionCount = cache.params.expiryTimeDelta == 0 ? 0 : 1;
-            uint marketId = actions[actions.length - 1 - expiryActionCount].primaryMarketId;
-            if (cache.params.isPositiveMarginDeposit) {
-                // the marginDeposit is equal to the amount of `marketId` in account 0 (which is at accounts.length - 1)
-                cache.marginDepositDeltaWei = cache.dolomiteMargin.getAccountWei(accounts[accounts.length - 1], marketId).value;
+        if (_cache.params.marginTransferToken != address(0) && _cache.params.marginTransferWei == uint(- 1)) {
+            if (_cache.params.isDepositIntoTradeAccount) {
+                // the user is depositing into a margin account from accounts[accounts.length - 1] == otherAccountNumber
+                // the marginDeposit is equal to the amount of `marketId` in otherAccountNumber
+                _cache.marginDepositDeltaWei = _cache.dolomiteMargin.getAccountWei(
+                    accounts[accounts.length - 1],
+                    _cache.marginDepositMarketId
+                ).value;
             } else {
-                if (cache.marketPath[0] == marketId) {
+                // the user is withdrawing from a margin account from accounts[0] == tradeAccountNumber
+                Types.Wei memory marginDepositBalanceWei = _cache.dolomiteMargin.getAccountWei(
+                    accounts[0],
+                    _cache.marginDepositMarketId
+                );
+                if (_cache.marketPath[0] == _cache.marginDepositMarketId) {
                     // the trade downsizes the potential withdrawal
-                    cache.marginDepositDeltaWei = cache.dolomiteMargin.getAccountWei(accounts[0], marketId).value.sub(cache.amountsWei[0]);
-                } else if (cache.marketPath[cache.marketPath.length - 1] == marketId) {
+                    _cache.marginDepositDeltaWei = marginDepositBalanceWei
+                        .sub(Types.Wei(true, _cache.amountsWei[0]))
+                        .value;
+                } else if (_cache.marketPath[_cache.marketPath.length - 1] == _cache.marginDepositMarketId) {
                     // the trade upsizes the withdrawal
-                    cache.marginDepositDeltaWei = cache.dolomiteMargin.getAccountWei(accounts[0], marketId).value.add(cache.amountsWei[cache.amountsWei.length - 1]);
+                    _cache.marginDepositDeltaWei = marginDepositBalanceWei
+                        .add(Types.Wei(true, _cache.amountsWei[_cache.amountsWei.length - 1]))
+                        .value;
                 } else {
                     // the trade doesn't impact the withdrawal
-                    cache.marginDepositDeltaWei = cache.dolomiteMargin.getAccountWei(accounts[0], marketId).value;
+                    _cache.marginDepositDeltaWei = marginDepositBalanceWei.value;
                 }
             }
         } else {
-            cache.marginDepositDeltaWei = cache.params.marginDeposit;
+            _cache.marginDepositDeltaWei = _cache.params.marginTransferWei;
         }
 
         return (accounts, actions);
     }
 
     function _getMarketPathFromTokenPath(
-        ModifyPositionCache memory cache
+        ModifyPositionCache memory _cache
     ) internal view returns (uint[] memory) {
-        uint[] memory marketPath = new uint[](cache.params.tokenPath.length);
-        for (uint i = 0; i < cache.params.tokenPath.length; i++) {
-            marketPath[i] = cache.dolomiteMargin.getMarketIdByTokenAddress(cache.params.tokenPath[i]);
+        uint[] memory marketPath = new uint[](_cache.params.tokenPath.length);
+        for (uint256 i = 0; i < _cache.params.tokenPath.length; i++) {
+            marketPath[i] = _cache.dolomiteMargin.getMarketIdByTokenAddress(_cache.params.tokenPath[i]);
         }
         return marketPath;
     }
 
-    function _encodeTransferAction(
-        uint fromAccountIndex,
-        uint toAccountIndex,
-        uint marketId,
-        uint amount
-    ) internal pure returns (Actions.ActionArgs memory) {
-        Types.AssetAmount memory assetAmount;
-        if (amount == uint(- 1)) {
-            assetAmount = Types.AssetAmount(
-                true,
-                Types.AssetDenomination.Wei,
-                Types.AssetReference.Target,
-                0
-            );
-        } else {
-            assetAmount = Types.AssetAmount(
-                false,
-                Types.AssetDenomination.Wei,
-                Types.AssetReference.Delta,
-                amount
-            );
-        }
-        return Actions.ActionArgs({
-            actionType : Actions.ActionType.Transfer,
-            accountId : fromAccountIndex,
-            amount : assetAmount,
-            primaryMarketId : marketId,
-            secondaryMarketId : uint(- 1),
-            otherAddress : address(0),
-            otherAccountId : toAccountIndex,
-            data : bytes("")
-        });
-    }
-
-    function _encodeExpirationAction(
-        ModifyPositionParams memory params,
-        Account.Info memory account,
-        uint accountIndex,
-        uint owedMarketId
-    ) internal view returns (Actions.ActionArgs memory) {
-        Require.that(
-            params.expiryTimeDelta == uint32(params.expiryTimeDelta),
-            FILE,
-            "invalid expiry time"
-        );
-
-        IExpiry.SetExpiryArg[] memory expiryArgs = new IExpiry.SetExpiryArg[](1);
-        expiryArgs[0] = IExpiry.SetExpiryArg({
-        account : account,
-        marketId : owedMarketId,
-        timeDelta : uint32(params.expiryTimeDelta),
-        forceUpdate : true
-        });
-
-        return Actions.ActionArgs({
-            actionType : Actions.ActionType.Call,
-            accountId : accountIndex,
-            // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
-            primaryMarketId : uint(- 1),
-            secondaryMarketId : uint(- 1),
-            otherAddress : EXPIRY,
-            otherAccountId : uint(- 1),
-            data : abi.encode(IExpiry.CallFunctionType.SetExpiry, expiryArgs)
-        });
-    }
-
-    function _encodeTradeAction(
-        uint fromAccountIndex,
-        uint toAccountIndex,
-        uint primaryMarketId,
-        uint secondaryMarketId,
-        address traderAddress,
-        uint amountInWei,
-        uint amountOutWei
-    ) internal pure returns (Actions.ActionArgs memory) {
-        return Actions.ActionArgs({
-            actionType : Actions.ActionType.Trade,
-            accountId : fromAccountIndex,
-            // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, amountInWei),
-            primaryMarketId : primaryMarketId,
-            secondaryMarketId : secondaryMarketId,
-            otherAddress : traderAddress,
-            otherAccountId : toAccountIndex,
-            data : abi.encode(amountOutWei)
-        });
-    }
-
-    function _addLiquidity(
-        address tokenA,
-        address tokenB,
-        uint amountADesiredWei,
-        uint amountBDesiredWei,
-        uint amountAMinWei,
-        uint amountBMinWei
-    ) internal returns (uint amountAWei, uint amountBWei) {
-        IDolomiteAmmFactory dolomiteAmmFactory = DOLOMITE_AMM_FACTORY;
-        // create the pair if it doesn't exist yet
-        if (dolomiteAmmFactory.getPair(tokenA, tokenB) == address(0)) {
-            dolomiteAmmFactory.createPair(tokenA, tokenB);
-        }
-        (uint reserveAWei, uint reserveBWei) = DolomiteAmmLibrary.getReservesWei(
-            address(dolomiteAmmFactory),
-            tokenA,
-            tokenB
-        );
-        if (reserveAWei == 0 && reserveBWei == 0) {
-            (amountAWei, amountBWei) = (amountADesiredWei, amountBDesiredWei);
-        } else {
-            uint amountBOptimal = DolomiteAmmLibrary.quote(amountADesiredWei, reserveAWei, reserveBWei);
-            if (amountBOptimal <= amountBDesiredWei) {
-                Require.that(
-                    amountBOptimal >= amountBMinWei,
-                    FILE,
-                    "insufficient B amount",
-                    amountBOptimal,
-                    amountBMinWei
-                );
-                (amountAWei, amountBWei) = (amountADesiredWei, amountBOptimal);
-            } else {
-                uint amountAOptimal = DolomiteAmmLibrary.quote(amountBDesiredWei, reserveBWei, reserveAWei);
-                assert(amountAOptimal <= amountADesiredWei);
-                Require.that(
-                    amountAOptimal >= amountAMinWei,
-                    FILE,
-                    "insufficient A amount",
-                    amountAOptimal,
-                    amountAMinWei
-                );
-                (amountAWei, amountBWei) = (amountAOptimal, amountBDesiredWei);
-            }
-        }
-    }
-
     function _getAccountsForModifyPosition(
-        ModifyPositionCache memory cache,
-        address[] memory pools
+        ModifyPositionCache memory _cache,
+        address[] memory _pools
     ) internal pure returns (Account.Info[] memory) {
         Account.Info[] memory accounts;
-        if (cache.params.depositToken == address(0)) {
-            accounts = new Account.Info[](1 + pools.length);
+        if (_cache.params.marginTransferToken == address(0)) {
+            accounts = new Account.Info[](1 + _pools.length);
+            Require.that(
+                _cache.params.tradeAccountNumber == _cache.params.otherAccountNumber,
+                FILE,
+                "accounts must eq for swaps"
+            );
         } else {
-            accounts = new Account.Info[](2 + pools.length);
-            accounts[accounts.length - 1] = Account.Info(cache.account, 0);
+            accounts = new Account.Info[](2 + _pools.length);
+            accounts[accounts.length - 1] = Account.Info(_cache.account, _cache.params.otherAccountNumber);
+            Require.that(
+                _cache.params.tradeAccountNumber != _cache.params.otherAccountNumber,
+                FILE,
+                "accounts must not eq for margin"
+            );
         }
 
-        accounts[0] = Account.Info(cache.account, cache.params.accountNumber);
+        accounts[0] = Account.Info(_cache.account, _cache.params.tradeAccountNumber);
 
-        for (uint i = 0; i < pools.length; i++) {
-            accounts[i + 1] = Account.Info(pools[i], 0);
+        for (uint256 i = 0; i < _pools.length; i++) {
+            accounts[i + 1] = Account.Info(_pools[i], 0);
         }
 
         return accounts;
     }
 
     function _getActionArgsForModifyPosition(
-        ModifyPositionCache memory cache,
-        Account.Info[] memory accounts,
-        address[] memory pools
+        ModifyPositionCache memory _cache,
+        Account.Info[] memory _accounts,
+        address[] memory _pools
     ) internal view returns (Actions.ActionArgs[] memory) {
         Actions.ActionArgs[] memory actions;
-        if (cache.params.depositToken == address(0)) {
-            actions = new Actions.ActionArgs[](pools.length);
+        if (_cache.params.marginTransferToken == address(0)) {
+            Require.that(
+                _cache.params.marginTransferWei == 0,
+                FILE,
+                "margin deposit must eq 0"
+            );
+
+            actions = new Actions.ActionArgs[](_pools.length);
         } else {
             Require.that(
-                cache.params.marginDeposit != 0,
+                _cache.params.marginTransferWei != 0,
                 FILE,
                 "invalid margin deposit"
             );
 
-            uint expiryActionCount = cache.params.expiryTimeDelta == 0 ? 0 : 1;
-            actions = new Actions.ActionArgs[](pools.length + 1 + expiryActionCount);
+            uint256 expiryActionCount = _cache.params.expiryTimeDelta == 0 ? 0 : 1;
+            actions = new Actions.ActionArgs[](_pools.length + 1 + expiryActionCount);
 
-            // `accountNumber` `0` is at index `accountsLength - 1`
+            _cache.marginDepositMarketId = _cache.dolomiteMargin.getMarketIdByTokenAddress(_cache.params.marginTransferToken);
+            /* solium-disable indentation */
+            {
+                uint256 fromAccountId;
+                uint256 toAccountId;
+                if (_cache.params.isDepositIntoTradeAccount) {
+                    fromAccountId = _accounts.length - 1; // otherAccountNumber
+                    toAccountId = 0; // tradeAccountNumber
+                } else {
+                    fromAccountId = 0; // tradeAccountNumber
+                    toAccountId = _accounts.length - 1; // otherAccountNumber
+                }
 
-            bool isWithdrawal = !cache.params.isPositiveMarginDeposit;
-            // solium-disable indentation
-            actions[actions.length - 1 - expiryActionCount] = _encodeTransferAction(
-                /* from */ isWithdrawal ? 0 : accounts.length - 1,
-                /* to */ isWithdrawal ? accounts.length - 1 : 0,
-                cache.dolomiteMargin.getMarketIdByTokenAddress(cache.params.depositToken),
-                cache.params.marginDeposit
-            );
-            // solium-enable indentation
+                actions[actions.length - 1 - expiryActionCount] = AccountActionHelper.encodeTransferAction(
+                    fromAccountId,
+                    toAccountId,
+                    _cache.marginDepositMarketId,
+                    _cache.params.marginTransferWei
+                );
+            }
+            /* solium-enable indentation */
+
             if (expiryActionCount == 1) {
-                actions[actions.length - 1] = _encodeExpirationAction(
-                    cache.params,
-                    accounts[0],
-                    0,
-                    cache.marketPath[0] /* the market at index 0 is being borrowed and traded */
+                // always use the tradeAccountId, which is at index=0
+                actions[actions.length - 1] = AccountActionHelper.encodeExpirationAction(
+                    _accounts[0],
+                    /* _accountId = */ 0, // solium-disable-line indentation
+                    /* _owedMarketId = */ _cache.marketPath[0], // solium-disable-line indentation
+                    EXPIRY,
+                    _cache.params.expiryTimeDelta
                 );
             }
         }
 
-        for (uint i = 0; i < pools.length; i++) {
-            Require.that(
-                accounts[i + 1].owner == pools[i],
-                FILE,
-                "invalid other address"
-            );
-            actions[i] = _encodeTradeAction(
-                0,
-                i + 1,
-                cache.marketPath[i],
-                cache.marketPath[i + 1],
-                pools[i],
-                cache.amountsWei[i],
-                cache.amountsWei[i + 1]
+        for (uint256 i = 0; i < _pools.length; i++) {
+            assert(_accounts[i + 1].owner == _pools[i]);
+            // use _cache.params.tradeAccountId for the trade
+            actions[i] = AccountActionHelper.encodeInternalTradeAction(
+                /* _fromAccountId = */ 0, // solium-disable-line indentation
+                /* _toAccountId = */ i + 1, // solium-disable-line indentation
+                _cache.marketPath[i],
+                _cache.marketPath[i + 1],
+                _pools[i],
+                _cache.amountsWei[i],
+                _cache.amountsWei[i + 1]
             );
         }
 
         return actions;
     }
 
-    function _defaultAssetAmount(uint value) internal pure returns (Types.AssetAmount memory) {
+    function _toPositiveDeltaWeiAssetAmount(uint256 _value) internal pure returns (Types.AssetAmount memory) {
         return Types.AssetAmount({
             sign : true,
             denomination : Types.AssetDenomination.Wei,
             ref : Types.AssetReference.Delta,
-            value : value
+            value : _value
         });
     }
 
     function _convertAssetAmountToWei(
-        Types.AssetAmount memory amount,
-        uint marketId,
-        ModifyPositionCache memory cache
-    ) internal view returns (uint) {
-        if (amount.denomination == Types.AssetDenomination.Wei) {
-            return amount.value;
+        Types.AssetAmount memory _amount,
+        uint256 _marketId,
+        ModifyPositionCache memory _cache
+    ) internal view returns (uint256) {
+        Require.that(
+            _amount.ref == Types.AssetReference.Delta,
+            FILE,
+            "invalid asset reference"
+        );
+        _amount.value = _amount.value == uint256(-1) ? uint128(-1) : _amount.value;
+        Require.that(
+            uint128(_amount.value) == _amount.value,
+            FILE,
+            "invalid asset amount"
+        );
+
+        if (_amount.denomination == Types.AssetDenomination.Wei) {
+            return _amount.value;
         } else {
-            Require.that(
-                uint128(amount.value) == amount.value,
-                FILE,
-                "invalid asset amount"
-            );
             return Interest.parToWei(
-                Types.Par({sign : amount.sign, value : uint128(amount.value)}),
-                cache.dolomiteMargin.getMarketCurrentIndex(marketId)
+                Types.Par({sign : _amount.sign, value : uint128(_amount.value)}),
+                _cache.dolomiteMargin.getMarketCurrentIndex(_marketId)
             ).value;
         }
     }
 
     function _logEvents(
-        ModifyPositionCache memory cache,
-        Account.Info[] memory accounts
+        ModifyPositionCache memory _cache,
+        Account.Info[] memory _accounts
     ) internal {
-        if (cache.params.isPositiveMarginDeposit && cache.params.accountNumber > 0) {
-            Types.Par memory newOutputPar = cache.dolomiteMargin.getAccountPar(
-                accounts[0],
-                cache.marketPath[cache.marketPath.length - 1]
-            );
+        if (_cache.params.marginTransferToken != address(0)) {
+            Events.BalanceUpdate memory inputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei : Types.Wei(false, _cache.amountsWei[0]),
+                newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marketPath[0])
+            });
+            Events.BalanceUpdate memory outputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei : Types.Wei(true, _cache.amountsWei[_cache.amountsWei.length - 1]),
+                newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marketPath[_cache.marketPath.length - 1])
+            });
+            Events.BalanceUpdate memory marginBalanceUpdate = Events.BalanceUpdate({
+                deltaWei : Types.Wei(true, _cache.marginDepositDeltaWei),
+                newPar : _cache.dolomiteMargin.getAccountPar(_accounts[0], _cache.marginDepositMarketId)
+            });
 
-            emit MarginPositionOpen(
-                msg.sender,
-                cache.params.accountNumber,
-                cache.params.tokenPath[0],
-                cache.params.tokenPath[cache.params.tokenPath.length - 1],
-                cache.params.depositToken,
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(false, cache.amountsWei[0]),
-                    newPar : cache.dolomiteMargin.getAccountPar(accounts[0], cache.marketPath[0])
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(true, cache.amountsWei[cache.amountsWei.length - 1]),
-                    newPar : newOutputPar
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(true, cache.marginDepositDeltaWei),
-                    newPar : newOutputPar
-                })
-            );
-        } else if (cache.params.accountNumber > 0) {
-            Types.Par memory newInputPar = cache.dolomiteMargin.getAccountPar(accounts[0], cache.marketPath[0]);
-
-            emit MarginPositionClose(
-                msg.sender,
-                cache.params.accountNumber,
-                cache.params.tokenPath[0],
-                cache.params.tokenPath[cache.params.tokenPath.length - 1],
-                cache.params.depositToken,
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(false, cache.amountsWei[0]),
-                    newPar : newInputPar
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(true, cache.amountsWei[cache.amountsWei.length - 1]),
-                    newPar : _getOutputPar(cache, accounts[0])
-                }),
-                Events.BalanceUpdate({
-                    deltaWei : Types.Wei(false, cache.marginDepositDeltaWei),
-                    newPar : newInputPar
-                })
-            );
+            if (_cache.params.isDepositIntoTradeAccount) {
+                emit MarginPositionOpen(
+                    msg.sender,
+                    _cache.params.tradeAccountNumber,
+                    _cache.params.tokenPath[0],
+                    _cache.params.tokenPath[_cache.params.tokenPath.length - 1],
+                    _cache.params.marginTransferToken,
+                    inputBalanceUpdate,
+                    outputBalanceUpdate,
+                    marginBalanceUpdate
+                );
+            } else {
+                marginBalanceUpdate.deltaWei.sign = false;
+                emit MarginPositionClose(
+                    msg.sender,
+                    _cache.params.tradeAccountNumber,
+                    _cache.params.tokenPath[0],
+                    _cache.params.tokenPath[_cache.params.tokenPath.length - 1],
+                    _cache.params.marginTransferToken,
+                    inputBalanceUpdate,
+                    outputBalanceUpdate,
+                    marginBalanceUpdate
+                );
+            }
         }
     }
-
-    function _getOutputPar(
-        ModifyPositionCache memory cache,
-        Account.Info memory account
-    ) internal view returns (Types.Par memory) {
-        return cache.dolomiteMargin.getAccountPar(
-            account,
-            cache.marketPath[cache.marketPath.length - 1]
-        );
-    }
-
 }

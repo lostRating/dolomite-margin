@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { AccountStatus, address, Index, Integer, INTEGERS } from '../../src';
+import { AccountStatus, address, BalanceCheckFlag, Index, Integer, INTEGERS } from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import DolomiteMarginMath from '../../src/modules/DolomiteMarginMath';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
@@ -28,7 +28,7 @@ const market3 = new BigNumber(2);
 const market4 = new BigNumber(3);
 const defaultTokenPath = [];
 const zero = new BigNumber(0);
-const par = new BigNumber(10000);
+const par = new BigNumber('1e18');
 const negPar = par.times(-1);
 const priceBase = new BigNumber('1e36');
 const prices = [new BigNumber('1e20'), new BigNumber('1e18'), new BigNumber('1e18'), new BigNumber('1e21')];
@@ -99,7 +99,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
     );
 
     const oneEthInWei = new BigNumber('1e18');
-    const numberOfUnits = new BigNumber('100000000');
+    const numberOfUnits = new BigNumber('1e30'); // put a large amount into the pool
 
     await addLiquidity(
       liquidityProvider,
@@ -199,8 +199,8 @@ describe('LiquidatorProxyV1WithAmm', () => {
       });
 
       it('Succeeds for one owed, many held', async () => {
-        const par2 = par.times('60');
-        const par3 = par.times('50');
+        const par2 = par.times('70');
+        const par3 = par.times('40');
         await Promise.all([
           dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
 
@@ -438,7 +438,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
 
-        await dolomiteMargin.liquidatorProxyWithAmm.liquidate(
+        await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -465,7 +465,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         ];
         await expectThrow(
           liquidate(market3, market2, tokenPath),
-          'LiquidatorProxyHelper: item not found',
+          'LiquidatorProxyHelper: market not found',
         );
       });
 
@@ -476,7 +476,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         ]);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
-          'LiquidatorProxyV1WithAmm: Sender not operator',
+          `LiquidatorProxyHelper: Sender not operator <${operator.toLowerCase()}>`,
         );
       });
 
@@ -512,30 +512,41 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market1, defaultTokenPath),
-          'LiquidatorProxyV1WithAmm: owedMarket equals heldMarket <0, 0>',
+          `LiquidatorProxyHelper: owedMarket equals heldMarket <${market1.toFixed()}>`,
         );
       });
 
-      it('Fails for liquid account no held market', async () => {
+      it('Fails if owed market is positive', async () => {
         await setUpBasicBalances(isOverCollateralized);
-        await dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, zero);
+        await expectThrow(
+          liquidate(market2, market1, defaultTokenPath), // swap the two markets so owed = held
+          `LiquidatorProxyHelper: owed market cannot be positive <${market2.toFixed()}>`,
+        );
+      });
+
+      it('Fails for liquid account & held market is negative', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, INTEGERS.ZERO);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
-          'LiquidatorProxyV1WithAmm: held market cannot be negative <1>',
+          `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
+        );
+      });
+
+      it('Fails for liquid account if not actually under collateralized', async () => {
+        await setUpBasicBalances(true);
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath),
+          `LiquidatorProxyHelper: Liquid account not liquidatable <${owner2.toLowerCase()}, ${accountNumber2.toFixed()}>`,
         );
       });
 
       it('Fails if liquidity is removed', async () => {
         await setUpBasicBalances(isOverCollateralized);
         await removeAlmostAllLiquidity(liquidityProvider, defaultTokenPath[0], defaultTokenPath[1]);
-        const totalSolidHeldWei = par.times('105');
-        const amountNeededToBuyOwedAmount = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(
-          par,
-          defaultTokenPath,
-        );
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, null, INTEGERS.ZERO, true),
-          `LiquidatorProxyV1WithAmm: totalSolidHeldWei is too small <${totalSolidHeldWei}, ${amountNeededToBuyOwedAmount}>`,
+          'DolomiteAmmLibrary: insufficient liquidity',
         );
       });
     });
@@ -682,16 +693,17 @@ describe('LiquidatorProxyV1WithAmm', () => {
       });
 
       it('Succeeds for one owed, many held', async () => {
-        const par2 = par.times('60');
-        const par3 = par.times('50');
-        const expiry = await setUpExpiration(market1);
+        const par2 = par.times('70');
+        const par3 = par.times('60');
         await Promise.all([
           dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
+
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par2),
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par3),
         ]);
-        const price1Adj = price1.times('105').dividedToIntegerBy('100');
+        const expiry = await setUpExpiration(market1);
+        const price1Adj = price1.times('1.05');
         const toLiquidate1 = DolomiteMarginMath.getPartialRoundUp(par2, price2, price1Adj);
         const path1 = [token2, token1];
         const amountSoldToken2 = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(
@@ -718,16 +730,16 @@ describe('LiquidatorProxyV1WithAmm', () => {
       });
 
       it('Succeeds for many owed, one held', async () => {
-        const expiry1 = await setUpExpiration(market1);
-        const expiry2 = await setUpExpiration(market2);
-
         await Promise.all([
           dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
           dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('100')),
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par.times('165')),
+          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par.times('180')),
         ]);
+        const expiry1 = await setUpExpiration(market1);
+        const expiry2 = await setUpExpiration(market2);
+
         const path1 = [token3, token1];
         const amountIn1 = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(par, path1);
         const txResult1 = await liquidate(market1, market3, path1, expiry1);
@@ -748,7 +760,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
               .minus(amountIn1)
               .minus(amountIn2),
           ],
-          [zero, zero, par.times('7.5')],
+          [zero, zero, par.times('22.5')],
         );
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 1 held): ${txResult1.gasUsed}`);
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 1 held): ${txResult2.gasUsed}`);
@@ -757,26 +769,26 @@ describe('LiquidatorProxyV1WithAmm', () => {
       it('Succeeds for many owed, many held', async () => {
         const solidPar2 = par.times('150');
         const solidPar4 = par;
-        const liquidPar1 = par.times('0.525');
+        const liquidPar1 = par.times('0.700');
         const liquidPar2 = par.times('100');
         const liquidPar3 = par.times('170');
         const liquidPar4 = par.times('0.1');
-        const expiry2 = await setUpExpiration(market2);
-        const expiry4 = await setUpExpiration(market4);
         await Promise.all([
           dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
           dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, solidPar4),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1), // $525,000
+          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1), // $700,000
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2.negated()), // -$1,000,000
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, liquidPar3), // $1,700,000
           dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market4, liquidPar4.negated()), // -$1,000,000
         ]);
+        const expiry2 = await setUpExpiration(market2);
+        const expiry4 = await setUpExpiration(market4);
         const path1 = [token3, token1, token4];
         const amount3Sold = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(
           liquidPar4,
           path1,
         );
-        const txResult1 = await liquidate(market4, market3, path1, expiry2);
+        const txResult1 = await liquidate(market4, market3, path1, expiry4);
         const solidPar3RewardAfterSale_1 = par.times('105').minus(amount3Sold);
         const liquidPar3Left = liquidPar3.minus(liquidPar4.times('1050')); // 1050 is a derived priceAdj
 
@@ -791,7 +803,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const solidPar3RewardAfterSale_2 = liquidPar3Left.minus(
           await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(amount2ToLiquidate, path2),
         );
-        const txResult2 = await liquidate(market2, market3, path2, expiry4);
+        const txResult2 = await liquidate(market2, market3, path2, expiry2);
 
         const liquidPar2Left = liquidPar2.minus(amount2ToLiquidate);
         // 10,000 == 100 * $100 (where 100 is the base for 105)
@@ -817,14 +829,6 @@ describe('LiquidatorProxyV1WithAmm', () => {
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 2 held): ${txResult1.gasUsed}`);
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
-      });
-
-      it('Should work when under collateralized (it is still best practice to liquidate instead though)', async () => {
-        const expiry = await setUpExpiration(market1);
-        await setUpBasicBalances(false);
-
-        // amountIn is the quantity of heldAmount needed to repay the debt
-        await liquidate(market1, market2, defaultTokenPath, expiry);
       });
     });
 
@@ -927,7 +931,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
 
-        await dolomiteMargin.liquidatorProxyWithAmm.liquidate(
+        await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
           owner1,
           accountNumber1,
           owner2,
@@ -953,7 +957,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const expiry = await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, expiry),
-          'LiquidatorProxyV1WithAmm: Sender not operator',
+          `LiquidatorProxyHelper: Sender not operator <${operator.toLowerCase()}>`,
         );
       });
 
@@ -996,41 +1000,45 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const expiry = await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market1, defaultTokenPath, expiry),
-          'LiquidatorProxyV1WithAmm: owedMarket equals heldMarket <0, 0>',
+          `LiquidatorProxyHelper: owedMarket equals heldMarket <${market1.toFixed()}>`,
         );
       });
 
       it('Fails if liquidity is removed', async () => {
         await setUpBasicBalances(isOverCollateralized);
         await removeAlmostAllLiquidity(liquidityProvider, defaultTokenPath[0], defaultTokenPath[1]);
-        const totalSolidHeldWei = par.times('105');
-        const amountNeededToBuyOwedAmount = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(
-          par,
-          defaultTokenPath,
-        );
         const expiry = await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, expiry, INTEGERS.ZERO, true),
-          `LiquidatorProxyV1WithAmm: totalSolidHeldWei is too small <${totalSolidHeldWei}, ${amountNeededToBuyOwedAmount}>`,
+          'DolomiteAmmLibrary: insufficient liquidity',
         );
       });
 
       it('Fails for input invalid expiry', async () => {
         await setUpBasicBalances(isOverCollateralized);
-        await setUpExpiration(market1);
+        const actualExpiry = await setUpExpiration(market1);
         const inputtedExpiry = new BigNumber('123');
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, inputtedExpiry),
-          'LiquidatorProxyV1WithAmm: expiry mismatch',
+          `LiquidatorProxyHelper: Expiry mismatch <${actualExpiry.toFixed()}, ${inputtedExpiry.toFixed()}>`,
         );
       });
 
       it('Fails when borrow not expired yet', async () => {
         await setUpBasicBalances(isOverCollateralized);
-        const realExpiry = await setUpExpiration(market1, new BigNumber('864000'));
+        const realExpiry = await setUpExpiration(market1, new BigNumber('864000'), false);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, realExpiry),
-          `LiquidatorProxyV1WithAmm: Borrow not yet expired <${realExpiry.toFixed()}>`,
+          `LiquidatorProxyHelper: Borrow not yet expired <${realExpiry.toFixed()}>`,
+        );
+      });
+
+      it('Fails when borrow not expiration is too far out yet', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await setUpExpiration(market1);
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath, INTEGERS.MAX_UINT_128),
+          `LiquidatorProxyHelper: expiry overflow <${INTEGERS.MAX_UINT_128.toFixed()}>`,
         );
       });
     });
@@ -1150,7 +1158,11 @@ async function setUpBasicBalances(isOverCollateralized: boolean) {
   ]);
 }
 
-async function setUpExpiration(market: Integer, timeDelta: Integer = INTEGERS.ONE): Promise<Integer> {
+async function setUpExpiration(
+  market: Integer,
+  timeDelta: Integer = INTEGERS.ONE,
+  shouldFastForward: boolean = true,
+): Promise<Integer> {
   await dolomiteMargin.operation
     .initiate()
     .setExpiry({
@@ -1167,7 +1179,9 @@ async function setUpExpiration(market: Integer, timeDelta: Integer = INTEGERS.ON
       ],
     })
     .commit({ from: owner2 });
-  await fastForward(60 * 60 * 24);
+  if (shouldFastForward) {
+    await fastForward(60 * 60 * 24);
+  }
   return dolomiteMargin.expiry.getExpiry(owner2, accountNumber2, market);
 }
 
@@ -1179,7 +1193,7 @@ async function liquidate(
   minOwedOutputAmount: Integer = INTEGERS.ONE,
   revertOnFailToSellCollateral: boolean = false,
 ) {
-  const txResult = await dolomiteMargin.liquidatorProxyWithAmm.liquidate(
+  const txResult = await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
     owner1,
     accountNumber1,
     owner2,
@@ -1251,14 +1265,14 @@ async function addLiquidity(
     INTEGERS.ONE,
     INTEGERS.ONE,
     new BigNumber('123456789123'),
+    BalanceCheckFlag.Both,
     { from: walletAddress },
   );
 }
 
 async function removeAlmostAllLiquidity(walletAddress: address, tokenA: address, tokenB: address) {
   const pair = await dolomiteMargin.contracts.getDolomiteAmmPairFromTokens(tokenA, tokenB);
-  const liquidityProviderBalanceString = await pair.methods.balanceOf(walletAddress).call();
-  const liquidityProviderBalance = new BigNumber(liquidityProviderBalanceString);
+  const liquidityProviderBalance = await dolomiteMargin.token.getBalance(pair.options.address, walletAddress);
 
   await dolomiteMargin.contracts.callContractFunction(
     pair.methods.approve(dolomiteMargin.contracts.dolomiteAmmRouterProxy.options.address, INTEGERS.MAX_UINT.toString()),
@@ -1270,7 +1284,7 @@ async function removeAlmostAllLiquidity(walletAddress: address, tokenA: address,
     INTEGERS.ZERO,
     tokenA,
     tokenB,
-    liquidityProviderBalance.times('9').dividedToIntegerBy('10'),
+    liquidityProviderBalance,
     INTEGERS.ONE,
     INTEGERS.ONE,
     new BigNumber('123456789123'),

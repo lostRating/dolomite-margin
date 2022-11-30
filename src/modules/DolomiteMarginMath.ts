@@ -46,6 +46,14 @@ export default class DolomiteMarginMath {
     return result;
   }
 
+  public static getPartial(
+    target: Integer,
+    numerator: Integer,
+    denominator: Integer,
+  ): Integer {
+    return target.times(numerator).dividedToIntegerBy(denominator);
+  }
+
   public static weiToPar(valueWei: Integer, index: Index): Integer {
     const base = INTEGERS.INTEREST_RATE_BASE;
     if (valueWei.lt(INTEGERS.ZERO)) {

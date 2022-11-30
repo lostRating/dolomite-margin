@@ -37,6 +37,13 @@ export enum ConfirmationType {
   Simulate = 3,
 }
 
+export enum BalanceCheckFlag {
+  Both = 0,
+  From = 1,
+  To = 2,
+  None = 3,
+}
+
 export const MarketId = {
   WETH: new BigNumber(0),
   DAI: new BigNumber(1),
