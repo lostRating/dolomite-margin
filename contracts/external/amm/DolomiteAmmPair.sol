@@ -19,23 +19,29 @@
 pragma solidity ^0.5.16;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/Math.sol";
+import { Math } from "@openzeppelin/contracts/math/Math.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../../protocol/interfaces/IAutoTrader.sol";
-import "../../protocol/interfaces/IDolomiteMargin.sol";
-import "../../protocol/lib/DolomiteMarginMath.sol";
-import "../../protocol/lib/ExcessivelySafeCall.sol";
-import "../../protocol/lib/Require.sol";
+import { IAutoTrader } from "../../protocol/interfaces/IAutoTrader.sol";
+import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
+import { IERC20Detailed } from "../../protocol/interfaces/IERC20Detailed.sol";
 
-import "../interfaces/IDolomiteAmmFactory.sol";
-import "../interfaces/IDolomiteAmmPair.sol";
+import { Account } from "../../protocol/lib/Account.sol";
+import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
+import { ExcessivelySafeCall } from "../../protocol/lib/ExcessivelySafeCall.sol";
+import { Interest } from "../../protocol/lib/Interest.sol";
+import { Require } from "../../protocol/lib/Require.sol";
+import { Types } from "../../protocol/lib/Types.sol";
 
-import "../lib/AdvancedMath.sol";
-import "../lib/UQ112x112.sol";
+import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
 
-import "../interfaces/ITransferProxy.sol";
+import { AdvancedMath } from "../lib/AdvancedMath.sol";
+import { UQ112x112 } from "../lib/UQ112x112.sol";
 
-import "./DolomiteAmmERC20.sol";
+import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
+
+import { DolomiteAmmERC20 } from "./DolomiteAmmERC20.sol";
 
 
 contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
@@ -68,11 +74,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
 
     uint private unlocked = 1;
     modifier lock() {
-        Require.that(
-            unlocked == 1,
-            FILE,
-            "locked"
-        );
+        assert(unlocked == 1);
         unlocked = 0;
         _;
         unlocked = 1;
@@ -99,12 +101,8 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
             FILE,
             "forbidden"
         );
-        Require.that(
-            ITransferProxy(_transferProxy).isCallerTrusted(address(this)),
-            FILE,
-            "transfer proxy not enabled"
-        );
-        // sufficient check
+        assert(ITransferProxy(_transferProxy).isCallerTrusted(address(this)));
+
         token0 = _token0;
         token1 = _token1;
         dolomiteMargin = IDolomiteAmmFactory(msg.sender).dolomiteMargin();

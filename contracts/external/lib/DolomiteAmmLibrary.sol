@@ -18,21 +18,21 @@
 
 pragma solidity >=0.5.0;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../../protocol/lib/Require.sol";
+import { Require } from "../../protocol/lib/Require.sol";
 
-import "../uniswap-v2/interfaces/IUniswapV2Pair.sol";
+import { IUniswapV2Pair } from "../uniswap-v2/interfaces/IUniswapV2Pair.sol";
 
-import "../interfaces/IDolomiteAmmFactory.sol";
-import "../interfaces/IDolomiteAmmPair.sol";
+import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
+import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
 
 
 library DolomiteAmmLibrary {
     using SafeMath for uint;
 
     bytes32 private constant FILE = "DolomiteAmmLibrary";
-    bytes32 private constant PAIR_INIT_CODE_HASH = 0x459da9d9ba203a8449d4d7d3a2807c1dbd927b63ea20a3ba68455c01b3e0c751;
+    bytes32 private constant PAIR_INIT_CODE_HASH = 0x4df2ee6019f2710aaf8021cd3b58c30f3132e4dfc773f2fc3dfab9eedb60030a;
 
     function getPairInitCodeHash(address factory) internal pure returns (bytes32) {
         // Instead of only returning PAIR_INIT_CODE_HASH, this value is used to make running test coverage possible;

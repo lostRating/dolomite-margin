@@ -1,7 +1,7 @@
 import BigNumber from 'bignumber.js';
 
 import CustomTestTokenJSON from '../../build/contracts/CustomTestToken.json';
-import RecyclableTokenProxyJSON from '../../build/contracts/RecyclableTokenProxy.json';
+import RecyclableTokenProxyJSON from '../../build/contracts/TestRecyclableToken.json';
 import TestTraderJSON from '../../build/contracts/TestTrader.json';
 import ErroringTokenJSON from '../../build/contracts/ErroringToken.json';
 
@@ -17,7 +17,7 @@ import {
   INTEGERS,
   TxResult,
 } from '../../src';
-import { toBytes } from '../../src/lib/BytesHelper';
+import { toBytes, toBytesNoPadding } from '../../src/lib/BytesHelper';
 import { expectThrow } from '../helpers/Expect';
 import { deployContract } from '../helpers/Deploy';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
@@ -27,6 +27,7 @@ import { EVM } from '../modules/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { RecyclableTokenProxy } from '../../src/modules/RecyclableTokenProxy';
 import { ErroringToken } from '../../build/testing_wrappers/ErroringToken';
+import { ethers } from 'ethers';
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
@@ -102,6 +103,126 @@ describe('RecyclableTokenProxy', () => {
 
   // ============ Token Functions ============
 
+  describe('#initialize', () => {
+    it('Should fail if recycled and initialized again', async () => {
+      await removeMarket(marketId, recyclableToken.address);
+      await expectThrow(
+        dolomiteMargin.admin.addMarket(
+          recyclableToken.address,
+          oracleAddress,
+          setterAddress,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          INTEGERS.ZERO,
+          true,
+          true,
+          { from: admin },
+        ),
+        'RecyclableTokenProxy: already initialized',
+      );
+    });
+
+    it('Should fail if recycled and attempt to recycle again', async () => {
+      await removeMarket(marketId, recyclableToken.address);
+      expect(await recyclableToken.isRecycled()).to.eql(true);
+      await expectThrow(
+        dolomiteMargin.operation.initiate()
+          .call({
+            primaryAccountOwner: user,
+            primaryAccountId: INTEGERS.ZERO,
+            callee: recyclableToken.address,
+            data: toBytesNoPadding(ethers.utils.defaultAbiCoder.encode(['uint256', 'bytes'], ['1', '0x'])),
+          })
+          .commit({ from: user }),
+        'RecyclableTokenProxy: already recycled',
+      );
+    });
+
+    it('Should fail if market is not closing', async () => {
+      const isClosing = false;
+      await expectThrow(
+        addMarket(customToken, defaultExpirationTimestamp, isClosing),
+        'RecyclableTokenProxy: market cannot allow borrowing',
+      );
+    });
+  });
+
+  describe('#transfer', () => {
+    it('Should fail if recycled and attempt to recycle again', async () => {
+      await removeMarket(marketId, recyclableToken.address);
+      expect(await recyclableToken.isRecycled()).to.eql(true);
+      await expectThrow(
+        dolomiteMargin.operation.initiate()
+          .call({
+            primaryAccountOwner: user,
+            primaryAccountId: INTEGERS.ZERO,
+            callee: recyclableToken.address,
+            data: toBytesNoPadding(ethers.utils.defaultAbiCoder.encode(
+              ['uint256', 'bytes'],
+              ['2', ethers.utils.defaultAbiCoder.encode(['uint'], ['420'])],
+              )),
+          })
+          .commit({ from: user }),
+        'RecyclableTokenProxy: cannot transfer while recycled',
+      );
+    });
+  });
+
+  describe('#transferFrom', () => {
+    function encodeTransferFrom(from: address, to: address, amount: Integer): number[][] {
+      return toBytesNoPadding(
+        ethers.utils.defaultAbiCoder.encode(
+          ['uint256', 'bytes'],
+          ['3', ethers.utils.defaultAbiCoder.encode(['address', 'address', 'uint256'], [from, to, amount.toFixed()])],
+        )
+      );
+    }
+
+    it('Should fail if recycled and attempt to transferFrom again', async () => {
+      await removeMarket(marketId, recyclableToken.address);
+      expect(await recyclableToken.isRecycled()).to.eql(true);
+      await expectThrow(
+        dolomiteMargin.operation.initiate()
+          .call({
+            primaryAccountOwner: user,
+            primaryAccountId: INTEGERS.ZERO,
+            callee: recyclableToken.address,
+            data: encodeTransferFrom(recyclableToken.address, dolomiteMargin.address, INTEGERS.ONE),
+          })
+          .commit({ from: user }),
+        'RecyclableTokenProxy: cannot transfer while recycled',
+      );
+    });
+
+    it('Should fail if recipient is not DolomiteMargin', async () => {
+      await expectThrow(
+        dolomiteMargin.operation.initiate()
+          .call({
+            primaryAccountOwner: user,
+            primaryAccountId: INTEGERS.ZERO,
+            callee: recyclableToken.address,
+            data: encodeTransferFrom(recyclableToken.address, user, INTEGERS.ONE),
+          })
+          .commit({ from: user }),
+        'RecyclableTokenProxy: invalid recipient',
+      );
+    });
+
+    it('Should fail if underlying balance is insufficient for ordinary transfer into DolomiteMargin', async () => {
+      await expectThrow(
+        dolomiteMargin.operation.initiate()
+          .call({
+            primaryAccountOwner: user,
+            primaryAccountId: INTEGERS.ZERO,
+            callee: recyclableToken.address,
+            data: encodeTransferFrom(recyclableToken.address, dolomiteMargin.address, INTEGERS.MAX_UINT_128),
+          })
+          .commit({ from: user }),
+        'RecyclableTokenProxy: insufficient balance for deposit',
+      );
+    });
+  });
+
   describe('#name', () => {
     it('Successfully gets the total supply', async () => {
       expect(await recyclableToken.name()).to.eql('Recyclable: TestToken');
@@ -138,14 +259,8 @@ describe('RecyclableTokenProxy', () => {
 
   describe('#approve and #allowance', () => {
     it('Successfully does nothing', async () => {
-      const recyclableContract = dolomiteMargin.contracts.getRecyclableToken(recyclableToken.address);
-      await dolomiteMargin.contracts.callContractFunction(
-        recyclableContract.methods.approve(dolomiteMargin.address, INTEGERS.MAX_UINT.toFixed()),
-        { from: user },
-      );
-      const allowance = await dolomiteMargin.contracts.callConstantContractFunction(
-        recyclableContract.methods.allowance(user, dolomiteMargin.address),
-      );
+      await recyclableToken.approve(dolomiteMargin.address, INTEGERS.MAX_UINT.toFixed());
+      const allowance = await recyclableToken.allowance(user, dolomiteMargin.address);
       expect(new BigNumber(allowance)).to.eql(INTEGERS.ZERO);
     });
   });
@@ -746,11 +861,11 @@ describe('RecyclableTokenProxy', () => {
   async function addMarket(
     underlyingToken: CustomTestToken,
     expirationTimestamp: Integer = maxExpirationTimestamp,
+    isClosing: boolean = true,
   ): Promise<RecyclableTokenProxy> {
     const marginPremium = INTEGERS.ZERO;
     const spreadPremium = INTEGERS.ZERO;
     const maxWei = INTEGERS.ZERO;
-    const isClosing = true;
     const isRecyclable = true;
 
     const recyclableTokenContract = (await deployContract(dolomiteMargin, RecyclableTokenProxyJSON, [

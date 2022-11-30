@@ -18,12 +18,12 @@
 
 pragma solidity ^0.5.16;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "../../protocol/interfaces/IERC20Detailed.sol";
-import "../../protocol/lib/Require.sol";
+import { IERC20Detailed } from "../../protocol/interfaces/IERC20Detailed.sol";
+import { Require } from "../../protocol/lib/Require.sol";
 
-import "../interfaces/IDolomiteAmmERC20.sol";
+import { IDolomiteAmmERC20 } from "../interfaces/IDolomiteAmmERC20.sol";
 
 
 contract DolomiteAmmERC20 is IDolomiteAmmERC20 {

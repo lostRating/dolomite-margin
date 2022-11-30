@@ -18,8 +18,6 @@
 
 const {
   isDevNetwork,
-  isKovan,
-  isEthereumMainnet,
   isDocker,
   isMaticProd,
   isMumbaiMatic,

@@ -119,6 +119,16 @@ describe('DepositWithdrawalProxy', () => {
     });
   });
 
+  describe('initializeETHMarket', () => {
+    it('should not work when double initialized', async () => {
+      await dolomiteMargin.depositWithdrawalProxy.initializeETHMarket(dolomiteMargin.weth.address);
+      await expectThrow(
+        dolomiteMargin.depositWithdrawalProxy.initializeETHMarket(dolomiteMargin.weth.address),
+        'DepositWithdrawalProxy: already initialized',
+      );
+    });
+  });
+
   describe('depositETH', () => {
     it('should work normally', async () => {
       await dolomiteMargin.depositWithdrawalProxy.initializeETHMarket(dolomiteMargin.weth.address);

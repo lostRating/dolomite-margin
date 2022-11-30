@@ -82,8 +82,6 @@ contract LiquidatorProxyHelper {
         Types.Wei solidOwedWei;
         Types.Wei liquidHeldWei;
         Types.Wei liquidOwedWei;
-        uint256 solidSupplyValue;
-        uint256 solidBorrowValue;
 
         // immutable
         Decimal.D256 spread;
@@ -103,8 +101,7 @@ contract LiquidatorProxyHelper {
     function _initializeCache(
         Constants memory _constants,
         uint256 _heldMarket,
-        uint256 _owedMarket,
-        bool _fetchAccountValues
+        uint256 _owedMarket
     )
     internal
     view
@@ -112,24 +109,6 @@ contract LiquidatorProxyHelper {
     {
         MarketInfo memory heldMarketInfo = _binarySearch(_constants.markets, _heldMarket);
         MarketInfo memory owedMarketInfo = _binarySearch(_constants.markets, _owedMarket);
-
-        Monetary.Value memory solidSupplyValue;
-        Monetary.Value memory solidBorrowValue;
-        if (_fetchAccountValues) {
-            (solidSupplyValue, solidBorrowValue) = _getAccountValues(
-                _constants.dolomiteMargin,
-                _constants.markets,
-                _constants.solidAccount,
-                _constants.dolomiteMargin.getAccountMarketsWithBalances(_constants.solidAccount)
-            );
-        } else {
-            solidSupplyValue = Monetary.Value({
-                value: 0
-            });
-            solidBorrowValue = Monetary.Value({
-                value: 0
-            });
-        }
 
         Decimal.D256 memory spread = _constants.dolomiteMargin.getLiquidationSpreadForPair(_heldMarket, _owedMarket);
         uint256 owedPriceAdj;
@@ -163,8 +142,6 @@ contract LiquidatorProxyHelper {
                 _constants.dolomiteMargin.getAccountPar(_constants.liquidAccount, _owedMarket),
                 owedMarketInfo.index
             ),
-            solidSupplyValue: solidSupplyValue.value,
-            solidBorrowValue: solidBorrowValue.value,
             spread: spread,
             heldMarket: _heldMarket,
             owedMarket: _owedMarket,
@@ -191,11 +168,7 @@ contract LiquidatorProxyHelper {
     internal
     view
     {
-        Require.that(
-            address(_constants.dolomiteMargin) != address(0),
-            FILE,
-            "dolomiteMargin not initialized"
-        );
+        assert(address(_constants.dolomiteMargin) != address(0));
         Require.that(
             _owedMarket != _heldMarket,
             FILE,
@@ -259,11 +232,6 @@ contract LiquidatorProxyHelper {
                 _constants.liquidMarkets
             );
             Require.that(
-                liquidSupplyValue.value != 0,
-                FILE,
-                "Liquid account no supply"
-            );
-            Require.that(
                 _constants.dolomiteMargin.getAccountStatus(_constants.liquidAccount) == Account.Status.Liquid
                 || !_isCollateralized(
                     liquidSupplyValue.value,
@@ -271,7 +239,9 @@ contract LiquidatorProxyHelper {
                     _constants.dolomiteMargin.getMarginRatio()
                 ),
                 FILE,
-                "Liquid account not liquidatable"
+                "Liquid account not liquidatable",
+                _constants.liquidAccount.owner,
+                _constants.liquidAccount.number
             );
         } else {
             // check the expiration is valid; to get here we already know constants.expiry != 0

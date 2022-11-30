@@ -28,6 +28,10 @@ export const INTEGERS = {
     'FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF',
     16,
   ),
+  MAX_UINT_112: new BigNumber(
+    'FFFFFFFFFFFFFFFFFFFFFFFFFFFF',
+    16,
+  ),
 };
 
 export const ADDRESSES = {

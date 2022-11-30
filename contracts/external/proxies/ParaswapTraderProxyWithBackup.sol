@@ -143,7 +143,7 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyHel
     external
     view
     returns (uint256) {
-        revert(string(abi.encodePacked(FILE, "::getExchangeCost: not implemented")));
+        revert(string(abi.encodePacked(Require.stringifyTruncated(FILE), "::getExchangeCost: not implemented")));
     }
 
     // ============ Private Functions ============
@@ -153,13 +153,13 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyHel
         (bool success, bytes memory result) = PARASWAP_AUGUSTUS_ROUTER.call(_paraswapCallData);
         if (!success) {
             if (result.length < 68) {
-                revert(string(abi.encodePacked(FILE, ": revert")));
+                revert(string(abi.encodePacked(Require.stringifyTruncated(FILE), ": revert")));
             } else {
                 // solium-disable-next-line security/no-inline-assembly
                 assembly {
                     result := add(result, 0x04)
                 }
-                revert(string(abi.encodePacked(FILE, ": ", abi.decode(result, (string)))));
+                revert(string(abi.encodePacked(Require.stringifyTruncated(FILE), ": ", abi.decode(result, (string)))));
             }
         }
     }

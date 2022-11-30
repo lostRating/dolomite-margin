@@ -838,12 +838,6 @@ library Storage {
             }
         }
 
-        Require.that(
-            cache.marketsLength == counter,
-            FILE,
-            "cache initialized improperly",
-            cache.marketsLength,
-            cache.markets.length
-        );
+        assert(cache.marketsLength == counter);
     }
 }

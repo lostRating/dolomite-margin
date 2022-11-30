@@ -19,18 +19,18 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 
-import "@uniswap/lib/contracts/libraries/Babylonian.sol";
+import { Babylonian } from "@uniswap/lib/contracts/libraries/Babylonian.sol";
 
-import "../external/uniswap-v2/interfaces/IUniswapV2Factory.sol";
-import "../external/uniswap-v2/interfaces/IUniswapV2Pair.sol";
-import "../external/interfaces/IUniswapV2Router.sol";
+import { IUniswapV2Factory } from "../external/uniswap-v2/interfaces/IUniswapV2Factory.sol";
+import { IUniswapV2Pair } from "../external/uniswap-v2/interfaces/IUniswapV2Pair.sol";
+import { IUniswapV2Router } from "../external/interfaces/IUniswapV2Router.sol";
 
-import "../protocol/lib/Require.sol";
+import { Require } from "../protocol/lib/Require.sol";
 
 
 /**

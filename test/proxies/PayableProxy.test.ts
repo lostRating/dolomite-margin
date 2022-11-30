@@ -294,18 +294,6 @@ describe('PayableProxy', () => {
       })
       .commit();
 
-    await expectThrow(
-      newOperation()
-        .trade({
-          ...bigBlob,
-          autoTrader: dolomiteMargin.expiry.address,
-          otherAccountOwner: owner1,
-          otherAccountId: accountNumber2,
-        })
-        .commit(),
-      'PayableProxy: Unpermissioned trade operator'
-    );
-
     await newOperation()
       .call({
         ...bigBlob,
@@ -340,6 +328,32 @@ describe('PayableProxy', () => {
         from: dolomiteMargin.contracts.payableProxy.options.address,
       })
       .commit({ from: owner1, value: amount.toNumber() });
+  });
+
+  it('Succeeds for calling a permissioned trade operator from a global operator', async () => {
+    await dolomiteMargin.admin.setGlobalOperator(owner1, true, { from: admin });
+    await newOperation()
+      .trade({
+        ...bigBlob,
+        autoTrader: dolomiteMargin.expiry.address,
+        otherAccountOwner: owner1,
+        otherAccountId: accountNumber2,
+      })
+      .commit({ from: owner1 });
+  });
+
+  it('Fails for calling a permissioned trade operator from a non-global operator', async () => {
+    await expectThrow(
+      newOperation()
+        .trade({
+          ...bigBlob,
+          autoTrader: dolomiteMargin.expiry.address,
+          otherAccountOwner: owner1,
+          otherAccountId: accountNumber2,
+        })
+        .commit(),
+      'PayableProxy: Unpermissioned trade operator'
+    );
   });
 
   it('Succeeds for un-wrapping ETH', async () => {

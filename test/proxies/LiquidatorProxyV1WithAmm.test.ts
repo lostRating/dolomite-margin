@@ -516,12 +516,28 @@ describe('LiquidatorProxyV1WithAmm', () => {
         );
       });
 
+      it('Fails if owed market is positive', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await expectThrow(
+          liquidate(market2, market1, defaultTokenPath), // swap the two markets so owed = held
+          `LiquidatorProxyHelper: owed market cannot be positive <${market2.toFixed()}>`,
+        );
+      });
+
       it('Fails for liquid account & held market is negative', async () => {
         await setUpBasicBalances(isOverCollateralized);
-        await dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, new BigNumber(-1));
+        await dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, INTEGERS.ZERO);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
           `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
+        );
+      });
+
+      it('Fails for liquid account if not actually under collateralized', async () => {
+        await setUpBasicBalances(true);
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath),
+          `LiquidatorProxyHelper: Liquid account not liquidatable <${owner2.toLowerCase()}, ${accountNumber2.toFixed()}>`,
         );
       });
 
@@ -1014,6 +1030,15 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, realExpiry),
           `LiquidatorProxyHelper: Borrow not yet expired <${realExpiry.toFixed()}>`,
+        );
+      });
+
+      it('Fails when borrow not expiration is too far out yet', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await setUpExpiration(market1);
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath, INTEGERS.MAX_UINT_128),
+          `LiquidatorProxyHelper: expiry overflow <${INTEGERS.MAX_UINT_128.toFixed()}>`,
         );
       });
     });

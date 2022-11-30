@@ -8,7 +8,6 @@ const {
   isArbitrumGoerli,
   isArbitrumRinkeby,
   isArbitrumNetwork,
-  isMaticNetwork
 } = require('./helpers');
 const {
   getDaiAddress,

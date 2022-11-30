@@ -398,7 +398,7 @@ describe('Admin', () => {
       );
       expect(getIsRecycledResult).to.eql(false);
 
-      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+      const marketIdResult: string = await dolomiteMargin.contracts.callConstantContractFunction(
         recyclableToken.methods.MARKET_ID(),
       );
       expect(new BigNumber(marketIdResult)).to.eql(new BigNumber(2));
@@ -688,7 +688,7 @@ describe('Admin', () => {
       );
       expect(getIsRecycledResult).to.eql(false);
 
-      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+      const marketIdResult: string = await dolomiteMargin.contracts.callConstantContractFunction(
         recyclableToken.methods.MARKET_ID(),
       );
       expect(new BigNumber(marketIdResult)).to.eql(new BigNumber(2));
@@ -713,6 +713,15 @@ describe('Admin', () => {
       );
 
       await fastForward(3601 + 86400 * 7);
+
+      await dolomiteMargin.testing.setAccountBalance(nonAdmin, INTEGERS.ZERO, marketId, INTEGERS.ONE.negated());
+      await expectThrow(
+        dolomiteMargin.admin.removeMarkets([marketId, marketId.plus(1)], admin, {
+          from: admin,
+        }),
+        `AdminImpl: market has active borrows <${marketId.toFixed()}>`,
+      );
+      await dolomiteMargin.testing.setAccountBalance(nonAdmin, INTEGERS.ZERO, marketId, INTEGERS.ZERO);
 
       const txResult = await dolomiteMargin.admin.removeMarkets([marketId, marketId.plus(1)], admin, {
         from: admin,
@@ -767,7 +776,7 @@ describe('Admin', () => {
         recyclableToken.methods.MAX_EXPIRATION_TIMESTAMP(),
       );
 
-      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+      const marketIdResult: string = await dolomiteMargin.contracts.callConstantContractFunction(
         recyclableToken.methods.MARKET_ID(),
       );
       expect(new BigNumber(marketIdResult)).to.eql(new BigNumber(2));
@@ -809,7 +818,7 @@ describe('Admin', () => {
         recyclableToken.methods.MAX_EXPIRATION_TIMESTAMP(),
       );
 
-      const marketIdResult = await dolomiteMargin.contracts.callConstantContractFunction(
+      const marketIdResult: string = await dolomiteMargin.contracts.callConstantContractFunction(
         recyclableToken.methods.MARKET_ID(),
       );
       expect(new BigNumber(marketIdResult)).to.eql(new BigNumber(2));

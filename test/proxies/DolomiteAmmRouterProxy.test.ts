@@ -17,9 +17,6 @@ import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { PermitSignature } from '../../src/modules/DolomiteAmmRouterProxy';
 import { EIP712_DOMAIN_STRUCT } from '../../src/lib/SignatureHelper';
-import { deployContract } from '../helpers/Deploy';
-import ErroringTokenJSON from '../../build/contracts/ErroringToken.json';
-import { ErroringToken } from '../../build/testing_wrappers/ErroringToken';
 
 let defaultPath: address[];
 let dolomiteMargin: TestDolomiteMargin;
@@ -129,284 +126,6 @@ describe('DolomiteAmmRouterProxy', () => {
 
   beforeEach(async () => {
     await resetEVM(snapshotId);
-  });
-
-  describe('DolomiteAmmPair', () => {
-
-    async function addMarket(token: ErroringToken) {
-      const priceOracle = dolomiteMargin.testing.priceOracle.address;
-      const interestSetter = dolomiteMargin.testing.interestSetter.address;
-      const price = new BigNumber('1e40'); // large to prevent hitting minBorrowValue check
-      const marginPremium = new BigNumber(0);
-      const spreadPremium = new BigNumber(0);
-      const maxWei = new BigNumber(0);
-      const isClosing = false;
-      const isRecyclable = false;
-
-      await dolomiteMargin.testing.priceOracle.setPrice(token.options.address, price);
-
-      await dolomiteMargin.admin.addMarket(
-        token.options.address,
-        priceOracle,
-        interestSetter,
-        marginPremium,
-        spreadPremium,
-        maxWei,
-        isClosing,
-        isRecyclable,
-        { from: admin },
-      );
-
-      await mineAvgBlock();
-    }
-
-    describe('#decimals', () => {
-      it('should work', async () => {
-        const pair = dolomiteMargin.getDolomiteAmmPair(token_ab);
-        expect(await pair.decimals()).to.eql(18);
-      });
-    });
-
-    describe('#symbol', () => {
-      it('should get name properly', async () => {
-        const pair = dolomiteMargin.getDolomiteAmmPair(token_ab);
-        const symbol = await pair.symbol();
-        const [token0] =
-          dolomiteMargin.testing.tokenA.address < dolomiteMargin.testing.tokenB.address
-            ? [dolomiteMargin.testing.tokenA.address]
-            : [dolomiteMargin.testing.tokenB.address];
-
-        // tokenA === USDC && tokenB === DAI
-        if (token0 === dolomiteMargin.testing.tokenA.address) {
-          expect(symbol).to.eql('DLP_USDC_DAI');
-        } else {
-          expect(symbol).to.eql('DLP_DAI_USDC');
-        }
-      });
-
-      it('should get symbol properly for invalid token', async () => {
-        const errorToken = await deployContract(dolomiteMargin, ErroringTokenJSON, []) as ErroringToken;
-        await addMarket(errorToken);
-        await dolomiteMargin.dolomiteAmmFactory.createPair(
-          errorToken.options.address,
-          dolomiteMargin.testing.tokenB.address,
-        );
-
-        const pairAddress = await dolomiteMargin.dolomiteAmmFactory.getPair(
-          errorToken.options.address,
-          dolomiteMargin.testing.tokenB.address,
-        );
-        const pair = dolomiteMargin.getDolomiteAmmPair(pairAddress);
-        const symbol = await pair.symbol();
-        const [token0] =
-          errorToken.options.address < dolomiteMargin.testing.tokenB.address
-            ? [errorToken.options.address]
-            : [dolomiteMargin.testing.tokenB.address];
-
-        // tokenA === ERROR && tokenB === DAI
-        if (token0 === errorToken.options.address) {
-          expect(symbol).to.eql('DLP__DAI');
-        } else {
-          expect(symbol).to.eql('DLP_DAI_');
-        }
-      });
-    });
-
-    describe('#name', () => {
-      it('should get name properly', async () => {
-        const pair = dolomiteMargin.getDolomiteAmmPair(token_ab);
-        const name = await pair.name();
-        const [token0] =
-          dolomiteMargin.testing.tokenA.address < dolomiteMargin.testing.tokenB.address
-            ? [dolomiteMargin.testing.tokenA.address]
-            : [dolomiteMargin.testing.tokenB.address];
-
-        // tokenA === USDC && tokenB === DAI
-        if (token0 === dolomiteMargin.testing.tokenA.address) {
-          expect(name).to.eql('Dolomite LP Token: USDC_DAI');
-        } else {
-          expect(name).to.eql('Dolomite LP Token: DAI_USDC');
-        }
-      });
-
-      it('should get name properly for invalid token', async () => {
-        const errorToken = await deployContract(dolomiteMargin, ErroringTokenJSON, []) as ErroringToken;
-        await addMarket(errorToken);
-        await dolomiteMargin.dolomiteAmmFactory.createPair(
-          errorToken.options.address,
-          dolomiteMargin.testing.tokenB.address,
-        );
-
-        const pairAddress = await dolomiteMargin.dolomiteAmmFactory.getPair(
-          errorToken.options.address,
-          dolomiteMargin.testing.tokenB.address,
-        );
-        const pair = dolomiteMargin.getDolomiteAmmPair(pairAddress);
-        const name = await pair.name();
-        const [token0] =
-          errorToken.options.address < dolomiteMargin.testing.tokenB.address
-            ? [errorToken.options.address]
-            : [dolomiteMargin.testing.tokenB.address];
-
-        // tokenA === ERROR && tokenB === DAI
-        if (token0 === errorToken.options.address) {
-          expect(name).to.eql('Dolomite LP Token: _DAI');
-        } else {
-          expect(name).to.eql('Dolomite LP Token: DAI_');
-        }
-      });
-    });
-
-    describe('#sync', () => {
-      it('should work', async () => {
-        const pair = dolomiteMargin.getDolomiteAmmPair(token_ab);
-        const txResult = await pair.sync();
-        await checkSyncLogs(txResult, dolomiteMargin.testing.tokenA.address, dolomiteMargin.testing.tokenB.address);
-      });
-    });
-
-    describe('#skim', () => {
-      it('should work', async () => {
-        await dolomiteMargin.admin.setGlobalOperator(admin, true, { from: admin });
-
-        const amountA = new BigNumber('420');
-        const amountB = new BigNumber('469');
-
-        await dolomiteMargin.testing.setAccountBalance(admin, INTEGERS.ZERO, marketIdA, amountA);
-        await dolomiteMargin.testing.setAccountBalance(admin, INTEGERS.ZERO, marketIdB, amountB);
-
-        await dolomiteMargin.operation.initiate()
-          .transfer({
-            primaryAccountOwner: admin,
-            primaryAccountId: INTEGERS.ZERO,
-            marketId: marketIdA,
-            toAccountOwner: token_ab,
-            toAccountId: INTEGERS.ZERO,
-            amount: {
-              value: amountA.negated(),
-              reference: AmountReference.Delta,
-              denomination: AmountDenomination.Wei
-            },
-          })
-          .transfer({
-            primaryAccountOwner: admin,
-            primaryAccountId: INTEGERS.ZERO,
-            marketId: marketIdB,
-            toAccountOwner: token_ab,
-            toAccountId: INTEGERS.ZERO,
-            amount: {
-              value: amountB.negated(),
-              reference: AmountReference.Delta,
-              denomination: AmountDenomination.Wei
-            },
-          })
-          .commit({ from: admin });
-
-        const pair = dolomiteMargin.getDolomiteAmmPair(token_ab);
-        const toAccountNumber = new BigNumber(321);
-        await pair.skim(admin, toAccountNumber);
-
-        expect(await dolomiteMargin.getters.getAccountPar(admin, toAccountNumber, marketIdA)).to.eql(amountA);
-        expect(await dolomiteMargin.getters.getAccountPar(admin, toAccountNumber, marketIdB)).to.eql(amountB);
-      });
-    });
-  });
-
-  describe('#feeOn', () => {
-    it('should work when turned right back off', async () => {
-      await dolomiteMargin.dolomiteAmmFactory.setFeeTo(admin, { from: admin });
-      await addLiquidity(
-        owner1,
-        parA.div(10),
-        parB.div(10),
-        dolomiteMargin.testing.tokenA.address,
-        dolomiteMargin.testing.tokenB.address,
-      );
-      await dolomiteMargin.dolomiteAmmFactory.setFeeTo(ADDRESSES.ZERO, { from: admin });
-      await addLiquidity(
-        owner1,
-        parA.div(10),
-        parB.div(10),
-        dolomiteMargin.testing.tokenA.address,
-        dolomiteMargin.testing.tokenB.address,
-      );
-      const lpToken = dolomiteMargin.getDolomiteAmmPair(token_ab);
-      expect(await lpToken.balanceOf(admin)).to.eql(INTEGERS.ZERO);
-    });
-
-    it('should not work when kLast change is too small', async () => {
-      await dolomiteMargin.dolomiteAmmFactory.setFeeTo(admin, { from: admin });
-      // calling addLiquidity recalculates kLast for tabulating fees
-      const path = [dolomiteMargin.testing.tokenA.address, dolomiteMargin.testing.tokenC.address];
-      await addLiquidity(
-        owner2,
-        parA.div(3),
-        parA.div(3),
-        path[0],
-        path[1],
-      );
-      await swapExactTokensForTokens(owner1, new BigNumber('1600'), path, INTEGERS.ZERO);
-
-      const token_ac = await dolomiteMargin.dolomiteAmmFactory.getPair(path[0], path[1]);
-      const lpToken = dolomiteMargin.getDolomiteAmmPair(token_ac);
-      const reserves = await lpToken.getReservesWei();
-      expect(reserves.reserve0.times(reserves.reserve1).gt(await lpToken.kLast())).to.eql(true);
-      const liquidity = await lpToken.balanceOf(owner2);
-      await lpToken.approve(dolomiteMargin.dolomiteAmmRouterProxy.address, INTEGERS.MAX_UINT, { from: owner2 });
-      await dolomiteMargin.dolomiteAmmRouterProxy.removeLiquidity(
-        owner2,
-        INTEGERS.ZERO,
-        path[0],
-        path[1],
-        liquidity,
-        INTEGERS.ZERO,
-        INTEGERS.ZERO,
-        defaultDeadline,
-        { from: owner2 },
-      );
-      expect(await lpToken.balanceOf(admin)).to.eql(INTEGERS.ZERO);
-    });
-
-    it('should work when fees accrue and be ~0.1% of trade volume', async () => {
-      const lpToken = dolomiteMargin.getDolomiteAmmPair(token_ab);
-      await dolomiteMargin.dolomiteAmmFactory.setFeeTo(admin, { from: admin });
-      // calling addLiquidity recalculates kLast for tabulating fees
-      await addLiquidity(
-        owner1,
-        parA.div(3),
-        parB.div(3),
-        dolomiteMargin.testing.tokenA.address,
-        dolomiteMargin.testing.tokenB.address,
-      );
-      await swapExactTokensForTokens(owner1, parA.div(100), defaultPath, INTEGERS.ONE, false);
-
-      await swapExactTokensForTokens(owner1, parA.div(100), defaultPath, INTEGERS.ONE, false);
-      // calling addLiquidity recalculates kLast for tabulating fees
-      await addLiquidity(
-        owner1,
-        parA.div(3),
-        parB.div(3),
-        dolomiteMargin.testing.tokenA.address,
-        dolomiteMargin.testing.tokenB.address,
-      );
-
-      const liquidity = await lpToken.balanceOf(owner1);
-      await lpToken.approve(dolomiteMargin.dolomiteAmmRouterProxy.address, INTEGERS.MAX_UINT, { from: owner1 });
-      await removeLiquidity(
-        owner1,
-        liquidity,
-      );
-      const totalSupply2 = await lpToken.totalSupply();
-      const balance2 = await lpToken.balanceOf(admin);
-      const rawReserves2 = await lpToken.getReservesWei();
-      const reserveA2 = dolomiteMargin.testing.tokenA.address.toLowerCase() <
-      dolomiteMargin.testing.tokenB.address.toLowerCase()
-        ? rawReserves2.reserve0 : rawReserves2.reserve1;
-      const balanceA2 = reserveA2.times(balance2).div(totalSupply2);
-      // times 1000 because the fee is 0.1%, times 100 because the trade size is 1/100 of parA, times 2 because fee
-      // equity is split into reserveA and reserveB
-      expect(balanceA2.times(1000).times(100).times(2).gt(parA)).to.eql(true);
-    });
   });
 
   describe('#addLiquidity', () => {
@@ -730,6 +449,25 @@ describe('DolomiteAmmRouterProxy', () => {
           `DolomiteAmmRouterProxy: insufficient B amount <${parB}, ${parB.times('2')}>`,
         );
       });
+
+      it('should not work when liquidity translates to 0 wei', async () => {
+        await addLiquidity(
+          owner1,
+          parA,
+          parB,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+        );
+
+        const lpToken = dolomiteMargin.getDolomiteAmmPair(token_ab);
+        const dolomiteAmmRouterProxyAddress = dolomiteMargin.contracts.dolomiteAmmRouterProxy.options.address;
+        await lpToken.approve(dolomiteAmmRouterProxyAddress, INTEGERS.ONES_255, { from: owner1 });
+
+        await expectThrow(
+          removeLiquidity(owner1, INTEGERS.ONE),
+          'DolomiteAmmPair: insufficient liquidity burned',
+        );
+      });
     });
   });
 
@@ -898,6 +636,127 @@ describe('DolomiteAmmRouterProxy', () => {
         await expectThrow(
           removeLiquidity(owner1, liquidity, parA.times('99').div('100'), parB.times('2')),
           `DolomiteAmmRouterProxy: insufficient B amount <${parB}, ${parB.times('2')}>`,
+        );
+      });
+
+      it('should not work when permit deadline fails', async () => {
+        await addLiquidity(
+          owner1,
+          parA,
+          parB,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+        );
+
+        const lpToken = await dolomiteMargin.getDolomiteAmmPair(token_ab);
+        const liquidity = await lpToken.balanceOf(owner1);
+
+        const deadline = INTEGERS.ONE;
+        const dataToSign = {
+          types: {
+            EIP712Domain: EIP712_DOMAIN_STRUCT,
+            Permit: [
+              { type: 'address', name: 'owner' },
+              { type: 'address', name: 'spender' },
+              { type: 'uint256', name: 'value' },
+              { type: 'uint256', name: 'nonce' },
+              { type: 'uint256', name: 'deadline' },
+            ],
+          },
+          domain: {
+            name: await lpToken.name(),
+            version: '1',
+            chainId: '1', // getting chain ID doesn't work with ganache and defaults to '1'
+            verifyingContract: lpToken.address,
+          },
+          primaryType: 'Permit',
+          message: {
+            owner: owner1,
+            spender: dolomiteMargin.contracts.dolomiteAmmRouterProxy.options.address,
+            value: liquidity.toFixed(),
+            nonce: '0',
+            deadline: deadline.toFixed(),
+          },
+        };
+
+        const provider = dolomiteMargin.web3.currentProvider;
+        const sendAsync = promisify(provider.send).bind(provider);
+        const response = await sendAsync({
+          method: 'eth_signTypedData',
+          params: [owner1, dataToSign],
+          jsonrpc: '2.0',
+          id: new Date().getTime(),
+        });
+
+        const permitSignature: PermitSignature = {
+          approveMax: false,
+          r: `0x${response.result.slice(2, 66)}`,
+          s: `0x${response.result.slice(66, 130)}`,
+          v: `0x${response.result.slice(130, 132)}`,
+        };
+        await expectThrow(
+          removeLiquidity(owner1, liquidity, INTEGERS.ZERO, INTEGERS.ZERO, permitSignature, deadline),
+          'DolomiteAmmERC20: expired',
+        );
+      });
+
+      it('should not work when permit signature fails', async () => {
+        await addLiquidity(
+          owner1,
+          parA,
+          parB,
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+        );
+
+        const lpToken = await dolomiteMargin.getDolomiteAmmPair(token_ab);
+        const liquidity = await lpToken.balanceOf(owner1);
+
+        const dataToSign = {
+          types: {
+            EIP712Domain: EIP712_DOMAIN_STRUCT,
+            Permit: [
+              { type: 'address', name: 'owner' },
+              { type: 'address', name: 'spender' },
+              { type: 'uint256', name: 'value' },
+              { type: 'uint256', name: 'nonce' },
+              { type: 'uint256', name: 'deadline' },
+            ],
+          },
+          domain: {
+            name: await lpToken.name(),
+            version: '1',
+            chainId: '1', // getting chain ID doesn't work with ganache and defaults to '1'
+            verifyingContract: lpToken.address,
+          },
+          primaryType: 'Permit',
+          message: {
+            owner: owner1,
+            spender: dolomiteMargin.contracts.dolomiteAmmRouterProxy.options.address,
+            value: liquidity.toFixed(),
+            nonce: '0',
+            deadline: defaultDeadline.toFixed(),
+          },
+        };
+
+        const provider = dolomiteMargin.web3.currentProvider;
+        const sendAsync = promisify(provider.send).bind(provider);
+        const response = await sendAsync({
+          method: 'eth_signTypedData',
+          params: [owner1, dataToSign],
+          jsonrpc: '2.0',
+          id: new Date().getTime(),
+        });
+
+        const permitSignature: PermitSignature = {
+          approveMax: false,
+          r: `0x${'f'.repeat(64)}`, // mess up the signature on purpose
+          s: `0x${response.result.slice(66, 130)}`,
+          v: `0x${response.result.slice(130, 132)}`,
+        };
+        await expectThrow(
+          removeLiquidity(owner1, liquidity, INTEGERS.ZERO, INTEGERS.ZERO, permitSignature),
+          'DolomiteAmmERC20: invalid signature',
         );
       });
     });
@@ -1855,6 +1714,37 @@ describe('DolomiteAmmRouterProxy', () => {
           'DolomiteAmmRouterProxy: invalid asset reference',
         );
       });
+
+      it('should fail when expiry is larger than max uint32', async () => {
+        await addLiquidity(
+          owner1,
+          parA.div(10),
+          parB.div(10),
+          dolomiteMargin.testing.tokenA.address,
+          dolomiteMargin.testing.tokenB.address,
+        );
+
+        const tradeAccountNumber = new BigNumber('123');
+        const otherAccountNumber = INTEGERS.ZERO;
+        const amountIn = parA.div(100);
+        await expectThrow(
+          dolomiteMargin.dolomiteAmmRouterProxy.swapExactTokensForTokensAndModifyPosition(
+            tradeAccountNumber,
+            otherAccountNumber,
+            amountIn,
+            INTEGERS.ONE,
+            defaultPath,
+            dolomiteMargin.testing.tokenB.address,
+            INTEGERS.MAX_UINT,
+            true,
+            INTEGERS.MAX_UINT_128,
+            defaultDeadline,
+            defaultBalanceCheckFlagForMarginTrade,
+            { from: owner1 },
+          ),
+          'AccountActionHelper: invalid expiry time',
+        );
+      });
     });
   });
 
@@ -2257,10 +2147,11 @@ async function addLiquidity(
 
 async function removeLiquidity(
   walletAddress: address,
-  liquidity: BigNumber,
-  amountAMin: BigNumber = INTEGERS.ZERO,
-  amountBMin: BigNumber = INTEGERS.ZERO,
-  permitSignature?: PermitSignature
+  liquidity: Integer,
+  amountAMin: Integer = INTEGERS.ZERO,
+  amountBMin: Integer = INTEGERS.ZERO,
+  permitSignature?: PermitSignature,
+  deadline: Integer = defaultDeadline,
 ) {
   let result: TxResult;
   if (permitSignature) {
@@ -2272,7 +2163,7 @@ async function removeLiquidity(
       liquidity,
       amountAMin,
       amountBMin,
-      defaultDeadline,
+      deadline,
       permitSignature,
       { from: walletAddress },
     );
@@ -2285,7 +2176,7 @@ async function removeLiquidity(
       liquidity,
       amountAMin,
       amountBMin,
-      defaultDeadline,
+      deadline,
       { from: walletAddress },
     );
   }

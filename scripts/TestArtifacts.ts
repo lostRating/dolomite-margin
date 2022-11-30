@@ -10,6 +10,7 @@ import { default as ErroringToken } from '../build/contracts/ErroringToken.json'
 import { default as MalformedToken } from '../build/contracts/MalformedToken.json';
 import { default as OmiseToken } from '../build/contracts/OmiseToken.json';
 import { default as TestCounter } from '../build/contracts/TestCounter.json';
+import { default as TestDolomiteAmmLibrary } from '../build/contracts/TestDolomiteAmmLibrary.json';
 import { default as TestLib } from '../build/contracts/TestLib.json';
 import { default as TestLiquidationCallback } from '../build/contracts/TestLiquidationCallback.json';
 import { default as TestAutoTrader } from '../build/contracts/TestAutoTrader.json';
@@ -50,6 +51,7 @@ export default {
   OmiseToken,
   TestAmmRebalancerProxy,
   TestCounter,
+  TestDolomiteAmmLibrary,
   TestLib,
   TestLiquidationCallback,
   TestPriceOracle,

@@ -15,6 +15,10 @@ export class DolomiteAmmFactory {
     this.contracts = contracts;
   }
 
+  public get address(): string {
+    return this.contracts.dolomiteAmmFactory.options.address;
+  }
+
   // ============ View Functions ============
 
   public async getPairInitCodeHash(

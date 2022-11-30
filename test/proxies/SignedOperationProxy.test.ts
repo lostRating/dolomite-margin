@@ -524,6 +524,25 @@ describe('SignedOperationProxy', () => {
       await expectInvalid([signedTradeOperation]);
     });
 
+    it('Succeeds for special trade if sent from a global operator', async () => {
+      const specialSignedOperation = await createSignedOperation('trade', {
+        primaryAccountId: defaultSignerNumber,
+        primaryAccountOwner: defaultSigner,
+        otherAccountOwner: rando,
+        otherAccountId: randoNumber,
+        inputMarketId: takerMarket,
+        outputMarketId: makerMarket,
+        autoTrader: dolomiteMargin.expiry.address,
+        data: toBytes(tradeId),
+        amount: defaultAssetAmount,
+      });
+      await dolomiteMargin.admin.setGlobalOperator(defaultSender, true, { from: admin });
+      await dolomiteMargin.operation
+        .initiate({ proxy: ProxyType.Signed })
+        .addSignedOperation(specialSignedOperation)
+        .commit({ from: defaultSender });
+    });
+
     it('Fails for special trade', async () => {
       const specialSignedOperation = await createSignedOperation('trade', {
         primaryAccountId: defaultSignerNumber,

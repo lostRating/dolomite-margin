@@ -1,11 +1,19 @@
 import BigNumber from 'bignumber.js';
-import { AccountStatus, address, Integer, INTEGERS, TxResult } from '../../src';
+import { AccountStatus, address, ADDRESSES, Integer, INTEGERS, TxResult } from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import DolomiteMarginMath from '../../src/modules/DolomiteMarginMath';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setGlobalOperator, setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { fastForward, mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
+import { toBytesNoPadding } from '../../src/lib/BytesHelper';
+
+enum FailureType {
+  None,
+  Silently,
+  WithMessage,
+  TooLittleOutput,
+}
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
@@ -95,6 +103,22 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
 
   beforeEach(async () => {
     await resetEVM(snapshotId);
+  });
+
+  describe('#getExchangeCost', () => {
+    it('should always fail', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callConstantContractFunction(
+          dolomiteMargin.contracts.liquidatorProxyV2WithExternalLiquidity.methods.getExchangeCost(
+            ADDRESSES.ZERO,
+            ADDRESSES.ZERO,
+            par.toFixed(),
+            toBytesNoPadding('0x0'),
+          )
+        ),
+        'ParaswapTraderProxyWithBackup::getExchangeCost: not implemented',
+      );
+    });
   });
 
   describe('#liquidate', () => {
@@ -323,12 +347,48 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         );
       });
 
+      it('Fails if owed market is positive', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await expectThrow(
+          liquidate(market2, market1), // swap the two markets so owed = held
+          `LiquidatorProxyHelper: owed market cannot be positive <${market2.toFixed()}>`,
+        );
+      });
+
       it('Fails for liquid account & held market is negative', async () => {
         await setUpBasicBalances(isOverCollateralized);
         await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, new BigNumber(-1));
         await expectThrow(
           liquidate(market1, market2),
           `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
+        );
+      });
+
+      it('Fails when Paraswap call fails with message', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await expectThrow(
+          liquidate(market1, market2, null, FailureType.WithMessage),
+          'ParaswapTraderProxyWithBackup: TestParaswapTransferProxy: insufficient balance',
+        );
+      });
+
+      it('Fails when Paraswap call fails with no message', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        await expectThrow(
+          liquidate(market1, market2, null, FailureType.Silently),
+          'ParaswapTraderProxyWithBackup: revert',
+        );
+      });
+
+      it('Fails when Paraswap outputs too little', async () => {
+        await setUpBasicBalances(isOverCollateralized);
+        const owedMarket = market1;
+        const heldMarket = market2;
+        const owedAmount = (await dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, owedMarket)).abs();
+
+        await expectThrow(
+          liquidate(owedMarket, heldMarket, null, FailureType.TooLittleOutput),
+          `ParaswapTraderProxyWithBackup: insufficient output amount <1, ${owedAmount.toFixed()}>`,
         );
       });
     });
@@ -595,6 +655,7 @@ async function liquidate(
   owedMarket: Integer,
   heldMarket: Integer,
   expiry: Integer = null,
+  failureType: FailureType = FailureType.None,
 ): Promise<{ txResult: TxResult, owedAmount: Integer, heldAmount: Integer }> {
   const owedToken = marketIdToTokenMap[owedMarket.toFixed()];
   const heldToken = marketIdToTokenMap[heldMarket.toFixed()];
@@ -604,8 +665,8 @@ async function liquidate(
   const owedPrice = await dolomiteMargin.getters.getMarketPrice(owedMarket);
   const liquidationRewardAdditive = new BigNumber('1.05');
 
-  let owedAmount;
-  let heldAmount;
+  let owedAmount: BigNumber;
+  let heldAmount: BigNumber;
   if (rawOwedAmount.times(owedPrice.times(liquidationRewardAdditive)).gte(rawHeldAmount.times(heldPrice))) {
     // owed value is greater than held value. Bound the owed amount by the held value.
     heldAmount = rawHeldAmount;
@@ -613,6 +674,13 @@ async function liquidate(
   } else {
     owedAmount = rawOwedAmount.times(liquidationRewardAdditive);
     heldAmount = owedAmount.times(owedPrice).dividedToIntegerBy(heldPrice);
+  }
+  if (failureType === FailureType.WithMessage) {
+    heldAmount = INTEGERS.MAX_UINT_128;
+  } else if (failureType === FailureType.Silently) {
+    heldAmount = new BigNumber('420'); // 420 is hardcoded in the test contract
+  } else if (failureType === FailureType.TooLittleOutput) {
+    owedAmount = INTEGERS.ONE;
   }
 
   // In the real world, the liquidator would sell all the held amount, plus the reward, for as much owed amount as

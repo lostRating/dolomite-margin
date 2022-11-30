@@ -1,12 +1,14 @@
 import { DolomiteAmmPair as DolomiteAmmPairWrapper } from '../../build/wrappers/DolomiteAmmPair';
 import { Contracts } from '../lib/Contracts';
 import {
+  AccountInfo,
   address,
   ContractCallOptions,
   Integer,
   TxResult,
 } from '../types';
 import BigNumber from 'bignumber.js';
+import { toBytesNoPadding } from '../lib/BytesHelper';
 
 export interface Reserves {
   reserve0: Integer;
@@ -176,6 +178,44 @@ export class DolomiteAmmPair {
   }
 
   // ============ Write Functions ============
+
+  async initialize(
+    token0: address,
+    token1: address,
+    transferProxy: address,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.pair.methods.initialize(token0, token1, transferProxy),
+      options,
+    );
+  }
+
+  async getTradeCost(
+    inputMarketId: Integer,
+    outputMarketId: Integer,
+    makerAccount: AccountInfo,
+    takerAccount: AccountInfo,
+    oldInputPar: Integer,
+    newInputPar: Integer,
+    inputDeltaWei: Integer,
+    data: string,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.pair.methods.getTradeCost(
+        inputMarketId.toFixed(),
+        outputMarketId.toFixed(),
+        makerAccount,
+        takerAccount,
+        { sign: oldInputPar.isPositive(), value: oldInputPar.abs().toFixed(), },
+        { sign: newInputPar.isPositive(), value: newInputPar.abs().toFixed(), },
+        { sign: inputDeltaWei.isPositive(), value: inputDeltaWei.abs().toFixed(), },
+        toBytesNoPadding(data),
+      ),
+      options,
+    );
+  }
 
   public async approve(
     spender: address,

@@ -128,8 +128,7 @@ contract LiquidatorProxyV3WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         LiquidatorProxyCache memory cache = _initializeCache(
             constants,
             _heldMarket,
-            _owedMarket,
-            /* _fetchAccountValues = */ false // solium-disable-line indentation
+            _owedMarket
         );
 
         // validate the msg.sender and that the liquidAccount can be liquidated
@@ -137,13 +136,6 @@ contract LiquidatorProxyV3WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
 
         // get the max liquidation amount
         _calculateAndSetMaxLiquidationAmount(cache);
-
-        // if nothing to liquidate, do nothing
-        Require.that(
-            cache.owedWeiToLiquidate != 0,
-            FILE,
-            "nothing to liquidate"
-        );
 
         Account.Info[] memory accounts = _constructAccountsArray(constants);
 

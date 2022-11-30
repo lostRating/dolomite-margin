@@ -88,6 +88,7 @@ const TokenF = artifacts.require('TokenF');
 const ErroringToken = artifacts.require('ErroringToken');
 const MalformedToken = artifacts.require('MalformedToken');
 const OmiseToken = artifacts.require('OmiseToken');
+const TestDolomiteAmmLibrary = artifacts.require('TestDolomiteAmmLibrary');
 const TestLib = artifacts.require('TestLib');
 const TestAutoTrader = artifacts.require('TestAutoTrader');
 const TestCallee = artifacts.require('TestCallee');
@@ -174,6 +175,7 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(ErroringToken),
       deployer.deploy(MalformedToken),
       deployer.deploy(OmiseToken),
+      deployer.deploy(TestDolomiteAmmLibrary),
       deployer.deploy(TestLib),
       deployer.deploy(TestAutoTrader),
       deployer.deploy(TestExchangeWrapper),

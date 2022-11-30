@@ -228,6 +228,30 @@ describe('Getters', () => {
       });
     });
 
+    describe('#getMarketIdByTokenAddress', () => {
+      it('Succeeds', async () => {
+        const actualTokens = await Promise.all([
+          dolomiteMargin.getters.getMarketTokenAddress(market1),
+          dolomiteMargin.getters.getMarketTokenAddress(market2),
+          dolomiteMargin.getters.getMarketTokenAddress(market3),
+        ]);
+        expect(market1).to.eql(await dolomiteMargin.getters.getMarketIdByTokenAddress(actualTokens[0]));
+        expect(market2).to.eql(await dolomiteMargin.getters.getMarketIdByTokenAddress(actualTokens[1]));
+        expect(market3).to.eql(await dolomiteMargin.getters.getMarketIdByTokenAddress(actualTokens[2]));
+      });
+
+      it('Fails for Invalid token', async () => {
+        await expectThrow(
+          dolomiteMargin.getters.getMarketIdByTokenAddress(ADDRESSES.ZERO),
+          'Getters: Invalid token',
+        );
+        await expectThrow(
+          dolomiteMargin.getters.getMarketIdByTokenAddress('0xFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF'),
+          'Getters: Invalid token',
+        );
+      });
+    });
+
     describe('#getMarketTotalPar', () => {
       it('Succeeds', async () => {
         await Promise.all([
