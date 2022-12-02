@@ -55,7 +55,6 @@ contract LiquidatorProxyHelper {
 
     struct MarketInfo {
         uint256 marketId;
-        Decimal.D256 spreadPremium;
         Monetary.Price price;
         Interest.Index index;
     }
@@ -84,7 +83,6 @@ contract LiquidatorProxyHelper {
         Types.Wei liquidOwedWei;
 
         // immutable
-        Decimal.D256 spread;
         uint256 heldMarket;
         uint256 owedMarket;
         uint256 heldPrice;
@@ -110,7 +108,6 @@ contract LiquidatorProxyHelper {
         MarketInfo memory heldMarketInfo = _binarySearch(_constants.markets, _heldMarket);
         MarketInfo memory owedMarketInfo = _binarySearch(_constants.markets, _owedMarket);
 
-        Decimal.D256 memory spread = _constants.dolomiteMargin.getLiquidationSpreadForPair(_heldMarket, _owedMarket);
         uint256 owedPriceAdj;
         if (_constants.expiry > 0) {
             (, Monetary.Price memory owedPricePrice) = _constants.expiryProxy.getSpreadAdjustedPrices(
@@ -120,7 +117,11 @@ contract LiquidatorProxyHelper {
             );
             owedPriceAdj = owedPricePrice.value;
         } else {
-            owedPriceAdj = Decimal.mul(owedMarketInfo.price.value, Decimal.onePlus(spread));
+            Decimal.D256 memory spread = _constants.dolomiteMargin.getLiquidationSpreadForPair(
+                _heldMarket,
+                _owedMarket
+            );
+            owedPriceAdj = owedMarketInfo.price.value.add(Decimal.mul(owedMarketInfo.price.value, spread));
         }
 
         return LiquidatorProxyCache({
@@ -142,7 +143,6 @@ contract LiquidatorProxyHelper {
                 _constants.dolomiteMargin.getAccountPar(_constants.liquidAccount, _owedMarket),
                 owedMarketInfo.index
             ),
-            spread: spread,
             heldMarket: _heldMarket,
             owedMarket: _owedMarket,
             heldPrice: heldMarketInfo.price.value,
@@ -220,30 +220,7 @@ contract LiquidatorProxyHelper {
             msg.sender
         );
 
-        if (_constants.expiry == 0) {
-            // user is getting liquidated, not expired. Check liquid account is indeed under-collateralized
-            (
-                Monetary.Value memory liquidSupplyValue,
-                Monetary.Value memory liquidBorrowValue
-            ) = _getAdjustedAccountValues(
-                _constants.dolomiteMargin,
-                _constants.markets,
-                _constants.liquidAccount,
-                _constants.liquidMarkets
-            );
-            Require.that(
-                _constants.dolomiteMargin.getAccountStatus(_constants.liquidAccount) == Account.Status.Liquid
-                || !_isCollateralized(
-                    liquidSupplyValue.value,
-                    liquidBorrowValue.value,
-                    _constants.dolomiteMargin.getMarginRatio()
-                ),
-                FILE,
-                "Liquid account not liquidatable",
-                _constants.liquidAccount.owner,
-                _constants.liquidAccount.number
-            );
-        } else {
+        if (_constants.expiry != 0) {
             // check the expiration is valid; to get here we already know constants.expiry != 0
             uint32 expiry = _constants.expiryProxy.getExpiry(_constants.liquidAccount, _owedMarket);
             Require.that(
@@ -332,13 +309,13 @@ contract LiquidatorProxyHelper {
             marketInfos,
             account,
             marketIds,
-            /* adjustForSpreadPremiums = */ false // solium-disable-line indentation
+            /* adjustForMarginPremiums = */ false // solium-disable-line indentation
         );
     }
 
     /**
      * Gets the adjusted current total supplyValue and borrowValue for some account. Takes into account what
-     * the current index will be once updated and the spread premium.
+     * the current index will be once updated and the margin premium.
      */
     function _getAdjustedAccountValues(
         IDolomiteMargin dolomiteMargin,
@@ -358,7 +335,7 @@ contract LiquidatorProxyHelper {
             marketInfos,
             account,
             marketIds,
-            /* adjustForSpreadPremiums = */ true // solium-disable-line indentation
+            /* adjustForMarginPremiums = */ true // solium-disable-line indentation
         );
     }
 
@@ -382,7 +359,6 @@ contract LiquidatorProxyHelper {
 
                 marketInfos[counter++] = MarketInfo({
                     marketId: marketId,
-                    spreadPremium: dolomiteMargin.getMarketSpreadPremium(marketId),
                     price: dolomiteMargin.getMarketPrice(marketId),
                     index: dolomiteMargin.getMarketCurrentIndex(marketId)
                 });
@@ -417,7 +393,7 @@ contract LiquidatorProxyHelper {
         MarketInfo[] memory marketInfos,
         Account.Info memory account,
         uint256[] memory marketIds,
-        bool adjustForSpreadPremiums
+        bool adjustForMarginPremiums
     )
     private
     view
@@ -434,14 +410,14 @@ contract LiquidatorProxyHelper {
             MarketInfo memory marketInfo = _binarySearch(marketInfos, marketIds[i]);
             Types.Wei memory userWei = Interest.parToWei(par, marketInfo.index);
             uint256 assetValue = userWei.value.mul(marketInfo.price.value);
-            Decimal.D256 memory spreadPremium = Decimal.one();
-            if (adjustForSpreadPremiums) {
-                spreadPremium = Decimal.onePlus(marketInfo.spreadPremium);
+            Decimal.D256 memory marginPremium = Decimal.one();
+            if (adjustForMarginPremiums) {
+                marginPremium = Decimal.onePlus(dolomiteMargin.getMarketMarginPremium(marketIds[i]));
             }
             if (userWei.sign) {
-                supplyValue.value = supplyValue.value.add(Decimal.div(assetValue, spreadPremium));
+                supplyValue.value = supplyValue.value.add(Decimal.div(assetValue, marginPremium));
             } else {
-                borrowValue.value = borrowValue.value.add(Decimal.mul(assetValue, spreadPremium));
+                borrowValue.value = borrowValue.value.add(Decimal.mul(assetValue, marginPremium));
             }
         }
 

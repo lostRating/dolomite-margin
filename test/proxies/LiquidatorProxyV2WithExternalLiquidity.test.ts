@@ -305,6 +305,29 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await liquidate(market1, market2);
         await expectBalances([par.plus(par.times('0.05')), zero], [zero, par.times('45')]);
       });
+
+      it('Succeeds for liquid account under collateralized because of margin premium', async () => {
+        const marginPremium = new BigNumber('0.1'); // // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        const spreadPremium = new BigNumber('0.4'); // this raises the spread to 107% 100% + (5% * 1.4)
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('125')),
+          dolomiteMargin.admin.setMarginPremium(
+            market1,
+            marginPremium,
+            { from: admin },
+          ),
+          dolomiteMargin.admin.setSpreadPremium(
+            market1,
+            spreadPremium,
+            { from: admin },
+          ),
+        ]);
+        // amountIn is the quantity of heldAmount needed to repay the debt
+        await liquidate(market1, market2);
+        await expectBalances([par.plus(par.times('0.07')), zero], [zero, par.times('18')]);
+      });
     });
 
     describe('Failure cases', () => {
@@ -361,6 +384,25 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await expectThrow(
           liquidate(market1, market2),
           `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
+        );
+      });
+
+      it('Fails for liquid account if not actually under collateralized', async () => {
+        await setUpBasicBalances(true);
+        await expectThrow(
+          liquidate(market1, market2),
+          `LiquidateOrVaporizeImpl: Unliquidatable account <${liquidOwner.toLowerCase()}, ${liquidNumber.toFixed()}>`,
+        );
+      });
+
+      it('Fails for liquid account if not actually under collateralized (with margin premium)', async () => {
+        await setUpBasicBalances(true);
+        const marginPremium = new BigNumber('0.1'); // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        await dolomiteMargin.admin.setMarginPremium(market1, marginPremium, { from: admin });
+        await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('130'));
+        await expectThrow(
+          liquidate(market1, market2),
+          `LiquidateOrVaporizeImpl: Unliquidatable account <${liquidOwner.toLowerCase()}, ${liquidNumber.toFixed()}>`,
         );
       });
 
@@ -544,6 +586,29 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         console.log(`\tLiquidatorProxyV2WithExternalLiquidity expiration gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
         console.log(`\tLiquidatorProxyV2WithExternalLiquidity expiration gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
       });
+
+      it('Succeeds when there is a margin premium', async () => {
+        const marginPremium = new BigNumber('0.1'); // // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        const spreadPremium = new BigNumber('0.4'); // this raises the spread to 107% 100% + (5% * 1.4)
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('130')),
+          dolomiteMargin.admin.setMarginPremium(
+            market1,
+            marginPremium,
+            { from: admin },
+          ),
+          dolomiteMargin.admin.setSpreadPremium(
+            market1,
+            spreadPremium,
+            { from: admin },
+          ),
+        ]);
+        const expiration = await setUpExpiration(market1);
+        await liquidate(market1, market2, expiration);
+        await expectBalances([par.plus(par.times('0.07')), zero], [zero, par.times('23')]);
+      });
     });
 
     describe('Failure cases', () => {
@@ -663,7 +728,9 @@ async function liquidate(
   const rawOwedAmount = (await dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, owedMarket)).abs();
   const rawHeldAmount = (await dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, heldMarket)).abs();
   const owedPrice = await dolomiteMargin.getters.getMarketPrice(owedMarket);
-  const liquidationRewardAdditive = new BigNumber('1.05');
+  const liquidationRewardAdditive = INTEGERS.ONE.plus(
+    await dolomiteMargin.getters.getLiquidationSpreadForPair(heldMarket, owedMarket)
+  );
 
   let owedAmount: BigNumber;
   let heldAmount: BigNumber;

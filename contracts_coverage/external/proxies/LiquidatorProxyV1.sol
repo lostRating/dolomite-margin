@@ -441,7 +441,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
             spread: spread,
             heldPrice: heldPrice,
             owedPrice: owedPrice,
-            owedPriceAdj: Decimal.mul(owedPrice, Decimal.onePlus(spread))
+            owedPriceAdj: owedPrice.add(Decimal.mul(owedPrice, spread))
         });
     }
 

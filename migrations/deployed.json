@@ -364,8 +364,8 @@
     "LiquidatorProxyV1": {
         "42161": {
             "links": {},
-            "address": "0xAeE9eA8E290860DBda4B8C01F669025F2dEeC122",
-            "transactionHash": "0xf09dc29447a9aa29b88c7bb5a2476f10269346b3db59e14758d22ec500762be2"
+            "address": "0x6d13e5F5458f2bC4D6589093ee5632bE658Caa53",
+            "transactionHash": "0x31c06079803c2866c5da78096bf95dc04d04539df2befe52c0a7a413223ecaea"
         },
         "80001": {
             "links": {},
@@ -379,15 +379,15 @@
         },
         "421613": {
             "links": {},
-            "address": "0x66e42Ed7F91928AAF52aeE822A17c1045d965DD5",
-            "transactionHash": "0xde49866ab067e8222e4e030a8b6f854d13ff07a4201f6838ede3a28abfa67fa6"
+            "address": "0x67d1287Ae9e7beAd6cf0ea993a0A9145503D452e",
+            "transactionHash": "0x18a1fbd1cc4482e18d36dd98eb19dcdb0b3adbfadc23329ed34a3ef6acc09eb0"
         }
     },
     "LiquidatorProxyV1WithAmm": {
         "42161": {
             "links": {},
-            "address": "0xe1d7178F5544Fb3b70888689e28b847b73a6f719",
-            "transactionHash": "0x862ab2d01b1ae8122b64f8551d5c0f8293a18d9f6a8cb15cbb2398935c4f9fdf"
+            "address": "0xb3876872e60b168Dafc9C650A2E1522f45feBE0b",
+            "transactionHash": "0x067fb8a24c9b8bcaa4c07463802c755ede8043f20e769cba87767751ceaf1580"
         },
         "80001": {
             "links": {},
@@ -401,15 +401,15 @@
         },
         "421613": {
             "links": {},
-            "address": "0xF21851130043e81B8Ba0471397a4583cd8aed5Aa",
-            "transactionHash": "0x79f10c1b2d2d4068cc6ddefd3c6a4826ea3b6b44492ac81ecdacc2d8b8526513"
+            "address": "0x2676421e5Af9d262F82ca756E7aF2c0fa74bdFA4",
+            "transactionHash": "0x180e64171c46e874f5ed56433cd27beaac57ee4dc45483b11942f9ee69d38c1d"
         }
     },
     "LiquidatorProxyV2WithExternalLiquidity": {
         "42161": {
             "links": {},
-            "address": "0xF53F5C41d36A6952B6ff623269c920C0C0978FB1",
-            "transactionHash": "0x1c63dd9a198697dad4efaf142a94ff6455fb583c27f6a6bb89e019e354a736f6"
+            "address": "0x1bBC201f68f209A054E3e86891401d7255f8D3BA",
+            "transactionHash": "0x862d5bed4da7851f9598eff2c41856bfe7e1e25ede0ca5fbe7cfd292373cd108"
         }
     },
     "AmmRebalancerProxyV1": {

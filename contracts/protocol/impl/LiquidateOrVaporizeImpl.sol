@@ -369,8 +369,8 @@ library LiquidateOrVaporizeImpl {
     returns (Types.Wei memory)
     {
         return Types.Wei({
-        sign: true,
-        value: DolomiteMarginMath.getPartialRoundUp(heldWei.value, heldPrice.value, owedPrice.value)
+            sign: true,
+            value: DolomiteMarginMath.getPartialRoundUp(heldWei.value, heldPrice.value, owedPrice.value)
         });
     }
 
@@ -388,8 +388,8 @@ library LiquidateOrVaporizeImpl {
     returns (Types.Wei memory)
     {
         return Types.Wei({
-        sign: false,
-        value: DolomiteMarginMath.getPartial(owedWei.value, owedPrice.value, heldPrice.value)
+            sign: false,
+            value: DolomiteMarginMath.getPartial(owedWei.value, owedPrice.value, heldPrice.value)
         });
     }
 

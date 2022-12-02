@@ -284,6 +284,38 @@ describe('LiquidatorProxyV1', () => {
         await liquidate();
         await expectBalances([zero, par.times('105')], [zero, par.times('45')]);
       });
+
+      it('Succeeds for liquid account under collateralized because of margin premium', async () => {
+        const marginPremium = new BigNumber('0.1'); // // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        const spreadPremium = new BigNumber('0.4'); // this raises the spread to 107% 100% + (5% * 1.4)
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
+          dolomiteMargin.testing.setAccountBalance(
+            owner2,
+            accountNumber2,
+            market1,
+            negPar,
+          ),
+          dolomiteMargin.testing.setAccountBalance(
+            owner2,
+            accountNumber2,
+            market2,
+            par.times('125'),
+          ),
+          dolomiteMargin.admin.setMarginPremium(
+            market1,
+            marginPremium,
+            { from: admin },
+          ),
+          dolomiteMargin.admin.setSpreadPremium(
+            market1,
+            spreadPremium,
+            { from: admin },
+          ),
+        ]);
+        await liquidate();
+        await expectBalances([zero, par.times('107')], [zero, par.times('18')]);
+      });
     });
 
     describe('Success cases for various initial liquidator balances', () => {
@@ -964,6 +996,22 @@ describe('LiquidatorProxyV1', () => {
           accountNumber2,
           market2,
           par.times('115'),
+        );
+        await expectThrow(
+          liquidate(),
+          'LiquidatorProxyV1: Liquid account not liquidatable',
+        );
+      });
+
+      it('Fails for liquid account not liquidatable (with margin premium)', async () => {
+        await setUpBasicBalances();
+        const marginPremium = new BigNumber(0.1); // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        await dolomiteMargin.admin.setMarginPremium(market1, marginPremium, { from: admin });
+        await dolomiteMargin.testing.setAccountBalance(
+          owner2,
+          accountNumber2,
+          market2,
+          par.times('130'),
         );
         await expectThrow(
           liquidate(),

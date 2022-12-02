@@ -11,8 +11,8 @@ let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
 let snapshotId: string;
 let admin: address;
-let owner1: address;
-let owner2: address;
+let solidOwner: address;
+let liquidOwner: address;
 let liquidityProvider: address;
 let operator: address;
 let token1: address;
@@ -20,8 +20,8 @@ let token2: address;
 let token3: address;
 let token4: address;
 
-const accountNumber1 = new BigNumber(111);
-const accountNumber2 = new BigNumber(222);
+const solidNumber = new BigNumber(111);
+const liquidNumber = new BigNumber(222);
 const market1 = INTEGERS.ZERO;
 const market2 = INTEGERS.ONE;
 const market3 = new BigNumber(2);
@@ -45,8 +45,8 @@ describe('LiquidatorProxyV1WithAmm', () => {
     dolomiteMargin = r.dolomiteMargin;
     accounts = r.accounts;
     admin = accounts[0];
-    owner1 = dolomiteMargin.getDefaultAccount();
-    owner2 = accounts[3];
+    solidOwner = dolomiteMargin.getDefaultAccount();
+    liquidOwner = accounts[3];
     operator = accounts[6];
     liquidityProvider = accounts[7];
 
@@ -58,9 +58,9 @@ describe('LiquidatorProxyV1WithAmm', () => {
       dolomiteMargin.testing.priceOracle.setPrice(dolomiteMargin.testing.tokenB.address, prices[1]),
       dolomiteMargin.testing.priceOracle.setPrice(dolomiteMargin.testing.tokenC.address, prices[2]),
       dolomiteMargin.testing.priceOracle.setPrice(dolomiteMargin.weth.address, prices[3]),
-      dolomiteMargin.permissions.approveOperator(operator, { from: owner1 }),
+      dolomiteMargin.permissions.approveOperator(operator, { from: solidOwner }),
       dolomiteMargin.permissions.approveOperator(dolomiteMargin.contracts.liquidatorProxyV1WithAmm.options.address, {
-        from: owner1,
+        from: solidOwner,
       }),
     ]);
     await dolomiteMargin.admin.addMarket(
@@ -164,9 +164,9 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (held first)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('100')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, par.times('1.1')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, negPar.times('100')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('100')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, par.times('1.1')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, negPar.times('100')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const path = [token1, token2];
@@ -181,9 +181,9 @@ describe('LiquidatorProxyV1WithAmm', () => {
       it('Succeeds for one owed, one held (undercollateralized)', async () => {
         const par2 = par.times('95');
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par2),
         ]);
 
         const path = [token2, token1];
@@ -202,11 +202,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const par2 = par.times('70');
         const par3 = par.times('40');
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par2),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par3),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par2),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, par3),
         ]);
         const price1Adj = price1.times('105').dividedToIntegerBy('100');
         const toLiquidate1 = DolomiteMarginMath.getPartialRoundUp(par2, price2, price1Adj);
@@ -236,11 +236,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for many owed, one held', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('100')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par.times('165')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('100')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, negPar.times('50')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, par.times('165')),
         ]);
         const path1 = [token3, token1];
         const amountIn1 = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(par, path1);
@@ -276,13 +276,13 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const liquidPar3 = par.times('170');
         const liquidPar4 = par.times('0.1');
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, solidPar4),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, solidPar2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, solidPar4),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1), // $525,000
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2.negated()), // -$1,000,000
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, liquidPar3), // $1,700,000
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market4, liquidPar4.negated()), // -$1,000,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, liquidPar1), // $525,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, liquidPar2.negated()), // -$1,000,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, liquidPar3), // $1,700,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market4, liquidPar4.negated()), // -$1,000,000
         ]);
         const path1 = [token3, token1, token4];
         const amount3Sold = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountInWithPath(
@@ -334,24 +334,48 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for liquid account collateralized but in liquid status', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('150')),
-          dolomiteMargin.testing.setAccountStatus(owner2, accountNumber2, AccountStatus.Liquidating),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('150')),
+          dolomiteMargin.testing.setAccountStatus(liquidOwner, liquidNumber, AccountStatus.Liquidating),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
         await liquidate(market1, market2, defaultTokenPath);
         await expectBalances([par, par.times('105').minus(amountIn)], [zero, par.times('45')]);
       });
+
+      it('Succeeds for liquid account under collateralized because of margin premium', async () => {
+        const marginPremium = new BigNumber('0.1'); // // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        const spreadPremium = new BigNumber('0.4'); // this raises the spread to 107% 100% + (5% * 1.4)
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('125')),
+          dolomiteMargin.admin.setMarginPremium(
+            market1,
+            marginPremium,
+            { from: admin },
+          ),
+          dolomiteMargin.admin.setSpreadPremium(
+            market1,
+            spreadPremium,
+            { from: admin },
+          ),
+        ]);
+        // amountIn is the quantity of heldAmount needed to repay the debt
+        const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
+        await liquidate(market1, market2, defaultTokenPath);
+        await expectBalances([par, par.times('107').minus(amountIn)], [zero, par.times('18')]);
+      });
     });
 
     describe('Success cases for various initial liquidator balances', () => {
       it('Succeeds for one owed, one held (liquidator balance is zero)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
@@ -361,10 +385,10 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is posHeld/negOwed)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('500')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('500')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
@@ -374,11 +398,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is negatives)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, negPar.div(2)),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, negPar.div(2)),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, negPar.times('50')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
@@ -388,10 +412,10 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is positives)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par.div(2)),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par.div(2)),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('50')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
@@ -401,11 +425,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is !posHeld>!negOwed)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par.div(2)),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, negPar.times('100')),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par.div(2)),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, negPar.times('100')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
@@ -416,10 +440,10 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is !posHeld<!negOwed)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, negPar.times('50')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
@@ -431,18 +455,18 @@ describe('LiquidatorProxyV1WithAmm', () => {
     describe('Follows minValueLiquidated', () => {
       it('Succeeds for small value liquidatable', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('110')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('110')),
         ]);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
 
         await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
-          owner1,
-          accountNumber1,
-          owner2,
-          accountNumber2,
+          solidOwner,
+          solidNumber,
+          liquidOwner,
+          liquidNumber,
           market1,
           market2,
           defaultTokenPath,
@@ -472,7 +496,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
       it('Fails for msg.sender is non-operator', async () => {
         await Promise.all([
           setUpBasicBalances(isOverCollateralized),
-          dolomiteMargin.permissions.disapproveOperator(operator, { from: owner1 }),
+          dolomiteMargin.permissions.disapproveOperator(operator, { from: solidOwner }),
         ]);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
@@ -526,7 +550,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Fails for liquid account & held market is negative', async () => {
         await setUpBasicBalances(isOverCollateralized);
-        await dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, INTEGERS.ZERO);
+        await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, INTEGERS.ZERO);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
           `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
@@ -537,7 +561,18 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpBasicBalances(true);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
-          `LiquidatorProxyHelper: Liquid account not liquidatable <${owner2.toLowerCase()}, ${accountNumber2.toFixed()}>`,
+          `LiquidateOrVaporizeImpl: Unliquidatable account <${liquidOwner.toLowerCase()}, ${liquidNumber.toFixed()}>`,
+        );
+      });
+
+      it('Fails for liquid account if not actually under collateralized (with margin premium)', async () => {
+        await setUpBasicBalances(true);
+        const marginPremium = new BigNumber('0.1'); // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        await dolomiteMargin.admin.setMarginPremium(market1, marginPremium, { from: admin });
+        await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('130'));
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath),
+          `LiquidateOrVaporizeImpl: Unliquidatable account <${liquidOwner.toLowerCase()}, ${liquidNumber.toFixed()}>`,
         );
       });
 
@@ -570,11 +605,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const liquidWei2 = liquidPar2.times('11').dividedToIntegerBy('10');
 
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, solidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, solidPar1),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, solidPar2),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, liquidPar1),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, liquidPar2),
         ]);
 
         await Promise.all([
@@ -634,11 +669,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const liquidWei2 = DolomiteMarginMath.parToWei(liquidPar2, index2);
 
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, solidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, solidPar1),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, solidPar2),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, liquidPar1),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, liquidPar2),
         ]);
 
         const priceAdj = price1.times('1.05'); // 1.05 * $100; price of market1 is $100
@@ -677,9 +712,9 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (held first)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('100')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, par.times('1.2')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, negPar.times('100')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('100')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, par.times('1.2')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, negPar.times('100')),
         ]);
         const expiry = await setUpExpiration(market2);
         const path = [token1, token2];
@@ -696,11 +731,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const par2 = par.times('70');
         const par3 = par.times('60');
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par2),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par3),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par2),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, par3),
         ]);
         const expiry = await setUpExpiration(market1);
         const price1Adj = price1.times('1.05');
@@ -731,11 +766,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for many owed, one held', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('100')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, par.times('180')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('100')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, negPar.times('50')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, par.times('180')),
         ]);
         const expiry1 = await setUpExpiration(market1);
         const expiry2 = await setUpExpiration(market2);
@@ -774,12 +809,12 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const liquidPar3 = par.times('170');
         const liquidPar4 = par.times('0.1');
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, solidPar4),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1), // $700,000
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2.negated()), // -$1,000,000
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market3, liquidPar3), // $1,700,000
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market4, liquidPar4.negated()), // -$1,000,000
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, solidPar2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, solidPar4),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, liquidPar1), // $700,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, liquidPar2.negated()), // -$1,000,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, liquidPar3), // $1,700,000
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market4, liquidPar4.negated()), // -$1,000,000
         ]);
         const expiry2 = await setUpExpiration(market2);
         const expiry4 = await setUpExpiration(market4);
@@ -830,14 +865,39 @@ describe('LiquidatorProxyV1WithAmm', () => {
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
         console.log(`\tLiquidatorProxyV1WithAmm expiration gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
       });
+
+      it('Succeeds when there is a margin premium', async () => {
+        const marginPremium = new BigNumber('0.1'); // // this raises the liquidation threshold to 126.5% (115% * 1.1)
+        const spreadPremium = new BigNumber('0.4'); // this raises the spread to 107% 100% + (5% * 1.4)
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('130')),
+          dolomiteMargin.admin.setMarginPremium(
+            market1,
+            marginPremium,
+            { from: admin },
+          ),
+          dolomiteMargin.admin.setSpreadPremium(
+            market1,
+            spreadPremium,
+            { from: admin },
+          ),
+        ]);
+        // amountIn is the quantity of heldAmount needed to repay the debt
+        const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
+        const expiration = await setUpExpiration(market1);
+        await liquidate(market1, market2, defaultTokenPath, expiration);
+        await expectBalances([par, par.times('107').minus(amountIn)], [zero, par.times('23')]);
+      });
     });
 
     describe('Success cases for various initial liquidator balances', () => {
       it('Succeeds for one owed, one held (liquidator balance is zero)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
@@ -848,10 +908,10 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is posHeld/negOwed)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('500')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('500')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
@@ -862,11 +922,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is negatives)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, negPar.div(2)),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, negPar.div(2)),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, negPar.times('50')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
@@ -877,10 +937,10 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is positives)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par.div(2)),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, par.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par.div(2)),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, par.times('50')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
@@ -891,11 +951,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is !posHeld>!negOwed)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par.div(2)),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, negPar.times('100')),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market4, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par.div(2)),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, negPar.times('100')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market4, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
@@ -907,10 +967,10 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
       it('Succeeds for one owed, one held (liquidator balance is !posHeld<!negOwed)', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, negPar.times('50')),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, negPar.times('50')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
@@ -923,19 +983,19 @@ describe('LiquidatorProxyV1WithAmm', () => {
     describe('Follows minValueLiquidated', () => {
       it('Succeeds for small value liquidatable', async () => {
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, par.times('120')),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par.times('120')),
         ]);
         const expiry = await setUpExpiration(market1);
         // amountIn is the quantity of heldAmount needed to repay the debt
         const amountIn = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
 
         await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
-          owner1,
-          accountNumber1,
-          owner2,
-          accountNumber2,
+          solidOwner,
+          solidNumber,
+          liquidOwner,
+          liquidNumber,
           market1,
           market2,
           defaultTokenPath,
@@ -952,7 +1012,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
       it('Fails for msg.sender is non-operator', async () => {
         await Promise.all([
           setUpBasicBalances(isOverCollateralized),
-          dolomiteMargin.permissions.disapproveOperator(operator, { from: owner1 }),
+          dolomiteMargin.permissions.disapproveOperator(operator, { from: solidOwner }),
         ]);
         const expiry = await setUpExpiration(market1);
         await expectThrow(
@@ -1065,11 +1125,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const liquidPar2 = par.times('130'); // 1,300,000 par --> 1,430,000 wei --> $1,430,000
 
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, solidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, solidPar1),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, solidPar2),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, liquidPar2),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, liquidPar1),
         ]);
 
         const solidWei2 = DolomiteMarginMath.parToWei(solidPar2, index);
@@ -1100,11 +1160,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
         const expiry = await setUpExpiration(market1);
         await Promise.all([
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, solidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market2, solidPar2),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, solidPar1),
+          dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market2, solidPar2),
 
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, liquidPar1),
-          dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market2, liquidPar2),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, liquidPar1),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, liquidPar2),
         ]);
 
         const rate = INTEGERS.ZERO;
@@ -1147,11 +1207,11 @@ describe('LiquidatorProxyV1WithAmm', () => {
 
 async function setUpBasicBalances(isOverCollateralized: boolean) {
   await Promise.all([
-    dolomiteMargin.testing.setAccountBalance(owner1, accountNumber1, market1, par),
-    dolomiteMargin.testing.setAccountBalance(owner2, accountNumber2, market1, negPar),
+    dolomiteMargin.testing.setAccountBalance(solidOwner, solidNumber, market1, par),
+    dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar),
     dolomiteMargin.testing.setAccountBalance(
-      owner2,
-      accountNumber2,
+      liquidOwner,
+      liquidNumber,
       market2,
       par.times(isOverCollateralized ? '120' : '110'),
     ),
@@ -1166,23 +1226,23 @@ async function setUpExpiration(
   await dolomiteMargin.operation
     .initiate()
     .setExpiry({
-      primaryAccountOwner: owner2,
-      primaryAccountId: accountNumber2,
+      primaryAccountOwner: liquidOwner,
+      primaryAccountId: liquidNumber,
       expiryArgs: [
         {
           timeDelta,
-          accountOwner: owner2,
-          accountId: accountNumber2,
+          accountOwner: liquidOwner,
+          accountId: liquidNumber,
           marketId: market,
           forceUpdate: true,
         },
       ],
     })
-    .commit({ from: owner2 });
+    .commit({ from: liquidOwner });
   if (shouldFastForward) {
     await fastForward(60 * 60 * 24);
   }
-  return dolomiteMargin.expiry.getExpiry(owner2, accountNumber2, market);
+  return dolomiteMargin.expiry.getExpiry(liquidOwner, liquidNumber, market);
 }
 
 async function liquidate(
@@ -1194,10 +1254,10 @@ async function liquidate(
   revertOnFailToSellCollateral: boolean = false,
 ) {
   const txResult = await dolomiteMargin.liquidatorProxyV1WithAmm.liquidate(
-    owner1,
-    accountNumber1,
-    owner2,
-    accountNumber2,
+    solidOwner,
+    solidNumber,
+    liquidOwner,
+    liquidNumber,
     owedMarket,
     heldMarket,
     tokenPath,
@@ -1220,16 +1280,16 @@ async function liquidate(
 
 async function expectBalances(solidBalances: (number | BigNumber)[], liquidBalances: (number | BigNumber)[]) {
   const bal1 = await Promise.all([
-    dolomiteMargin.getters.getAccountPar(owner1, accountNumber1, market1),
-    dolomiteMargin.getters.getAccountPar(owner1, accountNumber1, market2),
-    dolomiteMargin.getters.getAccountPar(owner1, accountNumber1, market3),
-    dolomiteMargin.getters.getAccountPar(owner1, accountNumber1, market4),
+    dolomiteMargin.getters.getAccountPar(solidOwner, solidNumber, market1),
+    dolomiteMargin.getters.getAccountPar(solidOwner, solidNumber, market2),
+    dolomiteMargin.getters.getAccountPar(solidOwner, solidNumber, market3),
+    dolomiteMargin.getters.getAccountPar(solidOwner, solidNumber, market4),
   ]);
   const bal2 = await Promise.all([
-    dolomiteMargin.getters.getAccountPar(owner2, accountNumber2, market1),
-    dolomiteMargin.getters.getAccountPar(owner2, accountNumber2, market2),
-    dolomiteMargin.getters.getAccountPar(owner2, accountNumber2, market3),
-    dolomiteMargin.getters.getAccountPar(owner2, accountNumber2, market4),
+    dolomiteMargin.getters.getAccountPar(liquidOwner, liquidNumber, market1),
+    dolomiteMargin.getters.getAccountPar(liquidOwner, liquidNumber, market2),
+    dolomiteMargin.getters.getAccountPar(liquidOwner, liquidNumber, market3),
+    dolomiteMargin.getters.getAccountPar(liquidOwner, liquidNumber, market4),
   ]);
 
   for (let i = 0; i < solidBalances.length; i += 1) {
