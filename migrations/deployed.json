@@ -386,8 +386,8 @@
     "LiquidatorProxyV1WithAmm": {
         "42161": {
             "links": {},
-            "address": "0x6E106aE5bAB0a353fAC04325D8E676E82d617F77",
-            "transactionHash": "0x8128606e224f9ec27767ccffc6f8c501b3d5b327c030b3fbdce3d4958164ac00"
+            "address": "0xe1d7178F5544Fb3b70888689e28b847b73a6f719",
+            "transactionHash": "0x862ab2d01b1ae8122b64f8551d5c0f8293a18d9f6a8cb15cbb2398935c4f9fdf"
         },
         "80001": {
             "links": {},
@@ -401,8 +401,15 @@
         },
         "421613": {
             "links": {},
-            "address": "0x762C4DB072F6061f5766Ea51A2AD386f6de690b1",
-            "transactionHash": "0xd4154dc9821f77c89bd02b317314c74ad39b39545dfe17f8aa369ca72ccbc544"
+            "address": "0xF21851130043e81B8Ba0471397a4583cd8aed5Aa",
+            "transactionHash": "0x79f10c1b2d2d4068cc6ddefd3c6a4826ea3b6b44492ac81ecdacc2d8b8526513"
+        }
+    },
+    "LiquidatorProxyV2WithExternalLiquidity": {
+        "42161": {
+            "links": {},
+            "address": "0xF53F5C41d36A6952B6ff623269c920C0C0978FB1",
+            "transactionHash": "0x1c63dd9a198697dad4efaf142a94ff6455fb583c27f6a6bb89e019e354a736f6"
         }
     },
     "AmmRebalancerProxyV1": {
@@ -452,8 +459,8 @@
     "DolomiteAmmRouterProxy": {
         "42161": {
             "links": {},
-            "address": "0xa09B4a3FC92965E587a94539ee8B35ECf42D5A08",
-            "transactionHash": "0x1c8c84caddbfc9d6c09c2a7a4f3df1831d09b49972cdffb6678dbeb037c235ff"
+            "address": "0x03809ae9a86061D8901f020f8778bCe1Ce8c44F0",
+            "transactionHash": "0x8ffbe83cc98ced978a881274173629193810c36f8a8d46d011136b9b1f5f63ba"
         },
         "80001": {
             "links": {},
@@ -467,8 +474,8 @@
         },
         "421613": {
             "links": {},
-            "address": "0x7aB43E8b8d662920576a5cB446c816cae9Fcffaf",
-            "transactionHash": "0x9cd968e38a8a063a4c62c8854c6d014c299bd03ab5936edab76f69691aa9bcff"
+            "address": "0x10a759D18Ffef4dd6909589C2d9c2DAfE66C2404",
+            "transactionHash": "0x4e36eee99e818add93ba73ca3935fb0030d18eca12fc23769dee8402eae12c06"
         }
     },
     "DolomiteAmmFactory": {
@@ -540,8 +547,8 @@
     "DepositWithdrawalProxy": {
         "42161": {
             "links": {},
-            "address": "0x9fA142853AF93D0CC3aF986C27688d54CE61ca8F",
-            "transactionHash": "0xf527bf29be19d130b273b96084a3e0a14f0413498095a056c7b259bb40a5f1ce"
+            "address": "0xAdB9D68c613df4AA363B42161E1282117C7B9594",
+            "transactionHash": "0xd0f5831eaf10a4d1457e268c5f2f14f3a00e7e022eb7d67d64ad7de60192be98"
         },
         "80001": {
             "links": {},
@@ -555,15 +562,15 @@
         },
         "421613": {
             "links": {},
-            "address": "0x3906A148F56AdD9Fe6CeD49C1b6f4D81Cc693e92",
-            "transactionHash": "0x26409ae28fae2509a9030acb21b4583e8e57346b30fe7ba6c0428d922dbafbcf"
+            "address": "0x06a22131E3F2a06141FF46B4d9766201F0aa84Fd",
+            "transactionHash": "0x1e4409464803914ce5071d097a02a4e7ef94188444a3d2f77071fa1a1f596937"
         }
     },
     "BorrowPositionProxy": {
         "42161": {
             "links": {},
-            "address": "0x144DcFcd3287cF4372887Ef55225696924A82511",
-            "transactionHash": "0x383b7f459e82a475fb32e777ff19cd7ad8d37b7fb895813fb29d6bfcdf4ab168"
+            "address": "0xe43638797513ef7A6d326a95E8647d86d2f5a099",
+            "transactionHash": "0x93de2e8dcd2996f7d145bda8c9db90bbb20d8c59c6b62adfc43aca0439a11c05"
         },
         "421611": {
             "links": {},
@@ -572,8 +579,8 @@
         },
         "421613": {
             "links": {},
-            "address": "0xC6a645a979035D8Aac9B3f56f0589E5CcB3f0AB7",
-            "transactionHash": "0x44b7bc46f4b491ac62547fe5fe4fe3dca2a17b831b704cbc53c252f2dfa5f298"
+            "address": "0xaD6bAE6EF017ad733fF5F59DD2B6E52d26b06e31",
+            "transactionHash": "0x4a1c794ecbafe86f89de298d47d7e5875b2e2cea02f3b0534cefa6efbfc15242"
         }
     },
     "MultiCall": {
