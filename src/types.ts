@@ -17,7 +17,6 @@
 */
 
 import BigNumber from 'bignumber.js';
-import BN from 'bn.js';
 import { Tx } from 'web3/eth/types';
 import {
   EventLog,
@@ -212,16 +211,6 @@ export enum OrderType {
 export interface Order {
   type: OrderType | string; // the "| string" needs to be here to allow it to be overridden in the Test module
   exchangeWrapperAddress: string;
-}
-
-export interface TestOrder extends Order {
-  originator: string;
-  makerToken: string;
-  takerToken: string;
-  makerAmount: BigNumber | BN;
-  takerAmount: BigNumber | BN;
-  allegedTakerAmount: BigNumber | BN;
-  desiredMakerAmount: BigNumber | BN;
 }
 
 export interface Exchange extends AccountAction {
