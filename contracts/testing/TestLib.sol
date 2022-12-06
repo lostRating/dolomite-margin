@@ -65,18 +65,18 @@ contract TestLib {
 
     // ============ Market Cache ============
 
-    function MarketCacheGetBeforeInitialized() external view {
+    function MarketCacheGetBeforeInitialized() external pure {
         Cache.MarketCache memory cache;
         uint marketId1 = 1;
         cache.get(marketId1); // fails here
     }
 
-    function MarketCacheGetAtIndexOOB() external view {
+    function MarketCacheGetAtIndexOOB() external pure {
         Cache.MarketCache memory cache;
         cache.getAtIndex(123); // fails here
     }
 
-    function MarketCacheSetAfterAlreadyInitialized() external view {
+    function MarketCacheSetAfterAlreadyInitialized() external pure {
         Cache.MarketCache memory cache = Cache.create(1);
         uint marketId1 = 1;
         uint marketId2 = 2;
