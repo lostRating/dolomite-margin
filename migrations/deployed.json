@@ -386,8 +386,8 @@
     "LiquidatorProxyV1WithAmm": {
         "42161": {
             "links": {},
-            "address": "0xb3876872e60b168Dafc9C650A2E1522f45feBE0b",
-            "transactionHash": "0x067fb8a24c9b8bcaa4c07463802c755ede8043f20e769cba87767751ceaf1580"
+            "address": "0x7a20b3d15097c052222b25a5535451dd93aaa8c6",
+            "transactionHash": "0x7570b0f5bd06df7d386f39195b21448f680c86753afdd0041c75705c10a92113"
         },
         "80001": {
             "links": {},
@@ -401,8 +401,8 @@
         },
         "421613": {
             "links": {},
-            "address": "0x2676421e5Af9d262F82ca756E7aF2c0fa74bdFA4",
-            "transactionHash": "0x180e64171c46e874f5ed56433cd27beaac57ee4dc45483b11942f9ee69d38c1d"
+            "address": "0x253ab314Db0688A22280F800790cF1493E660b07",
+            "transactionHash": "0x2bfaaf74d8773ad6784c62ed789c626713ffe25ea39ff16fc4240ca325dae11a"
         }
     },
     "LiquidatorProxyV2WithExternalLiquidity": {

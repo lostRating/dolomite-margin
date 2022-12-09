@@ -84,9 +84,9 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyHelper {
 
     // ============ Storage ============
 
-    IDolomiteMargin DOLOMITE_MARGIN;
-    DolomiteAmmRouterProxy ROUTER_PROXY;
-    IExpiry EXPIRY_PROXY;
+    IDolomiteMargin public DOLOMITE_MARGIN;
+    DolomiteAmmRouterProxy public ROUTER_PROXY;
+    IExpiry public EXPIRY_PROXY;
 
     // ============ Constructor ============
 

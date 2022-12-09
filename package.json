@@ -1,6 +1,6 @@
 {
   "name": "@dolomite-exchange/dolomite-margin",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "Ethereum Smart Contracts and TypeScript library used for the DolomiteMargin trading protocol",
   "engines": {
     "npm": "6.14.x"
@@ -48,6 +48,7 @@
     "clean_contract_json": "ts-node ./scripts/CleanBuild.ts",
     "fix_deployment_file": "ts-node ./scripts/FixDeploymentFile.ts",
     "deploy": "npm run fix_deployment_file && NODE_ENV=production npm run migrate -- --network $NETWORK --reset && npm run save_deployed_addresses",
+    "deploy_single":  "NODE_ENV=production ts-node scripts/DeployContract.ts",
     "deploy_kovan": "NETWORK=kovan npm run deploy",
     "deploy_mainnet": "NETWORK=mainnet npm run deploy",
     "deploy_matic": "NETWORK=matic npm run deploy",
