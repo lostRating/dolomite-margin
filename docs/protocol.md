@@ -109,7 +109,7 @@ calculates `Supply Wei Balance = (Supply Par Balance) * (Supply Market Index) = 
 
 All state changes to an account happen through Actions. Actions can modify the balances of 1 or more Accounts. There is
 no such thing as a "Borrow" action on DolomiteMargin. Rather, actions can automatically borrow funds if Account balances
-decrease. The following Actions are supported by DolomiteMargin:
+decrease a user's balance below 0. The following Actions are supported by DolomiteMargin:
 
 ### Deposit
 
