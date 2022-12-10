@@ -178,7 +178,7 @@ the protocol (subject to any time delays, of course). These values include the f
 ---
 ```Decimal.D256 earningsRate```
 > The percentage of the borrower's interest fee that is passed to the suppliers. This value is currently set at
-> `900000000000000000` which corresponds with 90%. The remaining 10% is paid to the protocol as a fee.
+> `850000000000000000` which corresponds with 85%. The remaining 10% is paid to the protocol as a fee.
 
 ---
 ```Monetary.Value minBorrowedValue```
