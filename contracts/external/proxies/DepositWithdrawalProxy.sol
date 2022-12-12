@@ -30,9 +30,9 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
-import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 import { IDepositWithdrawalProxy } from "../interfaces/IDepositWithdrawalProxy.sol";
 import { IWETH } from "../interfaces/IWETH.sol";
@@ -109,7 +109,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     )
     external
     nonReentrant {
-        AccountActionHelper.deposit(
+        AccountActionLib.deposit(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccount = */ msg.sender, // solium-disable-line indentation
@@ -132,7 +132,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     requireIsInitialized
     nonReentrant {
         _wrap();
-        AccountActionHelper.deposit(
+        AccountActionLib.deposit(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccount = */ address(this), // solium-disable-line indentation
@@ -153,7 +153,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     )
     external
     nonReentrant {
-        AccountActionHelper.deposit(
+        AccountActionLib.deposit(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccount = */ msg.sender, // solium-disable-line indentation
@@ -174,7 +174,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     requireIsInitialized
     nonReentrant {
         _wrap();
-        AccountActionHelper.deposit(
+        AccountActionLib.deposit(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccount = */ address(this), // solium-disable-line indentation
@@ -193,11 +193,11 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
         uint256 _fromAccountNumber,
         uint256 _marketId,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        AccountActionHelper.withdraw(
+        AccountActionLib.withdraw(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             _fromAccountNumber,
@@ -216,12 +216,12 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     function withdrawETH(
         uint256 _fromAccountNumber,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external
     requireIsInitialized
     nonReentrant {
-        AccountActionHelper.withdraw(
+        AccountActionLib.withdraw(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             _fromAccountNumber,
@@ -241,11 +241,11 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     function withdrawWeiFromDefaultAccount(
         uint256 _marketId,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        AccountActionHelper.withdraw(
+        AccountActionLib.withdraw(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccountNumber = */ 0, // solium-disable-line indentation
@@ -263,12 +263,12 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
 
     function withdrawETHFromDefaultAccount(
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external
     requireIsInitialized
     nonReentrant {
-        AccountActionHelper.withdraw(
+        AccountActionLib.withdraw(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccountNumber = */ 0, // solium-disable-line indentation
@@ -294,7 +294,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     )
     external
     nonReentrant {
-        AccountActionHelper.deposit(
+        AccountActionLib.deposit(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccount = */ msg.sender, // solium-disable-line indentation
@@ -315,7 +315,7 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     )
     external
     nonReentrant {
-        AccountActionHelper.deposit(
+        AccountActionLib.deposit(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccount = */ msg.sender, // solium-disable-line indentation
@@ -334,11 +334,11 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
         uint256 _fromAccountNumber,
         uint256 _marketId,
         uint256 _amountPar,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        AccountActionHelper.withdraw(
+        AccountActionLib.withdraw(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             _fromAccountNumber,
@@ -357,11 +357,11 @@ contract DepositWithdrawalProxy is IDepositWithdrawalProxy, OnlyDolomiteMargin, 
     function withdrawParFromDefaultAccount(
         uint256 _marketId,
         uint256 _amountPar,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external
     nonReentrant {
-        AccountActionHelper.withdraw(
+        AccountActionLib.withdraw(
             DOLOMITE_MARGIN,
             /* _accountOwner = */ msg.sender, // solium-disable-line indentation
             /* _fromAccountNumber = */ 0, // solium-disable-line indentation

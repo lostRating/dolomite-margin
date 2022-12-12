@@ -30,21 +30,21 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
-import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { IBorrowPositionProxyV1 } from "../interfaces/IBorrowPositionProxyV1.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
-import { IBorrowPositionProxy } from "../interfaces/IBorrowPositionProxy.sol";
 
 
 /**
- * @title   BorrowPositionProxy
+ * @title   BorrowPositionProxyV1
  * @author  Dolomite
  *
  * @dev Proxy contract for opening borrow positions. This makes indexing easier and lowers gas costs on Arbitrum by
  *      minimizing call data
  */
-contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, ReentrancyGuard {
+contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, ReentrancyGuard {
     using Types for Types.Par;
 
     constructor (
@@ -55,20 +55,21 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
     {}
 
     function openBorrowPosition(
-        uint256 _fromAccountIndex,
-        uint256 _toAccountIndex,
+        uint256 _fromAccountNumber,
+        uint256 _toAccountNumber,
         uint256 _marketId,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external {
         // Emit this before the call to DolomiteMargin so indexers get it before the Transfer events are emitted
-        emit BorrowPositionOpen(msg.sender, _toAccountIndex);
+        emit BorrowPositionOpen(msg.sender, _toAccountNumber);
 
-        AccountActionHelper.transfer(
+        AccountActionLib.transfer(
             IDolomiteMargin(DOLOMITE_MARGIN),
-            msg.sender,
-            _fromAccountIndex,
-            _toAccountIndex,
+            /* _fromAccountOwner = */ msg.sender, // solium-disable-line
+            _fromAccountNumber,
+            /* _toAccountOwner = */ msg.sender, // solium-disable-line
+            _toAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,
@@ -81,50 +82,39 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
     }
 
     function closeBorrowPosition(
-        uint256 _borrowAccountIndex,
-        uint256 _toAccountIndex,
+        uint256 _borrowAccountNumber,
+        uint256 _toAccountNumber,
         uint256[] calldata _collateralMarketIds
     ) external {
         Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, _borrowAccountIndex);
-        accounts[1] = Account.Info(msg.sender, _toAccountIndex);
+        accounts[0] = Account.Info(msg.sender, _borrowAccountNumber);
+        accounts[1] = Account.Info(msg.sender, _toAccountNumber);
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](_collateralMarketIds.length);
-        Types.AssetAmount memory assetAmount = Types.AssetAmount({
-            sign: false,
-            denomination: Types.AssetDenomination.Wei,
-            ref: Types.AssetReference.Target,
-            value: 0
-        });
-
         for (uint256 i = 0; i < _collateralMarketIds.length; i++) {
-            actions[i] = Actions.ActionArgs({
-                actionType : Actions.ActionType.Transfer,
-                accountId : 0,
-                amount : assetAmount,
-                primaryMarketId : _collateralMarketIds[i],
-                secondaryMarketId : 0,
-                otherAddress : address(0),
-                otherAccountId : 1,
-                data : bytes("")
-            });
+            actions[i] = AccountActionLib.encodeTransferAction(
+                /* _fromAccountId = */ 0, // solium-disable-line
+                /* _toAccountId = */ 1, // solium-disable-line
+                _collateralMarketIds[i],
+                uint(- 1)
+            );
         }
 
         IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
     }
 
     function transferBetweenAccounts(
-        uint256 _fromAccountIndex,
-        uint256 _toAccountIndex,
+        uint256 _fromAccountNumber,
+        uint256 _toAccountNumber,
         uint256 _marketId,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external {
-        AccountActionHelper.transfer(
+        AccountActionLib.transfer(
             IDolomiteMargin(DOLOMITE_MARGIN),
             msg.sender,
-            _fromAccountIndex,
-            _toAccountIndex,
+            _fromAccountNumber,
+            _toAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,
@@ -138,25 +128,25 @@ contract BorrowPositionProxy is IBorrowPositionProxy, OnlyDolomiteMargin, Reentr
 
     // solium-disable-next-line security/no-assign-params
     function repayAllForBorrowPosition(
-        uint256 _fromAccountIndex,
-        uint256 _borrowAccountIndex,
+        uint256 _fromAccountNumber,
+        uint256 _borrowAccountNumber,
         uint256 _marketId,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external {
-        // reverse the ordering of the `_borrowAccountIndex` and `_fromAccountIndex`, so using `Target = 0` calculates
-        // on `_borrowAccountIndex`. We then need to reverse the `AccountBalanceHelper.BalanceCheckFlag` if it's set to
+        // reverse the ordering of the `_borrowAccountNumber` and `_fromAccountNumber`, so using `Target = 0` calculates
+        // on `_borrowAccountNumber`. We then need to reverse the `AccountBalanceLib.BalanceCheckFlag` if it's set to
         // `from` or `to`.
-        if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To) {
-            _balanceCheckFlag = AccountBalanceHelper.BalanceCheckFlag.From;
-        } else if (_balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From) {
-            _balanceCheckFlag = AccountBalanceHelper.BalanceCheckFlag.To;
+        if (_balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.To) {
+            _balanceCheckFlag = AccountBalanceLib.BalanceCheckFlag.From;
+        } else if (_balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.From) {
+            _balanceCheckFlag = AccountBalanceLib.BalanceCheckFlag.To;
         }
 
-        AccountActionHelper.transfer(
+        AccountActionLib.transfer(
             IDolomiteMargin(DOLOMITE_MARGIN),
             msg.sender,
-            _borrowAccountIndex,
-            _fromAccountIndex,
+            _borrowAccountNumber,
+            _fromAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,

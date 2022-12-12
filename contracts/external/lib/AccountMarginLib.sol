@@ -28,7 +28,7 @@ import { Account } from "../../protocol/lib/Account.sol";
  *
  * Library contract that has various utility functions for margin positions/accounts
  */
-library AccountMarginHelper {
+library AccountMarginLib {
 
     // ============ Constants ============
 

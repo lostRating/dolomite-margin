@@ -27,17 +27,17 @@ import { Types } from "../../protocol/lib/Types.sol";
 
 
 /**
- * @title AccountBalanceHelper
+ * @title AccountBalanceLib
  * @author Dolomite
  *
  * Library contract that checks a user's balance after transaction to be non-negative
  */
-library AccountBalanceHelper {
+library AccountBalanceLib {
     using Types for Types.Par;
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "AccountBalanceHelper";
+    bytes32 constant FILE = "AccountBalanceLib";
 
     // ============ Types ============
 

@@ -29,7 +29,7 @@ import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
  *
  * Library contract for reusable token actions
  */
-library ERC20Helper {
+library ERC20Lib {
     using SafeERC20 for IERC20;
 
     // ============ Functions ============

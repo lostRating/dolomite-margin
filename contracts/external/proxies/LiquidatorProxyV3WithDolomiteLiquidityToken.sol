@@ -34,9 +34,8 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
-import { LiquidatorProxyHelper } from "../helpers/LiquidatorProxyHelper.sol";
 import { IExpiry } from "../interfaces/IExpiry.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
 import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
@@ -196,7 +195,7 @@ contract LiquidatorProxyV3WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         if (_constants.expiry > 0) {
             // First action is a trade for closing the expired account
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = AccountActionHelper.encodeExpiryLiquidateAction(
+            actions[0] = AccountActionLib.encodeExpiryLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
                 _cache.owedMarket,
@@ -208,7 +207,7 @@ contract LiquidatorProxyV3WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         } else {
             // First action is a liquidation
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = AccountActionHelper.encodeLiquidateAction(
+            actions[0] = AccountActionLib.encodeLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
                 _cache.owedMarket,
@@ -217,7 +216,7 @@ contract LiquidatorProxyV3WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
             );
         }
 
-        actions[1] = AccountActionHelper.encodeExternalSellAction(
+        actions[1] = AccountActionLib.encodeExternalSellAction(
             _solidAccountId,
             _cache.heldMarket,
             _cache.owedMarket,

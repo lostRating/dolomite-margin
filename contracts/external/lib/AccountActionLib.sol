@@ -28,7 +28,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 
 import { IExpiry } from "../interfaces/IExpiry.sol";
 
-import { AccountBalanceHelper } from "./AccountBalanceHelper.sol";
+import { AccountBalanceLib } from "./AccountBalanceLib.sol";
 
 
 /**
@@ -37,7 +37,7 @@ import { AccountBalanceHelper } from "./AccountBalanceHelper.sol";
  *
  * Library contract that makes specific actions easy to call
  */
-library AccountActionHelper {
+library AccountActionLib {
 
     // ============ Constants ============
 
@@ -50,6 +50,8 @@ library AccountActionHelper {
     function all() internal pure returns (uint256) {
         return ALL;
     }
+
+    // ========================= Operation Functions =========================
 
     function deposit(
         IDolomiteMargin _dolomiteMargin,
@@ -90,7 +92,7 @@ library AccountActionHelper {
         address _toAccount,
         uint256 _marketId,
         Types.AssetAmount memory _amount,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) internal {
         Account.Info[] memory accounts = new Account.Info[](1);
         accounts[0] = Account.Info({
@@ -113,10 +115,10 @@ library AccountActionHelper {
         _dolomiteMargin.operate(accounts, actions);
 
         if (
-            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
-            || _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
+            _balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.Both
+            || _balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.From
         ) {
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
+            AccountBalanceLib.verifyBalanceIsNonNegative(
                 _dolomiteMargin,
                 accounts[0].owner,
                 _fromAccountNumber,
@@ -130,20 +132,21 @@ library AccountActionHelper {
      */
     function transfer(
         IDolomiteMargin _dolomiteMargin,
-        address _accountOwner,
+        address _fromAccountOwner,
         uint256 _fromAccountNumber,
+        address _toAccountOwner,
         uint256 _toAccountNumber,
         uint256 _marketId,
         Types.AssetAmount memory _amount,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) internal {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = Account.Info({
-            owner: _accountOwner,
+            owner: _fromAccountOwner,
             number: _fromAccountNumber
         });
         accounts[1] = Account.Info({
-            owner: _accountOwner,
+            owner: _toAccountOwner,
             number: _toAccountNumber
         });
 
@@ -162,29 +165,31 @@ library AccountActionHelper {
         _dolomiteMargin.operate(accounts, actions);
 
         if (
-            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
-            || _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.From
+            _balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.Both
+            || _balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.From
         ) {
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
+            AccountBalanceLib.verifyBalanceIsNonNegative(
                 _dolomiteMargin,
-                _accountOwner,
+                _fromAccountOwner,
                 _fromAccountNumber,
                 _marketId
             );
         }
 
         if (
-            _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.Both
-            || _balanceCheckFlag == AccountBalanceHelper.BalanceCheckFlag.To
+            _balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.Both
+            || _balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.To
         ) {
-            AccountBalanceHelper.verifyBalanceIsNonNegative(
+            AccountBalanceLib.verifyBalanceIsNonNegative(
                 _dolomiteMargin,
-                _accountOwner,
+                _toAccountOwner,
                 _toAccountNumber,
                 _marketId
             );
         }
     }
+
+    // ========================= Encoding Functions =========================
 
     function encodeExpirationAction(
         Account.Info memory _account,
@@ -318,10 +323,10 @@ library AccountActionHelper {
         uint256 _fromAccountId,
         uint256 _toAccountId,
         uint256 _marketId,
-        uint256 _amount
+        uint256 _amountWei
     ) internal pure returns (Actions.ActionArgs memory) {
         Types.AssetAmount memory assetAmount;
-        if (_amount == uint(- 1)) {
+        if (_amountWei == uint(- 1)) {
             assetAmount = Types.AssetAmount(
                 true,
                 Types.AssetDenomination.Wei,
@@ -333,7 +338,7 @@ library AccountActionHelper {
                 false,
                 Types.AssetDenomination.Wei,
                 Types.AssetReference.Delta,
-                _amount
+                _amountWei
             );
         }
         return Actions.ActionArgs({

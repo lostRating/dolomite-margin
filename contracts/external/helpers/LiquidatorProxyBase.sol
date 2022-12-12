@@ -41,7 +41,7 @@ import { Types } from "../../protocol/lib/Types.sol";
  *
  * Inheritable contract that allows sharing code across different liquidator proxy contracts
  */
-contract LiquidatorProxyHelper {
+contract LiquidatorProxyBase {
     using SafeMath for uint;
     using Types for Types.Par;
 
