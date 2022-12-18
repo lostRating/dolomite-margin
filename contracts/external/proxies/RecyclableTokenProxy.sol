@@ -32,9 +32,9 @@ import { IERC20Detailed } from "../../protocol/interfaces/IERC20Detailed.sol";
 import { IRecyclable } from "../../protocol/interfaces/IRecyclable.sol";
 
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
-
-
 import { IExpiry } from "../interfaces/IExpiry.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 
 /**
@@ -93,17 +93,17 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
     // ============ Constructor ============
 
     constructor (
-        address dolomiteMargin,
-        address token,
-        address expiry,
-        uint maxExpirationTimestamp
+        address _dolomiteMargin,
+        address _token,
+        address _expiry,
+        uint256 _maxExpirationTimestamp
     )
     public
-    OnlyDolomiteMargin(dolomiteMargin)
+    OnlyDolomiteMargin(_dolomiteMargin)
     {
-        TOKEN = IERC20Detailed(token);
-        EXPIRY = IExpiry(expiry);
-        MAX_EXPIRATION_TIMESTAMP = maxExpirationTimestamp;
+        TOKEN = IERC20Detailed(_token);
+        EXPIRY = IExpiry(_expiry);
+        MAX_EXPIRATION_TIMESTAMP = _maxExpirationTimestamp;
         isRecycled = false;
     }
 
@@ -144,25 +144,25 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
     }
 
     function getAccountNumber(
-        Account.Info memory account
+        Account.Info memory _account
     ) public pure returns (uint256) {
-        return _getAccountNumber(account.owner, account.number);
+        return _getAccountNumber(_account.owner, _account.number);
     }
 
     function getAccountPar(
-        Account.Info memory account
+        Account.Info memory _account
     ) public view returns (Types.Par memory) {
-        if (userToAccountNumberHasWithdrawnAfterRecycle[account.owner][account.number]) {
+        if (userToAccountNumberHasWithdrawnAfterRecycle[_account.owner][_account.number]) {
             return Types.zeroPar();
         } else {
             return DOLOMITE_MARGIN.getAccountParNoMarketCheck(
-                Account.Info(address(this), getAccountNumber(account)),
+                Account.Info(address(this), getAccountNumber(_account)),
                 MARKET_ID
             );
         }
     }
 
-    function depositIntoDolomiteMargin(uint accountNumber, uint amount) public nonReentrant {
+    function depositIntoDolomiteMargin(uint256 _accountNumber, uint256 _amount) public nonReentrant {
         Require.that(
             !isRecycled,
             FILE,
@@ -175,83 +175,80 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             MAX_EXPIRATION_TIMESTAMP
         );
 
-        TOKEN.safeTransferFrom(msg.sender, address(this), amount);
+        TOKEN.safeTransferFrom(msg.sender, address(this), _amount);
 
-        Account.Info[] memory accounts = new Account.Info[](1);
-        accounts[0] = Account.Info(address(this), _getAccountNumber(msg.sender, accountNumber));
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Deposit,
-            accountId: 0,
-            // solium-disable-next-line arg-overflow
-            amount: Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, amount),
-            primaryMarketId: MARKET_ID,
-            secondaryMarketId: uint(-1),
-            otherAddress: address(this),
-            otherAccountId: uint(-1),
-            data: bytes("")
-        });
-
-        DOLOMITE_MARGIN.operate(accounts, actions);
+        AccountActionLib.deposit(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ address(this), // solium-disable-line indentation
+            /* _fromOwner = */ address(this), // solium-disable-line indentation
+            _getAccountNumber(msg.sender, _accountNumber),
+            MARKET_ID,
+            Types.AssetAmount({
+                sign : true,
+                denomination : Types.AssetDenomination.Wei,
+                ref : Types.AssetReference.Delta,
+                value : _amount
+            })
+        );
     }
 
-    function withdrawFromDolomiteMargin(uint accountNumber, uint amount) public nonReentrant {
+    function withdrawFromDolomiteMargin(
+        uint256 _accountNumber,
+        uint256 _amount,
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
+    ) public nonReentrant {
         Require.that(
             !isRecycled,
             FILE,
             "cannot withdraw when recycled"
         );
 
-        Account.Info[] memory accounts = new Account.Info[](1);
-        accounts[0] = Account.Info(address(this), _getAccountNumber(msg.sender, accountNumber));
-
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Withdraw,
-            accountId: 0,
-            // solium-disable-next-line arg-overflow
-            amount: Types.AssetAmount(false, Types.AssetDenomination.Wei, Types.AssetReference.Delta, amount),
-            primaryMarketId: MARKET_ID,
-            secondaryMarketId: uint(-1),
-            otherAddress: msg.sender,
-            otherAccountId: uint(-1),
-            data: bytes("")
-        });
-
-        DOLOMITE_MARGIN.operate(accounts, actions);
+        AccountActionLib.withdraw(
+            DOLOMITE_MARGIN,
+            /* _accountOwner = */ address(this), // solium-disable-line indentation
+            _getAccountNumber(msg.sender, _accountNumber),
+            /* _fromOwner = */ address(this), // solium-disable-line indentation
+            MARKET_ID,
+            Types.AssetAmount({
+                sign : false,
+                denomination : Types.AssetDenomination.Wei,
+                ref : Types.AssetReference.Delta,
+                value : _amount
+            }),
+            _balanceCheckFlag
+        );
     }
 
-    function withdrawAfterRecycle(uint accountNumber) public nonReentrant {
+    function withdrawAfterRecycle(uint256 _accountNumber) public nonReentrant {
         Require.that(
             isRecycled,
             FILE,
             "not recycled yet"
         );
         Require.that(
-            !userToAccountNumberHasWithdrawnAfterRecycle[msg.sender][accountNumber],
+            !userToAccountNumberHasWithdrawnAfterRecycle[msg.sender][_accountNumber],
             FILE,
             "user already withdrew"
         );
-        userToAccountNumberHasWithdrawnAfterRecycle[msg.sender][accountNumber] = true;
+        userToAccountNumberHasWithdrawnAfterRecycle[msg.sender][_accountNumber] = true;
         TOKEN.safeTransfer(
             msg.sender,
             DOLOMITE_MARGIN.getAccountParNoMarketCheck(
-                Account.Info(address(this), _getAccountNumber(msg.sender, accountNumber)),
+                Account.Info(address(this), _getAccountNumber(msg.sender, _accountNumber)),
                 MARKET_ID
             ).value
         );
     }
 
     function trade(
-        uint256 accountNumber,
-        Types.AssetAmount memory supplyAmount, // equivalent to amounts[amounts.length - 1]
-        address borrowToken,
-        Types.AssetAmount memory borrowAmount,
-        address exchangeWrapper,
-        uint256 expirationTimestamp,
-        bool isOpen,
-        bytes memory tradeData
+        uint256 _accountNumber,
+        Types.AssetAmount memory _supplyAmount, // equivalent to amounts[amounts.length - 1]
+        address _borrowToken,
+        Types.AssetAmount memory _borrowAmount,
+        address _exchangeWrapper,
+        uint256 _expiryTimeDelta,
+        bool _isOpen,
+        bytes memory _tradeData
     ) public {
         Require.that(
             !isRecycled,
@@ -265,50 +262,37 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             MAX_EXPIRATION_TIMESTAMP
         );
         Require.that(
-            expirationTimestamp > block.timestamp,
+            uint32(_expiryTimeDelta) == _expiryTimeDelta,
             FILE,
-            "expiration timestamp too low",
-            expirationTimestamp
-        );
-        Require.that(
-            expirationTimestamp <= MAX_EXPIRATION_TIMESTAMP,
-            FILE,
-            "expiration timestamp too high",
-            expirationTimestamp
+            "expiration time delta invalid",
+            _expiryTimeDelta
         );
 
         uint256 marketId = MARKET_ID;
-        uint256 borrowMarketId = DOLOMITE_MARGIN.getMarketIdByTokenAddress(borrowToken);
+        uint256 borrowMarketId = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_borrowToken);
 
         Account.Info[] memory accounts = new Account.Info[](1);
-        accounts[0] = Account.Info(address(this), _getAccountNumber(msg.sender, accountNumber));
+        accounts[0] = Account.Info(address(this), _getAccountNumber(msg.sender, _accountNumber));
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
         actions[0] = Actions.ActionArgs({
             actionType: Actions.ActionType.Sell,
             accountId: 0,
-            amount: isOpen ? borrowAmount : supplyAmount,
-            primaryMarketId: isOpen ? borrowMarketId : marketId,
-            secondaryMarketId: isOpen ? marketId : borrowMarketId,
-            otherAddress: exchangeWrapper,
+            amount: _isOpen ? _borrowAmount : _supplyAmount,
+            primaryMarketId: _isOpen ? borrowMarketId : marketId,
+            secondaryMarketId: _isOpen ? marketId : borrowMarketId,
+            otherAddress: _exchangeWrapper,
             otherAccountId: 0,
-            data: tradeData
+            data: _tradeData
         });
 
-        actions[1] = Actions.ActionArgs({
-            actionType : Actions.ActionType.Call,
-            accountId : 0,
-            // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(false, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
-            primaryMarketId : 0,
-            secondaryMarketId : 0,
-            otherAddress : address(EXPIRY),
-            otherAccountId : 0,
-            data : abi.encode(
-                    IExpiry.CallFunctionType.SetExpiry,
-                    _getExpiryArgs(accounts[0], borrowMarketId, isOpen ? expirationTimestamp : 0)
-                )
-        });
+        actions[1] = AccountActionLib.encodeExpirationAction(
+            accounts[0],
+            /* _accountId = */ 0, // solium-disable-line indentation
+            borrowMarketId,
+            address(EXPIRY),
+            _isOpen ? _expiryTimeDelta : 0
+        );
 
         DOLOMITE_MARGIN.operate(accounts, actions);
     }
@@ -346,21 +330,21 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
         return TOKEN.totalSupply();
     }
 
-    function balanceOf(address account) public view returns (uint256) {
-        if (account == address(DOLOMITE_MARGIN)) {
+    function balanceOf(address _account) public view returns (uint256) {
+        if (_account == address(DOLOMITE_MARGIN)) {
             // The effective balance of DolomiteMargin is the balance held of the underlying token in this contract
             return TOKEN.balanceOf(address(this));
         }
 
-        uint accountNumber = 0;
-        if (userToAccountNumberHasWithdrawnAfterRecycle[account][accountNumber]) {
+        uint256 accountNumber = 0;
+        if (userToAccountNumberHasWithdrawnAfterRecycle[_account][accountNumber]) {
             return 0;
         } else {
-            return getAccountPar(Account.Info(account, accountNumber)).value;
+            return getAccountPar(Account.Info(_account, accountNumber)).value;
         }
     }
 
-    function transfer(address recipient, uint256 amount) public onlyDolomiteMargin(msg.sender) returns (bool) {
+    function transfer(address _recipient, uint256 _amount) public onlyDolomiteMargin(msg.sender) returns (bool) {
         // This condition fails when the market is recycled but DolomiteMargin attempts to call this contract still
         Require.that(
             !isRecycled,
@@ -368,8 +352,8 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             "cannot transfer while recycled"
         );
 
-        TOKEN.safeTransfer(recipient, amount);
-        emit Transfer(msg.sender, recipient, amount);
+        TOKEN.safeTransfer(_recipient, _amount);
+        emit Transfer(msg.sender, _recipient, _amount);
         return true;
     }
 
@@ -382,13 +366,16 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
     }
 
     function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) public onlyDolomiteMargin(msg.sender) returns (bool) {
+        address _from,
+        address _to,
+        uint256 _amount
+    )
+    public
+    onlyDolomiteMargin(msg.sender)
+    returns (bool) {
         // transferFrom should always send tokens to DOLOMITE_MARGIN && msg.sender eq DOLOMITE_MARGIN
         Require.that(
-            to == address(msg.sender),
+            _to == address(msg.sender),
             FILE,
             "invalid recipient"
         );
@@ -398,16 +385,16 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             "cannot transfer while recycled"
         );
 
-        if (from == address(this)) {
+        if (_from == address(this)) {
             // token is being transferred from here to DolomiteMargin, for a deposit. The market's total par was already
             // updated before the call to `transferFrom`. Make sure enough was transferred in.
             // This implementation allows the user to "steal" funds from users that blindly send TOKEN into this
             // contract, without calling properly calling the `deposit` function to set their balances.
 
-            emit Transfer(address(this), to, amount);
+            emit Transfer(address(this), _to, _amount);
         } else {
             // TOKEN is being traded via IExchangeWrapper, transfer the tokens into this contract
-            TOKEN.safeTransferFrom(from, address(this), amount);
+            TOKEN.safeTransferFrom(_from, address(this), _amount);
 
             // The market's total par was already updated before the call to `transferFrom`. Make sure enough was
             // transferred in. This implementation allows the user to "steal" funds from users that blindly send TOKEN
@@ -415,12 +402,12 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
 
             // this transfer event is technically incorrect since the tokens are really sent from address(this) to
             // recipient, not `sender`. However, we'll let it go.
-            emit Transfer(from, to, amount);
+            emit Transfer(_from, _to, _amount);
         }
 
         uint256 balance = TOKEN.balanceOf(address(this));
         Require.that(
-            balance >= amount && balance >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply,
+            balance >= _amount && balance >= DOLOMITE_MARGIN.getMarketTotalPar(MARKET_ID).supply,
             FILE,
             "insufficient balance for deposit"
         );
@@ -430,23 +417,7 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
 
     // ============ Private Functions ============
 
-    function _getAccountNumber(address owner, uint number) private pure returns (uint256) {
-        return uint(keccak256(abi.encode(owner, number)));
+    function _getAccountNumber(address _owner, uint256 _number) private pure returns (uint256) {
+        return uint(keccak256(abi.encode(_owner, _number)));
     }
-
-    function _getExpiryArgs(
-        Account.Info memory account,
-        uint marketId,
-        uint expirationTimestamp
-    ) private view returns (IExpiry.SetExpiryArg[] memory) {
-        IExpiry.SetExpiryArg[] memory expiryArgs = new IExpiry.SetExpiryArg[](1);
-        expiryArgs[0] = IExpiry.SetExpiryArg({
-            account : account,
-            marketId : marketId,
-            timeDelta : expirationTimestamp == 0 ? 0 : uint32(expirationTimestamp - block.timestamp),
-            forceUpdate : true
-        });
-        return expiryArgs;
-    }
-
 }

@@ -18,13 +18,19 @@
 
 pragma solidity ^0.5.7;
 
-import "./OnlyDolomiteMargin.sol";
+import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
+import { Require } from "../../protocol/lib/Require.sol";
 
 
-contract AuthorizationBase is OnlyDolomiteMargin {
+contract AuthorizationBase {
+
+    // ============ Constants ============
+
+    bytes32 constant FILE = "AuthorizationBase";
 
     // ============ State Variables ============
 
+    IDolomiteMargin public DOLOMITE_MARGIN;
     mapping(address => bool) private _isCallerAuthorized;
 
     // ============ Modifiers ============
@@ -38,6 +44,18 @@ contract AuthorizationBase is OnlyDolomiteMargin {
         _;
     }
 
+    // ============ Constructor ============
+
+    constructor(
+        address _dolomiteMargin
+    )
+    public
+    {
+        DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
+    }
+
+    // ============ Public Functions ============
+
     /**
      * @dev Allows or disallows the `_caller` from invoking the functions in this contract where a `fromAccount` can be
      *      manually specified.
@@ -48,11 +66,11 @@ contract AuthorizationBase is OnlyDolomiteMargin {
             FILE,
             "unauthorized"
         );
-        isCallerAuthorized[_caller] = _isAuthorized;
+        _isCallerAuthorized[_caller] = _isAuthorized;
     }
 
     /**
-     * @param The `_caller` to check if it is authorized for calling "trusted" functions
+     * @param _caller The `_caller` to check if it is authorized for calling "trusted" functions
      */
     function isCallerAuthorized(address _caller) external view returns (bool) {
         return _isCallerAuthorized[_caller];

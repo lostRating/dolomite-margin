@@ -21,17 +21,19 @@ pragma solidity ^0.5.7;
 import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 
-interface IBorrowPositionProxyV1 {
+interface IBorrowPositionProxyV2 {
 
     // ========================= Events =========================
 
-    event BorrowPositionOpen(address indexed _borrower, uint256 indexed _borrowAccountNumber);
+    event BorrowPositionOpenWithUnderlying(address indexed _underlyingAccount);
 
     // ========================= Functions =========================
 
     /**
-     * @param _fromAccountNumber    The index from which `msg.sender` will be sourcing the deposit
-     * @param _toAccountNumber      The index into which `msg.sender` will be depositing
+     * @param _fromAccountOwner     The account from which the user will be sourcing the deposit
+     * @param _fromAccountNumber    The index from which `_toAccountOwner` will be sourcing the deposit
+     * @param _toAccountOwner       The account into which `_fromAccountOwner` will be depositing
+     * @param _toAccountNumber      The index into which `_fromAccountOwner` will be depositing
      * @param _collateralMarketId   The ID of the market being deposited
      * @param _amountWei            The amount, in Wei, to deposit
      * @param _balanceCheckFlag     Flag used to check if `_fromAccountNumber`, `_toAccountNumber`, or both accounts can
@@ -40,7 +42,9 @@ interface IBorrowPositionProxyV1 {
      *                              checked.
      */
     function openBorrowPosition(
+        address _fromAccountOwner,
         uint256 _fromAccountNumber,
+        address _toAccountOwner,
         uint256 _toAccountNumber,
         uint256 _collateralMarketId,
         uint256 _amountWei,
@@ -51,18 +55,24 @@ interface IBorrowPositionProxyV1 {
      * @notice  This method can only be called once the user's debt has been reduced to zero. Sends all
      *          `_collateralMarketIds` from `_borrowAccountNumber` to `_toAccountNumber`.
      *
+     * @param _borrowAccountOwner   The account from which collateral will be withdrawn
      * @param _borrowAccountNumber  The index from which `msg.sender` collateral will be withdrawn
-     * @param _toAccountNumber      The index into which `msg.sender` will be depositing leftover collateral
+     * @param _toAccountOwner       The account into which `_borrowAccountOwner` will be depositing leftover collateral
+     * @param _toAccountNumber      The index into which `_borrowAccountOwner` will be depositing leftover collateral
      * @param _collateralMarketIds  The IDs of the markets being withdrawn, to close the position
      */
     function closeBorrowPosition(
+        address _borrowAccountOwner,
         uint256 _borrowAccountNumber,
+        address _toAccountOwner,
         uint256 _toAccountNumber,
         uint256[] calldata _collateralMarketIds
     ) external;
 
     /**
+     * @param _fromAccountOwner     The account from which assets will be withdrawn
      * @param _fromAccountNumber    The index from which `msg.sender` will be withdrawing assets
+     * @param _toAccountOwner       The account to which assets will be deposited
      * @param _toAccountNumber      The index into which `msg.sender` will be depositing assets
      * @param _marketId             The ID of the market being transferred
      * @param _amountWei            The amount, in Wei, to transfer
@@ -72,7 +82,9 @@ interface IBorrowPositionProxyV1 {
      *                              checked.
      */
     function transferBetweenAccounts(
+        address _fromAccountOwner,
         uint256 _fromAccountNumber,
+        address _toAccountOwner,
         uint256 _toAccountNumber,
         uint256 _marketId,
         uint256 _amountWei,
@@ -80,7 +92,9 @@ interface IBorrowPositionProxyV1 {
     ) external;
 
     /**
+     * @param _toAccountOwner       The account from which assets will be withdrawn for repayment
      * @param _toAccountNumber      The index from which `msg.sender` will be depositing assets
+     * @param _borrowAccountOwner   The account of the borrow position that will receive the deposited assets
      * @param _borrowAccountNumber  The index of the borrow position for that will receive the deposited assets
      * @param _marketId             The ID of the market being transferred
      * @param _balanceCheckFlag     Flag used to check if `_toAccountNumber`, `_borrowAccountNumber`, or both accounts
@@ -89,7 +103,9 @@ interface IBorrowPositionProxyV1 {
      *                              checked.
      */
     function repayAllForBorrowPosition(
+        address _toAccountOwner,
         uint256 _toAccountNumber,
+        address _borrowAccountOwner,
         uint256 _borrowAccountNumber,
         uint256 _marketId,
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag

@@ -31,10 +31,10 @@ import { Interest } from "../../protocol/lib/Interest.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { AccountActionLib } from "../helpers/AccountActionLib.sol";
-import { AccountBalanceLib } from "../helpers/AccountBalanceLib.sol";
-import { AccountMarginLib } from "../helpers/AccountMarginLib.sol";
-import { ERC20Lib } from "../helpers/ERC20Lib.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
+import { AccountMarginLib } from "../lib/AccountMarginLib.sol";
+import { ERC20Lib } from "../lib/ERC20Lib.sol";
 
 import { TypedSignature } from "../lib/TypedSignature.sol";
 import { DolomiteAmmLibrary } from "../lib/DolomiteAmmLibrary.sol";

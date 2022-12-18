@@ -23,8 +23,6 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
-
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
@@ -65,7 +63,7 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
         emit BorrowPositionOpen(msg.sender, _toAccountNumber);
 
         AccountActionLib.transfer(
-            IDolomiteMargin(DOLOMITE_MARGIN),
+            DOLOMITE_MARGIN,
             /* _fromAccountOwner = */ msg.sender, // solium-disable-line
             _fromAccountNumber,
             /* _toAccountOwner = */ msg.sender, // solium-disable-line
@@ -100,7 +98,7 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
             );
         }
 
-        IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
+        DOLOMITE_MARGIN.operate(accounts, actions);
     }
 
     function transferBetweenAccounts(
@@ -111,9 +109,10 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external {
         AccountActionLib.transfer(
-            IDolomiteMargin(DOLOMITE_MARGIN),
-            msg.sender,
+            DOLOMITE_MARGIN,
+            /* _fromAccountOwner = */ msg.sender, // solium-disable-line
             _fromAccountNumber,
+            /* _toAccountOwner = */ msg.sender, // solium-disable-line
             _toAccountNumber,
             _marketId,
             Types.AssetAmount({
@@ -128,12 +127,12 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
 
     // solium-disable-next-line security/no-assign-params
     function repayAllForBorrowPosition(
-        uint256 _fromAccountNumber,
+        uint256 _toAccountNumber,
         uint256 _borrowAccountNumber,
         uint256 _marketId,
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external {
-        // reverse the ordering of the `_borrowAccountNumber` and `_fromAccountNumber`, so using `Target = 0` calculates
+        // reverse the ordering of the `_borrowAccountNumber` and `_toAccountNumber`, so using `Target = 0` calculates
         // on `_borrowAccountNumber`. We then need to reverse the `AccountBalanceLib.BalanceCheckFlag` if it's set to
         // `from` or `to`.
         if (_balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.To) {
@@ -143,10 +142,11 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
         }
 
         AccountActionLib.transfer(
-            IDolomiteMargin(DOLOMITE_MARGIN),
-            msg.sender,
+            DOLOMITE_MARGIN,
+            /* _borrowAccountOwner = */ msg.sender, // solium-disable-line
             _borrowAccountNumber,
-            _fromAccountNumber,
+            /* _toAccountOwner = */ msg.sender, // solium-disable-line
+            _toAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,

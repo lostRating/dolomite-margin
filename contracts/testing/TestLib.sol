@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import {AccountMarginLib} from "../external/helpers/AccountMarginHelper.sol";
+import { AccountMarginLib } from "../external/lib/AccountMarginLib.sol";
 import { AdvancedMath } from "../external/lib/AdvancedMath.sol";
 import { TypedSignature } from "../external/lib/TypedSignature.sol";
 

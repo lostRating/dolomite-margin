@@ -19,7 +19,7 @@
 pragma solidity >=0.5.0;
 pragma experimental ABIEncoderV2;
 
-import "../lib/Types.sol";
+import { Types } from "../lib/Types.sol";
 
 
 interface ILiquidationCallback {
@@ -37,10 +37,10 @@ interface ILiquidationCallback {
      *                      is going from negative to 0.
      */
     function onLiquidate(
-        uint accountNumber,
-        uint heldMarketId,
+        uint256 accountNumber,
+        uint256 heldMarketId,
         Types.Wei calldata heldDeltaWei,
-        uint owedMarketId,
+        uint256 owedMarketId,
         Types.Wei calldata owedDeltaWei
     ) external;
 }

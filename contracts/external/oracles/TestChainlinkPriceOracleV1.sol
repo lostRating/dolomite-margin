@@ -19,7 +19,10 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "./ChainlinkPriceOracleV1.sol";
+import { Monetary } from "../../protocol/lib/Monetary.sol";
+
+import { ChainlinkPriceOracleV1 } from "./ChainlinkPriceOracleV1.sol";
+import { IChainlinkFlags } from "./IChainlinkFlags.sol";
 
 
 /**

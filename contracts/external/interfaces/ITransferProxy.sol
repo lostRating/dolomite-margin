@@ -21,6 +21,10 @@ pragma solidity ^0.5.7;
 
 interface ITransferProxy {
 
+    function isCallerTrusted(address caller) external view returns (bool);
+
+    function setIsCallerTrusted(address caller, bool isTrusted) external;
+
     function transfer(
         uint256 fromAccountIndex,
         address to,

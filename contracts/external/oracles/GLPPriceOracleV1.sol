@@ -19,16 +19,17 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../../protocol/interfaces/IPriceOracle.sol";
-import "../../protocol/lib/Monetary.sol";
-import "../../protocol/lib/Require.sol";
+import { IPriceOracle } from "../../protocol/interfaces/IPriceOracle.sol";
+import { Monetary } from "../../protocol/lib/Monetary.sol";
+import { Require } from "../../protocol/lib/Require.sol";
 
-import "../interfaces/IChainlinkAggregator.sol";
-import "../interfaces/IGLPManager.sol";
-import "../interfaces/IGMXVault.sol";
+import { IChainlinkAggregator } from "../interfaces/IChainlinkAggregator.sol";
+import { IChainlinkAutomation } from "../interfaces/IChainlinkAutomation.sol";
+import { IGLPManager } from "../interfaces/IGLPManager.sol";
+import { IGMXVault } from "../interfaces/IGMXVault.sol";
 
 
 /**
@@ -38,7 +39,7 @@ import "../interfaces/IGMXVault.sol";
  *  An implementation of the IPriceOracle interface that makes GMX's GLP prices compatible with the protocol. It uses a
  *  15-minute TWAP price of the GLP, accounting for fees and slippage.
  */
-contract GLPPriceOracleV1 is IPriceOracle {
+contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
     using SafeMath for uint256;
 
     // ============================ Events ============================
@@ -59,7 +60,7 @@ contract GLPPriceOracleV1 is IPriceOracle {
     address public glpManager;
     address public gmxVault;
     address public glp;
-    address public fGlp;
+    address public dsGlp;
     uint256 public priceCumulative;
     uint256 public lastOraclePriceUpdateTimestamp;
 
@@ -71,17 +72,27 @@ contract GLPPriceOracleV1 is IPriceOracle {
         address _glpManager,
         address _gmxVault,
         address _glp,
-        address _fGlp
+        address _dsGlp
     ) public {
         glpManager = _glpManager;
         gmxVault = _gmxVault;
         glp = _glp;
-        fGlp = _fGlp;
+        dsGlp = _dsGlp;
 
         lastOraclePriceUpdateTimestamp = block.timestamp - EXPIRATION_DURATION;
     }
 
-    function updateOraclePrice() external {
+    function checkUpkeep(
+        bytes calldata
+    )
+    external
+    view
+    returns (bool, bytes memory /* performData */) {
+        bool upkeepNeeded = (block.timestamp - lastOraclePriceUpdateTimestamp) >= UPDATE_DURATION;
+        return (upkeepNeeded, bytes(""));
+    }
+
+    function performUpkeep(bytes calldata) external {
         uint256 timeElapsed = block.timestamp - lastOraclePriceUpdateTimestamp;
         Require.that(
             timeElapsed >= UPDATE_DURATION,
@@ -115,7 +126,7 @@ contract GLPPriceOracleV1 is IPriceOracle {
             "oracle price not set"
         );
         Require.that(
-            token == glp || token == fGlp,
+            token == dsGlp,
             FILE,
             "invalid token"
         );

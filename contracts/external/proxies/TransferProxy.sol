@@ -29,6 +29,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 
 import { AuthorizationBase } from "../helpers/AuthorizationBase.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
 
@@ -149,7 +150,7 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](_markets.length);
         for (uint i = 0; i < _markets.length; i++) {
-            actions[i] = AccountActionHelper.encodeTransfer(
+            actions[i] = AccountActionLib.encodeTransferAction(
                 /* _fromAccountId = */ 0, // solhint-disable-line indent
                 /* _fromAccountId = */ 1, // solhint-disable-line indent
                 _markets[i],

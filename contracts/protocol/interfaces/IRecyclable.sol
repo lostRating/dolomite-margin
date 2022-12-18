@@ -24,6 +24,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Account } from "../lib/Account.sol";
 import { Types } from "../lib/Types.sol";
 
+import { AccountBalanceLib } from "../../external/lib/AccountBalanceLib.sol";
+
 
 /**
  * @title IRecyclable
@@ -39,7 +41,7 @@ contract IRecyclable {
      * @notice The max timestamp at which tokens represented by this contract should be expired, allowing liquidators
      *          to close margin positions involving this token, so this contract can be recycled.
      */
-    uint public MAX_EXPIRATION_TIMESTAMP;
+    uint256 public MAX_EXPIRATION_TIMESTAMP;
 
     // ============ Public Functions ============
 
@@ -67,26 +69,31 @@ contract IRecyclable {
     function getAccountPar(Account.Info calldata account) external view returns (Types.Par memory);
 
     /**
-     * @return  True if this contract is recycled, disallowing further deposits/interactions with DolomiteMargin and freeing this
-     *          token's `MARKET_ID`.
+     * @return  True if this contract is recycled, disallowing further deposits/interactions with DolomiteMargin and
+     *          freeing this token's `MARKET_ID`.
      */
     function isRecycled() external view returns (bool);
 
     /**
-     * @dev Deposits the underlying token into this smart contract and adds to the user's balance with DolomiteMargin. The user
-     *      must set an allowance for `TOKEN`, using this contract as the `spender`.
+     * @dev Deposits the underlying token into this smart contract and adds to the user's balance with DolomiteMargin.
+     *      The user must set an allowance for `TOKEN`, using this contract as the `spender`.
      */
-    function depositIntoDolomiteMargin(uint accountNumber, uint amount) external;
+    function depositIntoDolomiteMargin(uint256 accountNumber, uint256 amount) external;
 
     /**
      * @dev Withdraws a specific amount of a user's balance from the smart contract to `msg.sender`
      */
-    function withdrawFromDolomiteMargin(uint accountNumber, uint amount) external;
+    function withdrawFromDolomiteMargin(
+        uint256 accountNumber,
+        uint256 amount,
+        AccountBalanceLib.BalanceCheckFlag balanceCheckFlag
+    )
+        external;
 
     /**
      * @dev Withdraws the user's remaining balance from the smart contract, after this contract has been recycled.
      */
-    function withdrawAfterRecycle(uint accountNumber) external;
+    function withdrawAfterRecycle(uint256 accountNumber) external;
 
     /**
      * @dev Performs a trade between a user and the specified `IExchangeWrapper` to open or a close a margin position
@@ -95,12 +102,12 @@ contract IRecyclable {
      *      `IExchangeWrapper`.
      */
     function trade(
-        uint accountNumber,
+        uint256 accountNumber,
         Types.AssetAmount calldata supplyAmount, // equivalent to amounts[amounts.length - 1]
         address borrowToken,
         Types.AssetAmount calldata borrowAmount,
         address exchangeWrapper,
-        uint expirationTimestamp,
+        uint256 expiryTimeDelta,
         bool isOpen,
         bytes calldata tradeData
     )

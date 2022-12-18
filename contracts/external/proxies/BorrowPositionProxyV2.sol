@@ -23,18 +23,18 @@ import { Address } from "@openzeppelin/contracts/utils/Address.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
-
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { IBorrowPositionProxyV2 } from "../interfaces/IBorrowPositionProxyV2.sol";
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 import { BorrowPositionProxyV1 } from "./BorrowPositionProxyV1.sol";
+import "../helpers/AuthorizationBase.sol";
 
 
 
@@ -45,14 +45,14 @@ import { BorrowPositionProxyV1 } from "./BorrowPositionProxyV1.sol";
  * @dev Proxy contract for opening borrow positions. This makes indexing easier and lowers gas costs on Arbitrum by
  *      minimizing call data
  */
-contract BorrowPositionProxyV2 is BorrowPositionProxyV1 {
+contract BorrowPositionProxyV2 is IBorrowPositionProxyV2, AuthorizationBase, BorrowPositionProxyV1 {
     using Types for Types.Par;
 
     constructor (
         address dolomiteMargin
     )
     public
-    BorrowPositionProxyV1(dolomiteMargin)
+    AuthorizationBase(dolomiteMargin)
     {}
 
     function openBorrowPosition(
@@ -63,15 +63,17 @@ contract BorrowPositionProxyV2 is BorrowPositionProxyV1 {
         uint256 _marketId,
         uint256 _amountWei,
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
-    ) external {
+    )
+    external
+    requireIsCallerAuthorized(msg.sender) {
         // Emit this before the call to DolomiteMargin so indexers get it before the Transfer events are emitted
-        emit BorrowPositionOpen(msg.sender, _toAccountNumber);
+        emit BorrowPositionOpen(_toAccountOwner, _toAccountNumber);
 
         AccountActionLib.transfer(
-            IDolomiteMargin(DOLOMITE_MARGIN),
-            /* _fromAccountOwner = */ msg.sender, // solium-disable-line
+            DOLOMITE_MARGIN,
+            _fromAccountOwner,
             _fromAccountNumber,
-            /* _toAccountOwner = */ msg.sender, // solium-disable-line
+            _toAccountOwner,
             _toAccountNumber,
             _marketId,
             Types.AssetAmount({
@@ -85,13 +87,17 @@ contract BorrowPositionProxyV2 is BorrowPositionProxyV1 {
     }
 
     function closeBorrowPosition(
+        address _borrowAccountOwner,
         uint256 _borrowAccountNumber,
+        address _toAccountOwner,
         uint256 _toAccountNumber,
         uint256[] calldata _collateralMarketIds
-    ) external {
+    )
+    external
+    requireIsCallerAuthorized(msg.sender) {
         Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, _borrowAccountNumber);
-        accounts[1] = Account.Info(msg.sender, _toAccountNumber);
+        accounts[0] = Account.Info(_borrowAccountOwner, _borrowAccountNumber);
+        accounts[1] = Account.Info(_toAccountOwner, _toAccountNumber);
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](_collateralMarketIds.length);
         for (uint256 i = 0; i < _collateralMarketIds.length; i++) {
@@ -103,20 +109,25 @@ contract BorrowPositionProxyV2 is BorrowPositionProxyV1 {
             );
         }
 
-        IDolomiteMargin(DOLOMITE_MARGIN).operate(accounts, actions);
+        DOLOMITE_MARGIN.operate(accounts, actions);
     }
 
     function transferBetweenAccounts(
+        address _fromAccountOwner,
         uint256 _fromAccountNumber,
+        address _toAccountOwner,
         uint256 _toAccountNumber,
         uint256 _marketId,
         uint256 _amountWei,
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
-    ) external {
+    )
+    external
+    requireIsCallerAuthorized(msg.sender) {
         AccountActionLib.transfer(
-            IDolomiteMargin(DOLOMITE_MARGIN),
-            msg.sender,
+            DOLOMITE_MARGIN,
+            _fromAccountOwner,
             _fromAccountNumber,
+            _toAccountOwner,
             _toAccountNumber,
             _marketId,
             Types.AssetAmount({
@@ -131,12 +142,16 @@ contract BorrowPositionProxyV2 is BorrowPositionProxyV1 {
 
     // solium-disable-next-line security/no-assign-params
     function repayAllForBorrowPosition(
-        uint256 _fromAccountNumber,
+        address _toAccountOwner,
+        uint256 _toAccountNumber,
+        address _borrowAccountOwner,
         uint256 _borrowAccountNumber,
         uint256 _marketId,
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
-    ) external {
-        // reverse the ordering of the `_borrowAccountNumber` and `_fromAccountNumber`, so using `Target = 0` calculates
+    )
+    external
+    requireIsCallerAuthorized(msg.sender) {
+        // reverse the ordering of the `_borrowAccountNumber` and `_toAccountNumber`, so using `Target = 0` calculates
         // on `_borrowAccountNumber`. We then need to reverse the `AccountBalanceLib.BalanceCheckFlag` if it's set to
         // `from` or `to`.
         if (_balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.To) {
@@ -146,10 +161,11 @@ contract BorrowPositionProxyV2 is BorrowPositionProxyV1 {
         }
 
         AccountActionLib.transfer(
-            IDolomiteMargin(DOLOMITE_MARGIN),
-            msg.sender,
+            DOLOMITE_MARGIN,
+            _borrowAccountOwner,
             _borrowAccountNumber,
-            _fromAccountNumber,
+            _toAccountOwner,
+            _toAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,
