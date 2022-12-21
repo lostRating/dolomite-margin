@@ -19,25 +19,18 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
-import { Decimal } from "../../protocol/lib/Decimal.sol";
-import { Interest } from "../../protocol/lib/Interest.sol";
-import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
-import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
-import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
 import { IExpiry } from "../interfaces/IExpiry.sol";
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
-import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
 import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
 
 
@@ -49,10 +42,6 @@ import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.s
  * liquidity aggregation
  */
 contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTraderProxyWithBackup {
-    using DolomiteMarginMath for uint256;
-    using SafeMath for uint256;
-    using Types for Types.Par;
-    using Types for Types.Wei;
 
     // ============ Constants ============
 
@@ -156,7 +145,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     function _constructAccountsArray(
         Constants memory _constants
     )
-    private
+    internal
     pure
     returns (Account.Info[] memory)
     {
@@ -173,7 +162,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         uint256 _liquidAccountId,
         bytes memory _paraswapCallData
     )
-    private
+    internal
     view
     returns (Actions.ActionArgs[] memory)
     {

@@ -29,10 +29,18 @@ interface IWrappedTokenWithUserVaultFactory {
 
     function DOLOMITE_MARGIN() external view returns (IDolomiteMargin);
 
+    function createVault(address _account) external returns (address);
+
     /**
      * @return The address of the current vault implementation contract
      */
     function userVaultImplementation() external view returns (address);
+
+    function setUserVaultImplementation(address _userVaultImplementation) external;
+
+    function getVaultByUser(address _user) external view returns (address _vault);
+
+    function getUserByVault(address _vault) external view returns (address _user);
 
     function depositIntoDolomiteMargin(
         uint256 _toAccountNumber,

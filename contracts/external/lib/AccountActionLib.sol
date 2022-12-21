@@ -68,16 +68,12 @@ library AccountActionLib {
         });
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Deposit,
-            accountId: 0,
-            amount: _amount,
-            primaryMarketId: _marketId,
-            secondaryMarketId: 0,
-            otherAddress: _fromAccount,
-            otherAccountId: 0,
-            data: bytes("")
-        });
+        actions[0] = encodeDepositAction(
+            /* _accountId = */ 0, // solium-disable-line indentation
+            _marketId,
+            _amount,
+            _fromAccount
+        );
 
         _dolomiteMargin.operate(accounts, actions);
     }
@@ -101,16 +97,12 @@ library AccountActionLib {
         });
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](1);
-        actions[0] = Actions.ActionArgs({
-            actionType: Actions.ActionType.Withdraw,
-            accountId: 0,
-            amount: _amount,
-            primaryMarketId: _marketId,
-            secondaryMarketId: 0,
-            otherAddress: _toAccount,
-            otherAccountId: 0,
-            data: bytes("")
-        });
+        actions[0] = encodeWithdrawalAction(
+            /* _accountId = */ 0, // solium-disable-line indentation
+            _marketId,
+            _amount,
+            _toAccount
+        );
 
         _dolomiteMargin.operate(accounts, actions);
 
@@ -191,6 +183,42 @@ library AccountActionLib {
 
     // ========================= Encoding Functions =========================
 
+    function encodeCallAction(
+        uint256 _accountId,
+        address _callee,
+        bytes memory _callData
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType : Actions.ActionType.Call,
+            accountId : _accountId,
+            // solium-disable-next-line arg-overflow
+            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
+            primaryMarketId : 0,
+            secondaryMarketId : 0,
+            otherAddress : _callee,
+            otherAccountId : 0,
+            data : _callData
+        });
+    }
+
+    function encodeDepositAction(
+        uint256 _accountId,
+        uint256 _marketId,
+        Types.AssetAmount memory _amount,
+        address _fromAccount
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType: Actions.ActionType.Deposit,
+            accountId: _accountId,
+            amount: _amount,
+            primaryMarketId: _marketId,
+            secondaryMarketId: 0,
+            otherAddress: _fromAccount,
+            otherAccountId: 0,
+            data: bytes("")
+        });
+    }
+
     function encodeExpirationAction(
         Account.Info memory _account,
         uint256 _accountId,
@@ -212,17 +240,11 @@ library AccountActionLib {
             forceUpdate : true
         });
 
-        return Actions.ActionArgs({
-            actionType : Actions.ActionType.Call,
-            accountId : _accountId,
-            // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, 0),
-            primaryMarketId : 0,
-            secondaryMarketId : 0,
-            otherAddress : _expiry,
-            otherAccountId : 0,
-            data : abi.encode(IExpiry.CallFunctionType.SetExpiry, expiryArgs)
-        });
+        return encodeCallAction(
+            _accountId,
+            _expiry,
+            abi.encode(IExpiry.CallFunctionType.SetExpiry, expiryArgs)
+        );
     }
 
     function encodeExpiryLiquidateAction(
@@ -248,6 +270,28 @@ library AccountActionLib {
             otherAddress: _expiryProxy,
             otherAccountId: _liquidAccountId,
             data: abi.encode(_owedMarketId, _expiry)
+        });
+    }
+
+    function encodeInternalTradeAction(
+        uint256 _fromAccountId,
+        uint256 _toAccountId,
+        uint256 _primaryMarketId,
+        uint256 _secondaryMarketId,
+        address _traderAddress,
+        uint256 _amountInWei,
+        uint256 _amountOutWei
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType : Actions.ActionType.Trade,
+            accountId : _fromAccountId,
+            // solium-disable-next-line arg-overflow
+            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
+            primaryMarketId : _primaryMarketId,
+            secondaryMarketId : _secondaryMarketId,
+            otherAddress : _traderAddress,
+            otherAccountId : _toAccountId,
+            data : abi.encode(_amountOutWei)
         });
     }
 
@@ -297,28 +341,6 @@ library AccountActionLib {
         });
     }
 
-    function encodeInternalTradeAction(
-        uint256 _fromAccountId,
-        uint256 _toAccountId,
-        uint256 _primaryMarketId,
-        uint256 _secondaryMarketId,
-        address _traderAddress,
-        uint256 _amountInWei,
-        uint256 _amountOutWei
-    ) internal pure returns (Actions.ActionArgs memory) {
-        return Actions.ActionArgs({
-            actionType : Actions.ActionType.Trade,
-            accountId : _fromAccountId,
-            // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
-            primaryMarketId : _primaryMarketId,
-            secondaryMarketId : _secondaryMarketId,
-            otherAddress : _traderAddress,
-            otherAccountId : _toAccountId,
-            data : abi.encode(_amountOutWei)
-        });
-    }
-
     function encodeTransferAction(
         uint256 _fromAccountId,
         uint256 _toAccountId,
@@ -350,6 +372,24 @@ library AccountActionLib {
             otherAddress : address(0),
             otherAccountId : _toAccountId,
             data : bytes("")
+        });
+    }
+
+    function encodeWithdrawalAction(
+        uint256 _accountId,
+        uint256 _marketId,
+        Types.AssetAmount memory _amount,
+        address _toAccount
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType: Actions.ActionType.Withdraw,
+            accountId: _accountId,
+            amount: _amount,
+            primaryMarketId: _marketId,
+            secondaryMarketId: 0,
+            otherAddress: _toAccount,
+            otherAccountId: 0,
+            data: bytes("")
         });
     }
 }

@@ -19,19 +19,12 @@
 pragma solidity ^0.5.7;
 
 
-interface ILiquidityTokenUnwrapper {
+interface IGLPRewardRouterV2 {
 
-    /**
-     * @return The liquidity token that this contract can unwrap
-     */
-    function token() external view returns (address);
-
-    /**
-     * @notice  Unwraps `token` to its underlying components and sends them to `msg.sender`. This contract assumes an
-     *          approval of at least `_amount` in order to `safeTransferFrom(msg.sender, address(this), _amount)` the
-     *          `token` into this contract for unwrapping.
-     *
-     * @param _amount the Amount of `token` to be unwrapped and sent to `msg.sender`.
-     */
-    function unwrap(uint256 _amount) external;
+    function unstakeAndRedeemGlp(
+        address _tokenOut,
+        uint256 _glpAmount,
+        uint256 _minAmountOut,
+        address _receiver
+    ) external nonReentrant returns (uint256);
 }

@@ -21,6 +21,7 @@ pragma experimental ABIEncoderV2;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
@@ -51,9 +52,11 @@ import { WrappedTokenWithUserVaultProxy } from "./WrappedTokenWithUserVaultProxy
  */
 contract GLPWrappedTokenWithUserVault is
     IWrappedTokenWithUserVaultV1,
-    ICallee
+    ICallee,
+    ILiquidationCallback
     {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
     // ============ Constants ============
 
@@ -199,17 +202,27 @@ contract GLPWrappedTokenWithUserVault is
         // designated recipient
         IERC20 token = IERC20(UNDERLYING_TOKEN());
         (address recipient) = abi.decode(data, (address));
+        Require.that(
+            recipient != address(0),
+            FILE,
+            "Invalid recipient"
+        );
+
         uint256 transferAmount = cursorToQueuedTransferAmountMap[transferCursor++];
         Require.that(
             transferAmount > 0,
             FILE,
             "Invalid transfer"
         );
+
+        Types.Wei memory accountWei = DOLOMITE_MARGIN().getAccountWei(accountInfo, MARKET_ID());
         Require.that(
-            token.balanceOf(address(this)) >= transferAmount,
+            token.balanceOf(address(this)) >= transferAmount.add(accountWei.value),
             FILE,
             "Insufficient balance"
         );
+        assert(accountWei.sign);
+
         token.safeTransfer(recipient, transferAmount);
     }
 

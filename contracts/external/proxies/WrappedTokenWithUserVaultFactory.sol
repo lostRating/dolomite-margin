@@ -98,6 +98,7 @@ contract WrappedTokenWithUserVaultFactory is
     uint256 public MARKET_ID;
 
     // ============ Fields ============
+
     address public userVaultImplementation;
     bool public isInitialized;
     uint256 public transferCursor;
@@ -138,7 +139,7 @@ contract WrappedTokenWithUserVaultFactory is
         isInitialized = true;
     }
 
-    function createVault(address _account) external {
+    function createVault(address _account) external returns (address) {
         Require.that(
             userToVaultMap[_account] == address(0),
             FILE,
@@ -151,11 +152,20 @@ contract WrappedTokenWithUserVaultFactory is
         vaultToUserMap[vault] = _account;
         userToVaultMap[_account] = vault;
         IWrappedTokenWithUserVaultProxy(vault).initialize(_account);
+        return vault;
     }
 
     function setUserVaultImplementation(address _userVaultImplementation) external onlyOwner {
         emit UserVaultImplementationSet(userVaultImplementation, _userVaultImplementation);
         userVaultImplementation = _userVaultImplementation;
+    }
+
+    function getVaultByUser(address _user) external view returns (address _vault) {
+        _vault = userToVaultMap[_user];
+    }
+
+    function getUserByVault(address _vault) external view returns (address _user) {
+        _user = vaultToUserMap[_vault];
     }
 
     function depositIntoDolomiteMargin(

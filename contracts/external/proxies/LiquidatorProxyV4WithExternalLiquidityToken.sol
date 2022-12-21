@@ -19,26 +19,17 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
-import { Decimal } from "../../protocol/lib/Decimal.sol";
-import { Interest } from "../../protocol/lib/Interest.sol";
-import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
-import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
-import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { IExpiry } from "../interfaces/IExpiry.sol";
+import { ILiquidityTokenUnwrapperForLiquidation } from "../interfaces/ILiquidityTokenUnwrapperForLiquidation.sol";
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
-import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
-import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
+import { LiquidatorProxyV2WithExternalLiquidity } from "./LiquidatorProxyV2WithExternalLiquidity.sol";
 
 
 /**
@@ -48,11 +39,11 @@ import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.s
  * Contract for liquidating other accounts in DolomiteMargin that use external LP token(s) (ones that are not native to
  * Dolomite) as collateral or debt. All collateral is atomically sold off via Paraswap liquidity aggregation.
  */
-contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, ParaswapTraderProxyWithBackup {
-    using DolomiteMarginMath for uint256;
-    using SafeMath for uint256;
-    using Types for Types.Par;
-    using Types for Types.Wei;
+contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExternalLiquidity {
+
+    // ============ Events ============
+
+    event TokenUnwrapperForLiquidationSet(uint256 _marketId, ILiquidityTokenUnwrapperForLiquidation _unwrapper);
 
     // ============ Constants ============
 
@@ -60,7 +51,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
 
     // ============ Storage ============
 
-    IExpiry EXPIRY_PROXY;
+    mapping(uint256 => ILiquidityTokenUnwrapperForLiquidation) public marketIdToTokenUnwrapperForLiquidationMap;
 
     // ============ Constructor ============
 
@@ -70,110 +61,30 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
         address _paraswapTransferProxy,
         address _dolomiteMargin
     )
-    public ParaswapTraderProxyWithBackup(_paraswapAugustusRouter, _paraswapTransferProxy, _dolomiteMargin)
-    {
-        EXPIRY_PROXY = IExpiry(_expiryProxy);
-    }
-
-    // ============ Public Functions ============
-
-    /**
-     * Liquidate liquidAccount using solidAccount. This contract and the msg.sender to this contract must both be
-     * operators for the solidAccount.
-     *
-     * @param _solidAccount                 The account that will do the liquidating
-     * @param _liquidAccount                The account that will be liquidated
-     * @param _owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
-     * @param _heldMarket                   The held market whose collateral will be recovered to take on the debt of
-     *                                      `owedMarket`
-     * @param _expiry                       The time at which the position expires, if this liquidation is for closing
-     *                                      an expired position. Else, 0.
-     * @param _paraswapCallData             The calldata to be passed along to Paraswap's router for liquidation
-     */
-    function liquidate(
-        Account.Info memory _solidAccount,
-        Account.Info memory _liquidAccount,
-        uint256 _owedMarket,
-        uint256 _heldMarket,
-        uint256 _expiry,
-        bytes memory _paraswapCallData
-    )
     public
-    nonReentrant
-    {
-        // put all values that will not change into a single struct
-        Constants memory constants;
-        constants.dolomiteMargin = DOLOMITE_MARGIN;
-
-        _checkConstants(
-            constants,
-            _liquidAccount,
-            _owedMarket,
-            _heldMarket,
-            _expiry
-        );
-
-        constants.solidAccount = _solidAccount;
-        constants.liquidAccount = _liquidAccount;
-        constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(_liquidAccount);
-        constants.markets = _getMarketInfos(
-            constants.dolomiteMargin,
-            constants.dolomiteMargin.getAccountMarketsWithBalances(_solidAccount),
-            constants.liquidMarkets
-        );
-        constants.expiryProxy = _expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0));
-        constants.expiry = uint32(_expiry);
-
-        LiquidatorProxyCache memory cache = _initializeCache(
-            constants,
-            _heldMarket,
-            _owedMarket
-        );
-
-        // validate the msg.sender and that the liquidAccount can be liquidated
-        _checkBasicRequirements(constants, _owedMarket);
-
-        // get the max liquidation amount
-        _calculateAndSetMaxLiquidationAmount(cache);
-
-        Account.Info[] memory accounts = _constructAccountsArray(constants);
-
-        // TODO: if the LP token is used as the `_heldMarket`:
-        // TODO: operate 1: liquidate the `_liquidAccount`, sell ALL of the LP token for `owedToken`; in the call to
-        // TODO:            `exchange`, unwrap the LP token into its components and deposit.
-
-        // TODO: if the LP token is used as the `_owedMarket`:
-        // TODO: operate 1: liquidate the `_liquidAccount`, sell ALL of the `owedToken` for LP token components; in the call to
-        // TODO:            `exchange`, wrap any needed components into a single LP token for re-deposit
-
-
-        // execute the liquidations
-        constants.dolomiteMargin.operate(
-            accounts,
-            _constructActionsArray(
-                constants,
-                cache,
-                /* _solidAccountId = */ 0, // solium-disable-line indentation
-                /* _liquidAccount = */ 1, // solium-disable-line indentation
-                _paraswapCallData
-            )
-        );
-    }
-
-    // ============ Operation-Construction Functions ============
-
-    function _constructAccountsArray(
-        Constants memory _constants
+    LiquidatorProxyV2WithExternalLiquidity(
+        _expiryProxy,
+        _paraswapAugustusRouter,
+        _paraswapTransferProxy,
+        _dolomiteMargin
     )
-    private
-    pure
-    returns (Account.Info[] memory)
-    {
-        Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = _constants.solidAccount;
-        accounts[1] = _constants.liquidAccount;
-        return accounts;
+    {}
+
+    function setMarketIdToTokenUnwrapperForLiquidationMap(
+        uint256 _marketId,
+        address _unwrapper
+    ) external {
+        Require.that(
+            msg.sender == DOLOMITE_MARGIN.owner(),
+            FILE,
+            "Only owner can call",
+            msg.sender
+        );
+        marketIdToTokenUnwrapperForLiquidationMap[_marketId] = ILiquidityTokenUnwrapperForLiquidation(_unwrapper);
+        emit TokenUnwrapperForLiquidationSet(_marketId, _unwrapper);
     }
+
+    // ============ Internal Functions ============
 
     function _constructActionsArray(
         Constants memory _constants,
@@ -182,16 +93,38 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
         uint256 _liquidAccountId,
         bytes memory _paraswapCallData
     )
-    private
+    internal
     view
     returns (Actions.ActionArgs[] memory)
     {
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
+        // TODO: if the LP token is used as the `_heldMarket`:
+        // TODO: operate 1: liquidate the `_liquidAccount`, sell ALL of the LP token for `owedToken`; in the call to
+        // TODO:            `exchange`, unwrap the LP token into its components and deposit.
 
+        // TODO: if the LP token is used as the `_owedMarket`:
+        // TODO: operate 1: liquidate the `_liquidAccount`, sell ALL of the `owedToken` for LP token components; in the call to
+        // TODO:            `exchange`, wrap any needed components into a single LP token for re-deposit
+        Actions.ActionArgs[] memory actions;
+        ILiquidityTokenUnwrapperForLiquidation tokenUnwrapper =
+            marketIdToTokenUnwrapperForLiquidationMap[_cache.heldMarket];
+        uint256 outputMarket;
+        {
+            if (address(tokenUnwrapper) != address(0)) {
+                outputMarket = tokenUnwrapper.outputMarketId();
+                actions = new Actions.ActionArgs[](
+                    1 + tokenUnwrapper.actionsLength() + (outputMarket == _cache.owedMarket ? 0 : 1)
+                );
+            } else {
+                outputMarket = _cache.owedMarket;
+                actions = new Actions.ActionArgs[](2);
+            }
+        }
+
+        uint256 cursor = 0;
         if (_constants.expiry > 0) {
             // First action is a trade for closing the expired account
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = AccountActionLib.encodeExpiryLiquidateAction(
+            actions[cursor++] = AccountActionLib.encodeExpiryLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
                 _cache.owedMarket,
@@ -203,7 +136,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
         } else {
             // First action is a liquidation
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = AccountActionLib.encodeLiquidateAction(
+            actions[cursor++] = AccountActionLib.encodeLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
                 _cache.owedMarket,
@@ -212,15 +145,34 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is ReentrancyGuard, Paraswa
             );
         }
 
-        actions[1] = AccountActionLib.encodeExternalSellAction(
-            _solidAccountId,
-            _cache.heldMarket,
-            _cache.owedMarket,
-            /* _trader = */ address(this), // solium-disable-line indentation
-            _cache.solidHeldUpdateWithReward,
-            _cache.owedWeiToLiquidate,
-            _paraswapCallData
-        );
+        if (address(tokenUnwrapper) != address(0)) {
+
+
+            // Last action is a trade for selling the outputMarket into owedMarket
+            // accountId is liquidAccount; otherAccountId is solidAccount
+            if (_cache.owedMarket != outputMarket) {
+                actions[cursor++] = AccountActionLib.encodeExternalSellAction(
+                    _solidAccountId,
+                    outputMarket,
+                    _cache.owedMarket,
+                    /* _trader = */ address(this), // solium-disable-line indentation
+                    _cache.solidHeldUpdateWithReward, /// TODO: this is wrong
+                    /* _amountOutMinWei = */ _cache.owedWeiToLiquidate, // solium-disable-line indentation
+                    _paraswapCallData
+                );
+            }
+        } else {
+            actions[cursor++] = AccountActionLib.encodeExternalSellAction(
+                _solidAccountId,
+                _cache.heldMarket,
+                _cache.owedMarket,
+                /* _trader = */ address(this), // solium-disable-line indentation
+                _cache.solidHeldUpdateWithReward,
+                _cache.owedWeiToLiquidate,
+                _paraswapCallData
+            );
+
+        }
 
         return actions;
     }

@@ -43,6 +43,7 @@ contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
     using SafeMath for uint256;
 
     // ============================ Events ============================
+    // ============================ Events ============================
 
     event OraclePriceUpdated(uint256 oraclePrice, uint256 cumulativePrice);
 
@@ -68,6 +69,22 @@ contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
 
     uint256 private oraclePrice;
 
+    // ============================ Modifiers ============================
+
+    /**
+     * @notice A modifier that allows it to be simulated via eth_call by checking that the sender is the zero address.
+     */
+    modifier cannotExecute() {
+        Require.that(
+            tx.origin == address(0),
+            FILE,
+            "Must execute via eth_call"
+        );
+        _;
+    }
+
+    // ============================ Constructor ============================
+
     constructor(
         address _glpManager,
         address _gmxVault,
@@ -86,7 +103,7 @@ contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
         bytes calldata
     )
     external
-    view
+    cannotExecute
     returns (bool, bytes memory /* performData */) {
         bool upkeepNeeded = (block.timestamp - lastOraclePriceUpdateTimestamp) >= UPDATE_DURATION;
         return (upkeepNeeded, bytes(""));
@@ -140,6 +157,8 @@ contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
             value: _oraclePrice
         });
     }
+
+    // ============================ Internal Functions ============================
 
     function _getCurrentPrice() internal view returns (uint256) {
         IGMXVault _gmxVault = IGMXVault(gmxVault);
