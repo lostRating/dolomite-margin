@@ -109,7 +109,7 @@ contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolo
         actions[0] = AccountActionLib.encodeCallAction(
             _liquidAccountId,
             _liquidAccountOwner,
-            abi.encode(solidAccountVault)
+            /* _receiver[encoded] = */ abi.encode(solidAccountVault) // solium-disable-line indentation
         );
 
         uint256 outputMarket = USDC_MARKET_ID;
@@ -140,7 +140,7 @@ contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolo
 
     function exchange(
         address,
-        address receiver,
+        address,
         address makerToken,
         address takerToken,
         uint256 requestedFillAmount,
@@ -164,8 +164,8 @@ contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolo
         (uint256 minAmountOut) = abi.decode(orderData, (uint256));
 
         uint256 amountOut = GLP_REWARD_ROUTER.unstakeAndRedeemGlp(
-            makerToken,
-            requestedFillAmount,
+            /* _tokenOut = */ makerToken, // solium-disable-line indentation
+            /* _glpAmount = */ requestedFillAmount, // solium-disable-line indentation
             minAmountOut,
             /* _receiver = */ address(this) // solium-disable-line indentation
         );

@@ -332,7 +332,12 @@ library AccountActionLib {
             actionType : Actions.ActionType.Sell,
             accountId : _fromAccountId,
             // solium-disable-next-line arg-overflow
-            amount : Types.AssetAmount(false, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
+            amount : Types.AssetAmount({
+                sign : false,
+                denomination : Types.AssetDenomination.Wei,
+                ref : _amountInWei == ALL ? Types.AssetReference.Target : Types.AssetReference.Delta,
+                value : _amountInWei == ALL ? 0 : _amountInWei
+            }),
             primaryMarketId : _primaryMarketId,
             secondaryMarketId : _secondaryMarketId,
             otherAddress : _trader,

@@ -146,6 +146,15 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
         }
 
         if (address(tokenUnwrapper) != address(0)) {
+            actions[cursor++] = AccountActionLib.encodeExternalSellAction(
+                _solidAccountId,
+                outputMarket,
+                _cache.owedMarket,
+                /* _trader = */ address(this), // solium-disable-line indentation
+                AccountActionLib.all(), // liquidate whatever we get from the intermediate step
+                /* _amountOutMinWei = */ _cache.owedWeiToLiquidate, // solium-disable-line indentation
+                _paraswapCallData
+            );
 
 
             // Last action is a trade for selling the outputMarket into owedMarket
@@ -156,7 +165,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
                     outputMarket,
                     _cache.owedMarket,
                     /* _trader = */ address(this), // solium-disable-line indentation
-                    _cache.solidHeldUpdateWithReward, /// TODO: this is wrong
+                    AccountActionLib.all(), // liquidate whatever we get from the intermediate step
                     /* _amountOutMinWei = */ _cache.owedWeiToLiquidate, // solium-disable-line indentation
                     _paraswapCallData
                 );

@@ -198,6 +198,13 @@ contract GLPWrappedTokenWithUserVault is
             accountInfo.owner
         );
 
+        IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN();
+        Require.that(
+            dolomiteMargin.getAccountStatus(accountInfo) == Account.Status.Liquid,
+            FILE,
+            "Account not liquid"
+        );
+
         // This is called after a liquidation has occurred. We need to transfer excess tokens to the liquidator's
         // designated recipient
         IERC20 token = IERC20(UNDERLYING_TOKEN());
@@ -215,7 +222,7 @@ contract GLPWrappedTokenWithUserVault is
             "Invalid transfer"
         );
 
-        Types.Wei memory accountWei = DOLOMITE_MARGIN().getAccountWei(accountInfo, MARKET_ID());
+        Types.Wei memory accountWei = dolomiteMargin.getAccountWei(accountInfo, MARKET_ID());
         Require.that(
             token.balanceOf(address(this)) >= transferAmount.add(accountWei.value),
             FILE,
