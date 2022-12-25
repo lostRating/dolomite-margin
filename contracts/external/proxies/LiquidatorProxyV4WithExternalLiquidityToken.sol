@@ -146,19 +146,9 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
         }
 
         if (address(tokenUnwrapper) != address(0)) {
-            actions[cursor++] = AccountActionLib.encodeExternalSellAction(
-                _solidAccountId,
-                outputMarket,
-                _cache.owedMarket,
-                /* _trader = */ address(this), // solium-disable-line indentation
-                AccountActionLib.all(), // liquidate whatever we get from the intermediate step
-                /* _amountOutMinWei = */ _cache.owedWeiToLiquidate, // solium-disable-line indentation
-                _paraswapCallData
-            );
+            // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
 
-
-            // Last action is a trade for selling the outputMarket into owedMarket
-            // accountId is liquidAccount; otherAccountId is solidAccount
+            // If the `outputMarket` is different from the `_cache.owedMarket`, sell the `outputMarket` into it.
             if (_cache.owedMarket != outputMarket) {
                 actions[cursor++] = AccountActionLib.encodeExternalSellAction(
                     _solidAccountId,
