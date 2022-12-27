@@ -43,7 +43,7 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
 
     // ============ Events ============
 
-    event TokenUnwrapperForLiquidationSet(uint256 _marketId, ILiquidityTokenUnwrapperForLiquidation _unwrapper);
+    event TokenUnwrapperForLiquidationSet(uint256 _marketId, address _liquidityTokenUnwrapper);
 
     // ============ Constants ============
 
@@ -104,20 +104,18 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
         // TODO: if the LP token is used as the `_owedMarket`:
         // TODO: operate 1: liquidate the `_liquidAccount`, sell ALL of the `owedToken` for LP token components; in the call to
         // TODO:            `exchange`, wrap any needed components into a single LP token for re-deposit
+        uint256 outputMarket;
         Actions.ActionArgs[] memory actions;
         ILiquidityTokenUnwrapperForLiquidation tokenUnwrapper =
             marketIdToTokenUnwrapperForLiquidationMap[_cache.heldMarket];
-        uint256 outputMarket;
-        {
-            if (address(tokenUnwrapper) != address(0)) {
-                outputMarket = tokenUnwrapper.outputMarketId();
-                actions = new Actions.ActionArgs[](
-                    1 + tokenUnwrapper.actionsLength() + (outputMarket == _cache.owedMarket ? 0 : 1)
-                );
-            } else {
-                outputMarket = _cache.owedMarket;
-                actions = new Actions.ActionArgs[](2);
-            }
+        if (address(tokenUnwrapper) != address(0)) {
+            outputMarket = tokenUnwrapper.outputMarketId();
+            actions = new Actions.ActionArgs[](
+                tokenUnwrapper.actionsLength() + (outputMarket == _cache.owedMarket ? 1 : 2)
+            );
+        } else {
+            outputMarket = _cache.owedMarket;
+            actions = new Actions.ActionArgs[](2);
         }
 
         uint256 cursor = 0;
@@ -147,15 +145,35 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
 
         if (address(tokenUnwrapper) != address(0)) {
             // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
+            Actions.ActionArgs[] memory unwrapActions = tokenUnwrapper.createActionsForUnwrappingForLiquidation(
+                _solidAccountId,
+                _liquidAccountId,
+                _constants.solidAccount.owner,
+                _constants.liquidAccount.owner,
+                _cache.owedMarket,
+                _cache.heldMarket,
+                _cache.owedWeiToLiquidate,
+                _cache.solidHeldUpdateWithReward
+            );
+            for (uint256 i = 0; i < unwrapActions.length; i++) {
+                actions[cursor++] = unwrapActions[i];
+            }
 
             // If the `outputMarket` is different from the `_cache.owedMarket`, sell the `outputMarket` into it.
             if (_cache.owedMarket != outputMarket) {
+                IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
+                uint256 outputAmountFromPreviousStep = tokenUnwrapper.getExchangeCost(
+                    dolomiteMargin.getMarketTokenAddress(_cache.heldMarket),
+                    dolomiteMargin.getMarketTokenAddress(outputMarket),
+                    _cache.solidHeldUpdateWithReward,
+                    bytes("")
+                );
                 actions[cursor++] = AccountActionLib.encodeExternalSellAction(
                     _solidAccountId,
                     outputMarket,
                     _cache.owedMarket,
                     /* _trader = */ address(this), // solium-disable-line indentation
-                    AccountActionLib.all(), // liquidate whatever we get from the intermediate step
+                    outputAmountFromPreviousStep, // liquidate whatever we get from the intermediate step
                     /* _amountOutMinWei = */ _cache.owedWeiToLiquidate, // solium-disable-line indentation
                     _paraswapCallData
                 );
@@ -170,7 +188,6 @@ contract LiquidatorProxyV4WithExternalLiquidityToken is LiquidatorProxyV2WithExt
                 _cache.owedWeiToLiquidate,
                 _paraswapCallData
             );
-
         }
 
         return actions;

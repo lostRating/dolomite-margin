@@ -75,11 +75,13 @@ contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
      * @notice A modifier that allows it to be simulated via eth_call by checking that the sender is the zero address.
      */
     modifier cannotExecute() {
+        // solium-disable security/no-tx-origin
         Require.that(
             tx.origin == address(0),
             FILE,
             "Must execute via eth_call"
         );
+        // solium-enable security/no-tx-origin
         _;
     }
 

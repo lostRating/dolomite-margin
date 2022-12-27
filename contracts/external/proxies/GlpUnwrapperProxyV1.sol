@@ -26,13 +26,15 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
+import { Actions } from "../../protocol/lib/Actions.sol";
 import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
-import { ERC20Lib } from "../lib/ERC20Lib.sol";
+import { IGLPManager } from "../interfaces/IGLPManager.sol";
 import { IGLPRewardRouterV2 } from "../interfaces/IGLPRewardRouterV2.sol";
+import { IGMXVault } from "../interfaces/IGMXVault.sol";
 import { IWrappedTokenWithUserVaultFactory } from "../interfaces/IWrappedTokenWithUserVaultFactory.sol";
 import { ILiquidityTokenUnwrapperForLiquidation } from "../interfaces/ILiquidityTokenUnwrapperForLiquidation.sol";
 
@@ -45,35 +47,46 @@ import { ILiquidityTokenUnwrapperForLiquidation } from "../interfaces/ILiquidity
  */
 contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolomiteMargin {
     using SafeERC20 for IERC20;
+    using SafeMath for uint256;
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "GlpUnwrapperProxyV1";
-    uint256 constant ACTIONS_LENGTH = 2;
+    bytes32 internal constant FILE = "GlpUnwrapperProxyV1";
+    uint256 internal constant ACTIONS_LENGTH = 2;
+    uint256 public constant BASIS_POINTS_DIVISOR = 10000;
 
     // ============ State Variables ============
 
     address public USDC;
     uint256 public USDC_MARKET_ID;
+    IGLPManager public GLP_MANAGER;
     IGLPRewardRouterV2 public GLP_REWARD_ROUTER;
+    IGMXVault public GMX_VAULT;
+    IERC20 public GLP;
     IWrappedTokenWithUserVaultFactory public DS_GLP;
 
     // ============ Constructor ============
 
     constructor(
         address _usdc,
+        address _glpManager,
         address _glpRewardRouter,
+        address _gmxVault,
+        address _glp,
         address _dsGlp,
         address _dolomiteMargin
     )
     public
     OnlyDolomiteMargin(_dolomiteMargin) {
         USDC = _usdc;
-        USDC_MARKET_ID = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_usdc);
+        GLP_MANAGER = IGLPManager(_glpManager);
         GLP_REWARD_ROUTER = IGLPRewardRouterV2(_glpRewardRouter);
+        GMX_VAULT = IGMXVault(_gmxVault);
+        GLP = IERC20(_glp);
         DS_GLP = IWrappedTokenWithUserVaultFactory(_dsGlp);
 
-        ERC20Lib.checkAllowanceAndApprove(_usdc, _dolomiteMargin, uint(-1));
+        USDC_MARKET_ID = IDolomiteMargin(_dolomiteMargin).getMarketIdByTokenAddress(_usdc);
+        IERC20(_usdc).safeApprove(_dolomiteMargin, uint256(- 1));
     }
 
     function token() external view returns (address) {
@@ -93,37 +106,29 @@ contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolo
         uint256 _liquidAccountId,
         address _solidAccountOwner,
         address _liquidAccountOwner,
-        uint256 _owedMarket,
+        uint256,
         uint256 _heldMarket,
-        uint256 _owedAmount,
+        uint256,
         uint256 _heldAmountWithReward
     )
     external
+    view
     returns (Actions.ActionArgs[] memory) {
-        address solidAccountVault = DS_GLP.getVaultByUser(_solidAccountOwner);
-        if (solidAccountVault == address(0)) {
-            solidAccountVault = DS_GLP.createVault(_solidAccountOwner);
-        }
-
-        actions = new Actions.ActionArgs[](ACTIONS_LENGTH);
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](ACTIONS_LENGTH);
+        // Transfer the liquidated GLP tokens to this contract
         actions[0] = AccountActionLib.encodeCallAction(
             _liquidAccountId,
             _liquidAccountOwner,
-            /* _receiver[encoded] = */ abi.encode(solidAccountVault) // solium-disable-line indentation
+            /* _receiver[encoded] = */ abi.encode(address(this)) // solium-disable-line indentation
         );
 
         uint256 outputMarket = USDC_MARKET_ID;
-        uint256 amountOutMinWei;
-        if (_owedMarket == outputMarket) {
-            amountOutMinWei = _owedAmount;
-        } else {
-            // convert _owedAmount to the corresponding outputMarket amount
-            amountOutMinWei = DolomiteMarginMath.getPartialRoundUp(
-                _owedAmount,
-                DOLOMITE_MARGIN.getMarketPrice(_owedMarket).value,
-                DOLOMITE_MARGIN.getMarketPrice(outputMarket).value
-            );
-        }
+        uint256 amountOut = getExchangeCost(
+            DOLOMITE_MARGIN.getMarketTokenAddress(_heldMarket),
+            DOLOMITE_MARGIN.getMarketTokenAddress(outputMarket),
+            _heldAmountWithReward,
+            /* _orderData = */ bytes("") // solium-disable-line indentation
+        );
 
         actions[1] = AccountActionLib.encodeExternalSellAction(
             _solidAccountId,
@@ -131,41 +136,53 @@ contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolo
             outputMarket,
             /* _trader = */ address(this), // solium-disable-line indentation
             /* _amountInWei = */ _heldAmountWithReward, // solium-disable-line indentation
-            /* _amountOutMinWei = */ amountOutMinWei, // solium-disable-line indentation
+            /* _amountOutMinWei = */ amountOut, // solium-disable-line indentation
             bytes("")
         );
 
-        return (actions, outputMarket);
+        return actions;
     }
 
     function exchange(
         address,
         address,
-        address makerToken,
-        address takerToken,
-        uint256 requestedFillAmount,
-        bytes calldata orderData
+        address _makerToken,
+        address _takerToken,
+        uint256 _requestedFillAmount,
+        bytes calldata _orderData
     )
     external
     onlyDolomiteMargin(msg.sender)
     returns (uint256) {
         Require.that(
-            takerToken == address(DS_GLP),
+            _takerToken == address(DS_GLP),
             FILE,
             "Taker token must be DS_GLP",
-            takerToken
+            _takerToken
         );
         Require.that(
-            makerToken == USDC,
+            _makerToken == USDC,
             FILE,
-            "Taker token must be USDC",
-            makerToken
+            "Maker token must be USDC",
+            _makerToken
         );
-        (uint256 minAmountOut) = abi.decode(orderData, (uint256));
+
+        // solium-disable indentation
+        {
+            uint256 balance = IERC20(DS_GLP.UNDERLYING_TOKEN()).balanceOf(address(this));
+            Require.that(
+                balance >= _requestedFillAmount,
+                FILE,
+                "Insufficient GLP for trade",
+                balance
+            );
+        }
+        // solium-enable indentation
+        (uint256 minAmountOut) = abi.decode(_orderData, (uint256));
 
         uint256 amountOut = GLP_REWARD_ROUTER.unstakeAndRedeemGlp(
-            /* _tokenOut = */ makerToken, // solium-disable-line indentation
-            /* _glpAmount = */ requestedFillAmount, // solium-disable-line indentation
+            /* _tokenOut = */ _makerToken, // solium-disable-line indentation
+            /* _glpAmount = */ _requestedFillAmount, // solium-disable-line indentation
             minAmountOut,
             /* _receiver = */ address(this) // solium-disable-line indentation
         );
@@ -174,14 +191,48 @@ contract GlpUnwrapperProxyV1 is ILiquidityTokenUnwrapperForLiquidation, OnlyDolo
     }
 
     function getExchangeCost(
-        address makerToken,
-        address takerToken,
-        uint256 desiredMakerToken,
-        bytes calldata orderData
+        address _makerToken,
+        address _takerToken,
+        uint256 _desiredMakerToken,
+        bytes memory _orderData
     )
-    external
+    public
     view
     returns (uint256) {
-        revert("GLPUnwrapperProxyV1: Not implemented");
+        Require.that(
+            _takerToken == address(DS_GLP),
+            FILE,
+            "Taker token must be DS_GLP",
+            _takerToken
+        );
+        Require.that(
+            _makerToken == USDC,
+            FILE,
+            "Maker token must be USDC",
+            _makerToken
+        );
+        IGMXVault gmxVault = GMX_VAULT;
+
+        uint256 aumInUsdg = GLP_MANAGER.getAumInUsdg(false);
+        uint256 glpSupply = GLP.totalSupply();
+        uint256 usdgAmount = _desiredMakerToken.mul(aumInUsdg).div(glpSupply);
+        uint256 redemptionAmount = gmxVault.getRedemptionAmount(_takerToken, usdgAmount);
+        uint256 feeBasisPoints = gmxVault.getFeeBasisPoints(
+            _makerToken,
+            usdgAmount,
+            gmxVault.mintBurnFeeBasisPoints(),
+            gmxVault.taxBasisPoints(),
+            /* _increment = */ false // solium-disable-line indentation
+        );
+        return _applyFees(redemptionAmount, feeBasisPoints);
+    }
+
+    // ================== Internal Functions ==================
+
+    function _applyFees(
+        uint256 _amount,
+        uint256 _feeBasisPoints
+    ) internal pure returns (uint256) {
+        return _amount.mul(BASIS_POINTS_DIVISOR.sub(_feeBasisPoints)).div(BASIS_POINTS_DIVISOR);
     }
 }

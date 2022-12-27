@@ -42,14 +42,34 @@ interface IWrappedTokenWithUserVaultFactory {
 
     function getUserByVault(address _vault) external view returns (address _user);
 
+    /**
+     * @param _toAccountNumber  The account number of the account to which the tokens will be deposited
+     * @param _amountWei        The amount of tokens to deposit
+     */
     function depositIntoDolomiteMargin(
         uint256 _toAccountNumber,
         uint256 _amountWei
     )
     external;
 
+    /**
+     * @param _fromAccountNumber    The account number of the account from which the tokens will be withdrawn
+     * @param _amountWei            The amount of tokens to withdraw
+     */
     function withdrawFromDolomiteMargin(
         uint256 _fromAccountNumber,
+        uint256 _amountWei
+    )
+    external;
+
+    /**
+     * @param _recipient    The address to which the underlying tokens will be transferred. Used for performing the
+     *                      unwrapping, therefore `_recipient` should be an instance of
+     *                      `ILiquidityTokenUnwrapperForLiquidation`
+     * @param _amountWei    The amount of tokens to transfer to the recipient
+     */
+    function liquidateWithinDolomiteMargin(
+        address _recipient,
         uint256 _amountWei
     )
     external;

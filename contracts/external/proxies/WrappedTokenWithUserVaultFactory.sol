@@ -20,12 +20,12 @@ pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
 import { ERC20 } from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import { ERC20Detailed } from "@openzeppelin/contracts/token/ERC20/ERC20Detailed.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/SafeERC20.sol";
 import { Create2 } from "@openzeppelin/contracts/utils/Create2.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
+import { IERC20Detailed } from "../../protocol/interfaces/IERC20Detailed.sol";
 import { ILiquidationCallback } from "../../protocol/interfaces/ILiquidationCallback.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
@@ -53,14 +53,19 @@ contract WrappedTokenWithUserVaultFactory is
     IWrappedTokenWithUserVaultFactory,
     OnlyDolomiteMargin,
     ReentrancyGuard,
-    ERC20,
-    ERC20Detailed {
+    IERC20Detailed,
+    ERC20 {
 
     // ============ Events ============
 
     event UserVaultImplementationSet(
         address indexed previousUserVaultImplementation,
         address indexed newUserVaultImplementation
+    );
+
+    event TokenUnwrapperSet(
+        address indexed tokenUnwrapper,
+        bool isTrusted
     );
 
     // ============ Constants ============
@@ -105,6 +110,7 @@ contract WrappedTokenWithUserVaultFactory is
     mapping(uint256 => QueuedTransfer) public cursorToQueuedTransferMap;
     mapping(address => address) public vaultToUserMap;
     mapping(address => address) public userToVaultMap;
+    mapping(address => bool) public tokenUnwrapperMap;
 
     constructor(
         address _underlyingToken,
@@ -112,16 +118,21 @@ contract WrappedTokenWithUserVaultFactory is
         address _dolomiteMargin
     )
     public
-    ERC20Detailed(
-        string(abi.encodePacked("Dolomite: ", ERC20Detailed(_underlyingToken).name())),
-        string(abi.encodePacked("d", ERC20Detailed(_underlyingToken).symbol())),
-        ERC20Detailed(_underlyingToken).decimals()
-    )
-    OnlyDolomiteMargin(
-        _dolomiteMargin
-    ) {
+    OnlyDolomiteMargin(_dolomiteMargin) {
         UNDERLYING_TOKEN = _underlyingToken;
         userVaultImplementation = _userVaultImplementation;
+    }
+
+    function name() external view returns (string memory) {
+        return string(abi.encodePacked("Dolomite: ", IERC20Detailed(UNDERLYING_TOKEN).name()));
+    }
+
+    function symbol() external view returns (string memory) {
+        return string(abi.encodePacked("d", IERC20Detailed(UNDERLYING_TOKEN).symbol()));
+    }
+
+    function decimals() external view returns (uint8) {
+        return IERC20Detailed(UNDERLYING_TOKEN).decimals();
     }
 
     function initialize() external {
@@ -158,6 +169,11 @@ contract WrappedTokenWithUserVaultFactory is
     function setUserVaultImplementation(address _userVaultImplementation) external onlyOwner {
         emit UserVaultImplementationSet(userVaultImplementation, _userVaultImplementation);
         userVaultImplementation = _userVaultImplementation;
+    }
+
+    function setIsTokenUnwrapper(address _tokenUnwrapper, bool _isTrusted) external onlyOwner {
+        tokenUnwrapperMap[_tokenUnwrapper] = _isTrusted;
+        emit TokenUnwrapperSet(_tokenUnwrapper, _isTrusted);
     }
 
     function getVaultByUser(address _user) external view returns (address _vault) {
@@ -223,6 +239,27 @@ contract WrappedTokenWithUserVaultFactory is
         );
     }
 
+    function liquidateWithinDolomiteMargin(
+        address _recipient,
+        uint256 _amountWei
+    )
+    external
+    requireIsVault(msg.sender)
+    requireIsInitialized {
+        Require.that(
+            tokenUnwrapperMap[_recipient],
+            FILE,
+            "Invalid liquidation recipient"
+        );
+        cursorToQueuedTransferMap[transferCursor] = QueuedTransfer({
+            from: address(DOLOMITE_MARGIN),
+            to: _recipient,
+            amount: _amountWei
+        });
+    }
+
+    // ================ Internal Functions ================
+
     function _transfer(
         address _from,
         address _to,
@@ -265,14 +302,16 @@ contract WrappedTokenWithUserVaultFactory is
                 "Invalid from"
             );
             IWrappedTokenWithUserVaultV1(_from).executeDepositIntoVault(_amount);
-        } else {
-            // transfers FROM DolomiteMargin must be made TO a vault
-            Require.that(
-                vaultToUserMap[_to] != address(0),
-                FILE,
-                "Invalid to"
-            );
+        } else if (vaultToUserMap[_to] != address(0)) {
+            // transfer FROM DolomiteMargin TO a vault
+            assert(_from == dolomiteMargin);
             IWrappedTokenWithUserVaultV1(_to).executeWithdrawalFromVault(_amount);
+        } else {
+            Require.that(
+                tokenUnwrapperMap[_to],
+                FILE,
+                "Invalid tokenUnwrapper"
+            );
         }
         emit Transfer(_from, _to, _amount);
     }

@@ -17,6 +17,7 @@
 */
 
 pragma solidity ^0.5.7;
+pragma experimental ABIEncoderV2;
 
 import { Actions } from "../../protocol/lib/Actions.sol";
 
@@ -30,7 +31,11 @@ contract ILiquidityTokenUnwrapperForLiquidation is IExchangeWrapper {
      */
     function token() external view returns (address);
 
-    function actionsLength() external view returns (uint256);
+    /**
+     * @return  The number of Actions used to unwrap the LP token into `outputMarketId`. If `owedMarketId` equals
+     *          `outputMarketId`, there is no need to chain additional actions on, since the debt will be paid off.
+     */
+    function actionsLength() external pure returns (uint256);
 
     function outputMarketId() external view returns (uint256);
 
@@ -48,9 +53,8 @@ contract ILiquidityTokenUnwrapperForLiquidation is IExchangeWrapper {
      * @param _heldMarket           The market that the liquid account holds and must be sold to repay the
      *                              `_owedMarket`.
      * @param _owedAmount           The amount of the `_owedMarket` that the liquid account owes and must repay.
-     * @param _heldAmount           The amount of the `_heldMarket` that the liquid account holds and must sell.
+     * @param _heldAmountWithReward The amount of the `_heldMarket` that the liquid account holds and must sell.
      * @return _actions             The actions that will be executed to unwrap the `_heldMarket` into `outputMarketId`.
-     * @param _outputMarket         The market that the `_heldMarket` will be unwrapped into.
      */
     function createActionsForUnwrappingForLiquidation(
         uint256 _solidAccountId,
@@ -62,6 +66,7 @@ contract ILiquidityTokenUnwrapperForLiquidation is IExchangeWrapper {
         uint256 _owedAmount,
         uint256 _heldAmountWithReward
     )
-    external
-    returns (Actions.ActionArgs[] memory _actions);
+        external
+        view
+        returns (Actions.ActionArgs[] memory _actions);
 }

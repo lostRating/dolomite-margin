@@ -230,6 +230,8 @@ contract GLPWrappedTokenWithUserVault is
         );
         assert(accountWei.sign);
 
+        VAULT_FACTORY().liquidateWithinDolomiteMargin(recipient, transferAmount);
+
         token.safeTransfer(recipient, transferAmount);
     }
 

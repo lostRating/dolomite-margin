@@ -26,5 +26,5 @@ interface IGLPRewardRouterV2 {
         uint256 _glpAmount,
         uint256 _minAmountOut,
         address _receiver
-    ) external nonReentrant returns (uint256);
+    ) external returns (uint256);
 }

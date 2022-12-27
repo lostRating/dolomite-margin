@@ -28,13 +28,12 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { AuthorizationBase } from "../helpers/AuthorizationBase.sol";
 import { IBorrowPositionProxyV2 } from "../interfaces/IBorrowPositionProxyV2.sol";
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 import { BorrowPositionProxyV1 } from "./BorrowPositionProxyV1.sol";
-import "../helpers/AuthorizationBase.sol";
 
 
 

@@ -21,6 +21,16 @@ pragma solidity ^0.5.7;
 
 interface IGMXVault {
 
+    function getFeeBasisPoints(
+        address _token,
+        uint256 _usdgDelta,
+        uint256 _feeBasisPoints,
+        uint256 _taxBasisPoints,
+        bool _increment
+    ) external view returns (uint256);
+
+    function getRedemptionAmount(address _token, uint256 _usdgAmount) external view returns (uint256);
+
     function taxBasisPoints() external view returns (uint256);
 
     function mintBurnFeeBasisPoints() external view returns (uint256);
