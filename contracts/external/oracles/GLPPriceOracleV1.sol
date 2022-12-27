@@ -102,16 +102,16 @@ contract GLPPriceOracleV1 is IPriceOracle, IChainlinkAutomation {
     }
 
     function checkUpkeep(
-        bytes calldata
+        bytes memory _data
     )
-    external
+    public
     cannotExecute
-    returns (bool, bytes memory /* performData */) {
-        bool upkeepNeeded = (block.timestamp - lastOraclePriceUpdateTimestamp) >= UPDATE_DURATION;
+    returns (bool upkeepNeeded, bytes memory /* performData */) {
+        upkeepNeeded = (block.timestamp - lastOraclePriceUpdateTimestamp) >= UPDATE_DURATION;
         return (upkeepNeeded, bytes(""));
     }
 
-    function performUpkeep(bytes calldata) external {
+    function performUpkeep(bytes memory _data) public {
         uint256 timeElapsed = block.timestamp - lastOraclePriceUpdateTimestamp;
         Require.that(
             timeElapsed >= UPDATE_DURATION,

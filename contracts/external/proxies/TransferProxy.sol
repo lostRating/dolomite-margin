@@ -58,9 +58,9 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
     // ============ External Functions ============
 
     function transfer(
-        uint256 _fromAccountIndex,
+        uint256 _fromAccountNumber,
         address _to,
-        uint256 _toAccountIndex,
+        uint256 _toAccountNumber,
         address _token,
         uint256 _amountWei
     )
@@ -75,18 +75,18 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
         amounts[0] = _amountWei;
 
         _transferMultiple(
-            _fromAccountIndex,
+            _fromAccountNumber,
             _to,
-            _toAccountIndex,
+            _toAccountNumber,
             markets,
             amounts
         );
     }
 
     function transferMultiple(
-        uint256 _fromAccountIndex,
+        uint256 _fromAccountNumber,
         address _to,
-        uint256 _toAccountIndex,
+        uint256 _toAccountNumber,
         address[] calldata _tokens,
         uint256[] calldata _amountsWei
     )
@@ -101,18 +101,18 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
         }
 
         _transferMultiple(
-            _fromAccountIndex,
+            _fromAccountNumber,
             _to,
-            _toAccountIndex,
+            _toAccountNumber,
             markets,
             _amountsWei
         );
     }
 
     function transferMultipleWithMarkets(
-        uint256 _fromAccountIndex,
+        uint256 _fromAccountNumber,
         address _to,
-        uint256 _toAccountIndex,
+        uint256 _toAccountNumber,
         uint256[] calldata _markets,
         uint256[] calldata _amountsWei
     )
@@ -121,18 +121,18 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
         requireIsCallerAuthorized(msg.sender)
     {
         _transferMultiple(
-            _fromAccountIndex,
+            _fromAccountNumber,
             _to,
-            _toAccountIndex,
+            _toAccountNumber,
             _markets,
             _amountsWei
         );
     }
 
     function _transferMultiple(
-        uint256 _fromAccountIndex,
+        uint256 _fromAccountNumber,
         address _to,
-        uint256 _toAccountIndex,
+        uint256 _toAccountNumber,
         uint256[] memory _markets,
         uint256[] memory _amounts
     )
@@ -145,8 +145,8 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
         );
 
         Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, _fromAccountIndex);
-        accounts[1] = Account.Info(_to, _toAccountIndex);
+        accounts[0] = Account.Info(msg.sender, _fromAccountNumber);
+        accounts[1] = Account.Info(_to, _toAccountNumber);
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](_markets.length);
         for (uint i = 0; i < _markets.length; i++) {

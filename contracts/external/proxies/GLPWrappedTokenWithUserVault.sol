@@ -40,8 +40,6 @@ import { IWrappedTokenWithUserVaultV1 } from "../interfaces/IWrappedTokenWithUse
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
-import { WrappedTokenWithUserVaultProxy } from "./WrappedTokenWithUserVaultProxy.sol";
-
 
 /**
  * @title GLPWrappedTokenWithUserVault
@@ -64,7 +62,7 @@ contract GLPWrappedTokenWithUserVault is
 
     // ============ Field Variables ============
 
-    uint256 transferCursor;
+    uint256 public transferCursor;
     mapping(uint256 => uint256) public cursorToQueuedTransferAmountMap;
 
     // ============ Modifiers ============
@@ -186,21 +184,21 @@ contract GLPWrappedTokenWithUserVault is
 
     function callFunction(
         address,
-        Account.Info memory accountInfo,
-        bytes memory data
+        Account.Info memory _accountInfo,
+        bytes memory _data
     )
     public
     onlyDolomiteMargin(msg.sender) {
         Require.that(
-            accountInfo.owner == address(this),
+            _accountInfo.owner == address(this),
             FILE,
             "Invalid account owner",
-            accountInfo.owner
+            _accountInfo.owner
         );
 
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN();
         Require.that(
-            dolomiteMargin.getAccountStatus(accountInfo) == Account.Status.Liquid,
+            dolomiteMargin.getAccountStatus(_accountInfo) == Account.Status.Liquid,
             FILE,
             "Account not liquid"
         );
@@ -208,7 +206,7 @@ contract GLPWrappedTokenWithUserVault is
         // This is called after a liquidation has occurred. We need to transfer excess tokens to the liquidator's
         // designated recipient
         IERC20 token = IERC20(UNDERLYING_TOKEN());
-        (address recipient) = abi.decode(data, (address));
+        (address recipient) = abi.decode(_data, (address));
         Require.that(
             recipient != address(0),
             FILE,
@@ -222,7 +220,7 @@ contract GLPWrappedTokenWithUserVault is
             "Invalid transfer"
         );
 
-        Types.Wei memory accountWei = dolomiteMargin.getAccountWei(accountInfo, MARKET_ID());
+        Types.Wei memory accountWei = dolomiteMargin.getAccountWei(_accountInfo, MARKET_ID());
         Require.that(
             token.balanceOf(address(this)) >= transferAmount.add(accountWei.value),
             FILE,

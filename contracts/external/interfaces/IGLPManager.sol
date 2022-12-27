@@ -21,5 +21,5 @@ pragma solidity ^0.5.7;
 
 interface IGLPManager {
 
-    function getAumInUsdg(bool maximise) external view returns (uint256);
+    function getAumInUsdg(bool _maximise) external view returns (uint256);
 }

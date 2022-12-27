@@ -54,7 +54,7 @@ contract ILiquidityTokenUnwrapperForLiquidation is IExchangeWrapper {
      *                              `_owedMarket`.
      * @param _owedAmount           The amount of the `_owedMarket` that the liquid account owes and must repay.
      * @param _heldAmountWithReward The amount of the `_heldMarket` that the liquid account holds and must sell.
-     * @return _actions             The actions that will be executed to unwrap the `_heldMarket` into `outputMarketId`.
+     * @return                      The actions that will be executed to unwrap the `_heldMarket` into `outputMarketId`.
      */
     function createActionsForUnwrappingForLiquidation(
         uint256 _solidAccountId,
@@ -68,5 +68,5 @@ contract ILiquidityTokenUnwrapperForLiquidation is IExchangeWrapper {
     )
         external
         view
-        returns (Actions.ActionArgs[] memory _actions);
+        returns (Actions.ActionArgs[] memory);
 }

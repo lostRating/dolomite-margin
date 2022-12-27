@@ -21,31 +21,31 @@ pragma solidity ^0.5.7;
 
 interface ITransferProxy {
 
-    function isCallerTrusted(address caller) external view returns (bool);
+    function isCallerTrusted(address _caller) external view returns (bool);
 
-    function setIsCallerTrusted(address caller, bool isTrusted) external;
+    function setIsCallerTrusted(address _caller, bool _isTrusted) external;
 
     function transfer(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        address token,
-        uint256 amountWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        address _token,
+        uint256 _amountWei
     ) external;
 
     function transferMultiple(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        address[] calldata tokens,
-        uint256[] calldata amountsWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        address[] calldata _tokens,
+        uint256[] calldata _amountsWei
     ) external;
 
     function transferMultipleWithMarkets(
-        uint fromAccountIndex,
-        address to,
-        uint toAccountIndex,
-        uint[] calldata markets,
-        uint[] calldata amountsWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        uint256[] calldata _markets,
+        uint256[] calldata _amountsWei
     ) external;
 }

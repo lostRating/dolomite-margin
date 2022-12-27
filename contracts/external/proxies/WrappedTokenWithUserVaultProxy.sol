@@ -47,19 +47,19 @@ contract WrappedTokenWithUserVaultProxy is
 
     // ============ Constants ============
 
-    bytes32 internal constant FILE = "WrappedTokenWithUserVaultProxy";
-    bytes32 internal constant IS_INITIALIZED_SLOT = bytes32(uint256(keccak256("eip1967.proxy.isInitialized")) - 1);
-    bytes32 internal constant VAULT_FACTORY_SLOT = bytes32(uint256(keccak256("eip1967.proxy.vaultFactory")) - 1);
-    bytes32 internal constant OWNER_SLOT = bytes32(uint256(keccak256("eip1967.proxy.owner")) - 1);
+    bytes32 constant FILE = "WrappedTokenWithUserVaultProxy";
+    bytes32 constant IS_INITIALIZED_SLOT = bytes32(uint256(keccak256("eip1967.proxy.isInitialized")) - 1);
+    bytes32 constant VAULT_FACTORY_SLOT = bytes32(uint256(keccak256("eip1967.proxy.vaultFactory")) - 1);
+    bytes32 constant OWNER_SLOT = bytes32(uint256(keccak256("eip1967.proxy.owner")) - 1);
 
     // ======== Modifiers =========
 
-    modifier onlyOwner {
+    modifier onlyOwner() {
         Require.that(msg.sender == owner(), FILE, "Caller is not the owner");
         _;
     }
 
-    modifier requireIsInitialized {
+    modifier requireIsInitialized() {
         Require.that(isInitialized(), FILE, "Not initialized");
         _;
     }
