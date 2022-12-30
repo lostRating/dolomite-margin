@@ -17,7 +17,8 @@
 */
 
 pragma solidity ^0.5.7;
-pragma experimental ABIEncoderV2;
+
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 
 interface IWrappedTokenWithUserVaultV1 {
@@ -26,10 +27,31 @@ interface IWrappedTokenWithUserVaultV1 {
 
     function withdrawFromVault(uint256 _fromAccountNumber, uint256 _amountWei) external;
 
-    function transferBetweenAccountNumbers(
+    function openBorrowPosition(
         uint256 _fromAccountNumber,
         uint256 _toAccountNumber,
         uint256 _amountWei
+    ) external;
+
+    function closeBorrowPosition(
+        uint256 _borrowAccountNumber,
+        uint256 _toAccountNumber,
+        uint256[] calldata _collateralMarketIds
+    ) external;
+
+    function transferBetweenAccounts(
+        uint256 _fromAccountNumber,
+        uint256 _toAccountNumber,
+        uint256 _marketId,
+        uint256 _amountWei,
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
+    ) external;
+
+    function repayAllForBorrowPosition(
+        uint256 _toAccountNumber,
+        uint256 _borrowAccountNumber,
+        uint256 _marketId,
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     function executeDepositIntoVault(uint256 _amountWei) external;

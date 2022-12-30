@@ -139,7 +139,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
     nonReentrant
     {
         // put all values that will not change into a single struct
-        Constants memory constants;
+        LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
         _checkConstants(
             constants,
@@ -261,7 +261,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
      *  - Basic checks by calling `checkBasicRequirements`
      */
     function _checkRequirements(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         uint256 _heldMarket,
         uint256 _owedMarket,
         address[] memory _tokenPath
@@ -286,7 +286,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
     }
 
     function _constructAccountsArray(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         Account.Info[] memory _accountsForTrade
     )
     internal
@@ -307,7 +307,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
     }
 
     function _constructActionsArray(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _cache,
         uint256 _solidAccountId,
         uint256 _liquidAccountId,
