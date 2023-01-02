@@ -62,11 +62,16 @@ contract IRecyclable {
     function initialize() external;
 
     /**
-     * @return The account number used to index into the account for this user
+     * @param _account  The user's account that should be converted to this recyclable's unique account number
+     * @return          The account number used to index into the account for this user
      */
-    function getAccountNumber(Account.Info calldata account) external pure returns (uint256);
+    function getAccountNumber(Account.Info calldata _account) external pure returns (uint256);
 
-    function getAccountPar(Account.Info calldata account) external view returns (Types.Par memory);
+    /**
+     * @param _account  The account whose par balance should be retrieved
+     * @return          The account number used to index into the account for this user
+     */
+    function getAccountPar(Account.Info calldata _account) external view returns (Types.Par memory);
 
     /**
      * @return  True if this contract is recycled, disallowing further deposits/interactions with DolomiteMargin and
@@ -77,23 +82,29 @@ contract IRecyclable {
     /**
      * @dev Deposits the underlying token into this smart contract and adds to the user's balance with DolomiteMargin.
      *      The user must set an allowance for `TOKEN`, using this contract as the `spender`.
+     * @param _accountNumber    The account number of `msg.sender`'s user's account
+     * @param _amount           The amount of `TOKEN` to deposit
      */
-    function depositIntoDolomiteMargin(uint256 accountNumber, uint256 amount) external;
+    function depositIntoDolomiteMargin(uint256 _accountNumber, uint256 _amount) external;
 
     /**
      * @dev Withdraws a specific amount of a user's balance from the smart contract to `msg.sender`
+     * @param _accountNumber    The account number of `msg.sender`'s user's account
+     * @param _amount           The amount of `TOKEN` to withdraw
+     * @param _balanceCheckFlag The flag used to check (if necessary) if the user has a non-negative balance.
      */
     function withdrawFromDolomiteMargin(
-        uint256 accountNumber,
-        uint256 amount,
-        AccountBalanceLib.BalanceCheckFlag balanceCheckFlag
+        uint256 _accountNumber,
+        uint256 _amount,
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
         external;
 
     /**
      * @dev Withdraws the user's remaining balance from the smart contract, after this contract has been recycled.
+     * @param _accountNumber    The account number of `msg.sender`'s user's account
      */
-    function withdrawAfterRecycle(uint256 accountNumber) external;
+    function withdrawAfterRecycle(uint256 _accountNumber) external;
 
     /**
      * @dev Performs a trade between a user and the specified `IExchangeWrapper` to open or a close a margin position
@@ -102,14 +113,14 @@ contract IRecyclable {
      *      `IExchangeWrapper`.
      */
     function trade(
-        uint256 accountNumber,
-        Types.AssetAmount calldata supplyAmount, // equivalent to amounts[amounts.length - 1]
-        address borrowToken,
-        Types.AssetAmount calldata borrowAmount,
-        address exchangeWrapper,
-        uint256 expiryTimeDelta,
-        bool isOpen,
-        bytes calldata tradeData
+        uint256 _accountNumber,
+        Types.AssetAmount calldata _supplyAmount, // equivalent to amounts[amounts.length - 1]
+        address _borrowToken,
+        Types.AssetAmount calldata _borrowAmount,
+        address _exchangeWrapper,
+        uint256 _expiryTimeDelta,
+        bool _isOpen,
+        bytes calldata _tradeData
     )
         external;
 

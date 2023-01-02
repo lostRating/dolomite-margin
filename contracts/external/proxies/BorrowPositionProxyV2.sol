@@ -141,8 +141,8 @@ contract BorrowPositionProxyV2 is IBorrowPositionProxyV2, AuthorizationBase, Bor
 
     // solium-disable-next-line security/no-assign-params
     function repayAllForBorrowPosition(
-        address _toAccountOwner,
-        uint256 _toAccountNumber,
+        address _fromAccountOwner,
+        uint256 _fromAccountNumber,
         address _borrowAccountOwner,
         uint256 _borrowAccountNumber,
         uint256 _marketId,
@@ -150,7 +150,7 @@ contract BorrowPositionProxyV2 is IBorrowPositionProxyV2, AuthorizationBase, Bor
     )
     external
     requireIsCallerAuthorized(msg.sender) {
-        // reverse the ordering of the `_borrowAccountNumber` and `_toAccountNumber`, so using `Target = 0` calculates
+        // reverse the ordering of the `_borrowAccountNumber` and `_fromAccountNumber`, so using `Target = 0` calculates
         // on `_borrowAccountNumber`. We then need to reverse the `AccountBalanceLib.BalanceCheckFlag` if it's set to
         // `from` or `to`.
         if (_balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.To) {
@@ -163,8 +163,8 @@ contract BorrowPositionProxyV2 is IBorrowPositionProxyV2, AuthorizationBase, Bor
             DOLOMITE_MARGIN,
             _borrowAccountOwner,
             _borrowAccountNumber,
-            _toAccountOwner,
-            _toAccountNumber,
+            _fromAccountOwner,
+            _fromAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,

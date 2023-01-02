@@ -17,20 +17,17 @@
 */
 
 pragma solidity ^0.5.7;
-pragma experimental ABIEncoderV2;
-
-import { IWrappedTokenWithUserVaultFactory } from "./IWrappedTokenWithUserVaultFactory.sol";
 
 
-interface IWrappedTokenWithUserVaultProxy {
+/**
+ * @title   IAuthorizationBase
+ * @author  Dolomite
+ * @notice  Interface for allowing only trusted callers to invoke functions that use the `requireIsCallerAuthorized`
+ *          modifier.
+ */
+interface IAuthorizationBase {
 
-    function initialize(address _account) external;
+    function setIsCallerAuthorized(address _caller, bool _isAuthorized) external;
 
-    function isInitialized() external view returns (bool);
-
-    function implementation() external view returns (address);
-
-    function vaultFactory() external view returns (IWrappedTokenWithUserVaultFactory);
-
-    function owner() external view returns (address);
+    function isCallerAuthorized(address _caller) external view returns (bool);
 }

@@ -21,11 +21,14 @@ pragma solidity ^0.5.7;
 import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 
+/**
+ * @title   IBorrowPositionProxyV2
+ * @author  Dolomite
+ * @notice  Similar to IBorrowPositionProxyV1, but allows for transferring positions/assets between wallets. Useful
+ *          for wallets that need to manage isolated assets in an owned-vault. All of the below write-functions require
+ *          the caller to be authorized to make an invocation.
+ */
 interface IBorrowPositionProxyV2 {
-
-    // ========================= Events =========================
-
-    event BorrowPositionOpenWithUnderlying(address indexed _underlyingAccount);
 
     // ========================= Functions =========================
 
@@ -92,19 +95,19 @@ interface IBorrowPositionProxyV2 {
     ) external;
 
     /**
-     * @param _toAccountOwner       The account from which assets will be withdrawn for repayment
-     * @param _toAccountNumber      The index from which `msg.sender` will be depositing assets
+     * @param _fromAccountOwner     The account from which assets will be withdrawn for repayment
+     * @param _fromAccountNumber    The index from which `msg.sender` will be depositing assets
      * @param _borrowAccountOwner   The account of the borrow position that will receive the deposited assets
      * @param _borrowAccountNumber  The index of the borrow position for that will receive the deposited assets
      * @param _marketId             The ID of the market being transferred
-     * @param _balanceCheckFlag     Flag used to check if `_toAccountNumber`, `_borrowAccountNumber`, or both accounts
+     * @param _balanceCheckFlag     Flag used to check if `_fromAccountNumber`, `_borrowAccountNumber`, or both accounts
      *                              can go negative after the transfer settles. Setting the flag to
      *                              `AccountBalanceLib.BalanceCheckFlag.None=3` results in neither account being
      *                              checked.
      */
     function repayAllForBorrowPosition(
-        address _toAccountOwner,
-        uint256 _toAccountNumber,
+        address _fromAccountOwner,
+        uint256 _fromAccountNumber,
         address _borrowAccountOwner,
         uint256 _borrowAccountNumber,
         uint256 _marketId,

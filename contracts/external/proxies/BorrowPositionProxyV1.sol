@@ -127,12 +127,12 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
 
     // solium-disable-next-line security/no-assign-params
     function repayAllForBorrowPosition(
-        uint256 _toAccountNumber,
+        uint256 _fromAccountNumber,
         uint256 _borrowAccountNumber,
         uint256 _marketId,
         AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external {
-        // reverse the ordering of the `_borrowAccountNumber` and `_toAccountNumber`, so using `Target = 0` calculates
+        // reverse the ordering of the `_borrowAccountNumber` and `_fromAccountNumber`, so using `Target = 0` calculates
         // on `_borrowAccountNumber`. We then need to reverse the `AccountBalanceLib.BalanceCheckFlag` if it's set to
         // `from` or `to`.
         if (_balanceCheckFlag == AccountBalanceLib.BalanceCheckFlag.To) {
@@ -146,7 +146,7 @@ contract BorrowPositionProxyV1 is IBorrowPositionProxyV1, OnlyDolomiteMargin, Re
             /* _borrowAccountOwner = */ msg.sender, // solium-disable-line
             _borrowAccountNumber,
             /* _toAccountOwner = */ msg.sender, // solium-disable-line
-            _toAccountNumber,
+            _fromAccountNumber,
             _marketId,
             Types.AssetAmount({
                 sign: false,

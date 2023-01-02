@@ -21,8 +21,10 @@ pragma solidity ^0.5.7;
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 
+import { IAuthorizationBase } from "../interfaces/IAuthorizationBase.sol";
 
-contract AuthorizationBase {
+
+contract AuthorizationBase is IAuthorizationBase {
 
     // ============ Constants ============
 

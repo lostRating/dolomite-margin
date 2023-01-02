@@ -22,6 +22,12 @@ pragma experimental ABIEncoderV2;
 import { Types } from "../lib/Types.sol";
 
 
+/**
+ * @title ILiquidationCallback
+ * @author Dolomite
+ *
+ * Interface that smart contract users can implement to be notified of their account being liquidated.
+ */
 interface ILiquidationCallback {
 
     /**
@@ -29,18 +35,18 @@ interface ILiquidationCallback {
      * new balances are set in state, so calling `getAccountPar/Wei` will return this liquidated account's balance
      * before `heldDeltaWei` or `owedDeltaWei` are applied.
      *
-     * @param accountNumber The account number being liquidated
-     * @param heldMarketId  The market that was positive for this account, whose collateral is being seized
-     * @param heldDeltaWei  The amount of seized collateral; always negative or 0
-     * @param owedMarketId  The borrowed balance that is being forcefully repaid
-     * @param owedDeltaWei  The amount of borrowed assets to be repaid. Always 0 or positive, since the user's balance
-     *                      is going from negative to 0.
+     * @param _accountNumber    The account number being liquidated
+     * @param _heldMarketId     The market that was positive for this account, whose collateral is being seized
+     * @param _heldDeltaWei     The amount of seized collateral; always negative or 0
+     * @param _owedMarketId     The borrowed balance that is being forcefully repaid
+     * @param _owedDeltaWei     The amount of borrowed assets to be repaid. Always 0 or positive, since the user's
+     *                          balance is going from negative to 0.
      */
     function onLiquidate(
-        uint256 accountNumber,
-        uint256 heldMarketId,
-        Types.Wei calldata heldDeltaWei,
-        uint256 owedMarketId,
-        Types.Wei calldata owedDeltaWei
+        uint256 _accountNumber,
+        uint256 _heldMarketId,
+        Types.Wei calldata _heldDeltaWei,
+        uint256 _owedMarketId,
+        Types.Wei calldata _owedDeltaWei
     ) external;
 }
