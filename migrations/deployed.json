@@ -412,6 +412,7 @@
             "transactionHash": "0x862d5bed4da7851f9598eff2c41856bfe7e1e25ede0ca5fbe7cfd292373cd108"
         }
     },
+    "LiquidatorProxyV3WithLiquidityToken": {},
     "AmmRebalancerProxyV1": {
         "42161": {
             "links": {},
@@ -566,7 +567,7 @@
             "transactionHash": "0x1e4409464803914ce5071d097a02a4e7ef94188444a3d2f77071fa1a1f596937"
         }
     },
-    "BorrowPositionProxy": {
+    "BorrowPositionProxyV1": {
         "42161": {
             "links": {},
             "address": "0xe43638797513ef7A6d326a95E8647d86d2f5a099",
@@ -583,6 +584,7 @@
             "transactionHash": "0x4a1c794ecbafe86f89de298d47d7e5875b2e2cea02f3b0534cefa6efbfc15242"
         }
     },
+    "BorrowPositionProxyV2": {},
     "MultiCall": {
         "80001": {
             "links": {},

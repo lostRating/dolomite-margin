@@ -33,23 +33,23 @@ interface IExchangeWrapper {
     /**
      * Exchange some amount of takerToken for makerToken.
      *
-     * @param  tradeOriginator      Address of the initiator of the trade (however, this value
+     * @param  _tradeOriginator     Address of the initiator of the trade (however, this value
      *                              cannot always be trusted as it is set at the discretion of the
      *                              msg.sender)
-     * @param  receiver             Address to set allowance on once the trade has completed
-     * @param  makerToken           Address of makerToken, the token to receive (target asset; IE path[path.length - 1])
-     * @param  takerToken           Address of takerToken, the token to pay (originator asset; IE path[0])
-     * @param  requestedFillAmount  Amount of takerToken being paid
-     * @param  orderData            Arbitrary bytes data for any information to pass to the exchange
+     * @param  _receiver            Address to set allowance on once the trade has completed
+     * @param  _makerToken          The token to receive (target asset; IE path[path.length - 1])
+     * @param  _takerToken          The token to pay (originator asset; IE path[0])
+     * @param  _requestedFillAmount Amount of takerToken being paid
+     * @param  _orderData           Arbitrary bytes data for any information to pass to the exchange
      * @return                      The amount of makerToken received
      */
     function exchange(
-        address tradeOriginator,
-        address receiver,
-        address makerToken,
-        address takerToken,
-        uint256 requestedFillAmount,
-        bytes calldata orderData
+        address _tradeOriginator,
+        address _receiver,
+        address _makerToken,
+        address _takerToken,
+        uint256 _requestedFillAmount,
+        bytes calldata _orderData
     )
         external
         returns (uint256);
@@ -60,17 +60,17 @@ interface IExchangeWrapper {
      * exactly desiredMakerToken, then it must return the price to buy the minimum amount greater
      * than desiredMakerToken
      *
-     * @param  makerToken         Address of makerToken, the token to receive
-     * @param  takerToken         Address of takerToken, the token to pay
-     * @param  desiredMakerToken  Amount of makerToken requested
-     * @param  orderData          Arbitrary bytes data for any information to pass to the exchange
-     * @return                    Amount of takerToken the needed to complete the exchange
+     * @param  _makerToken          The token to receive (target asset; IE path[path.length - 1])
+     * @param  _takerToken          The token to pay (originator asset; IE path[0])
+     * @param  _desiredMakerToken   Amount of `_makerToken` requested
+     * @param  _orderData           Arbitrary bytes data for any information to pass to the exchange
+     * @return                      Amount of `_takerToken` the needed to complete the exchange
      */
     function getExchangeCost(
-        address makerToken,
-        address takerToken,
-        uint256 desiredMakerToken,
-        bytes calldata orderData
+        address _makerToken,
+        address _takerToken,
+        uint256 _desiredMakerToken,
+        bytes calldata _orderData
     )
         external
         view

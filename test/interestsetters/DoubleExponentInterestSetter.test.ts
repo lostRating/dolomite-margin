@@ -2,8 +2,7 @@ import BigNumber from 'bignumber.js';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { resetEVM, snapshot } from '../helpers/EVM';
-import { ADDRESSES } from '../../src/lib/Constants';
-import { address } from '../../src';
+import { address, ADDRESSES } from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import {
   coefficientsToString,
@@ -261,7 +260,7 @@ describe('DoubleExponentInterestSetter', () => {
     expect(maxAPR2).to.eql(newAPR);
   });
 
-  it("Fails to deploy contracts whose coefficients don't add to 100", async () => {
+  it('Fails to deploy contracts whose coefficients don\'t add to 100', async () => {
     await expectThrow(
       dolomiteMargin.contracts.testDoubleExponentInterestSetter.methods
         .createNew({

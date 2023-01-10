@@ -16,6 +16,10 @@
 
 */
 
+/**
+ * @typedef {Object} artifacts
+ */
+
 const ethers = require('ethers');
 
 const {
@@ -61,6 +65,8 @@ const {
 
 // ============ Contracts ============
 
+
+
 // Base Protocol
 const AdminImpl = artifacts.require('AdminImpl');
 const DolomiteMargin = artifacts.require('DolomiteMargin');
@@ -101,8 +107,6 @@ const TestLinkUsdChainlinkAggregator = artifacts.require('TestLinkUsdChainlinkAg
 const TestLrcEthChainlinkAggregator = artifacts.require('TestLrcEthChainlinkAggregator');
 const TestMaticUsdChainlinkAggregator = artifacts.require('TestMaticUsdChainlinkAggregator');
 const TestUsdcUsdChainlinkAggregator = artifacts.require('TestUsdcUsdChainlinkAggregator');
-const TestMakerOracle = artifacts.require('TestMakerOracle');
-const TestOasisDex = artifacts.require('TestOasisDex');
 const TestChainlinkFlags = artifacts.require('TestChainlinkFlags');
 const TestInterestSetter = artifacts.require('TestInterestSetter');
 const TestPolynomialInterestSetter = artifacts.require('TestPolynomialInterestSetter');
@@ -119,29 +123,26 @@ const Expiry = artifacts.require('Expiry');
 const LiquidatorProxyV1 = artifacts.require('LiquidatorProxyV1');
 const LiquidatorProxyV1WithAmm = artifacts.require('LiquidatorProxyV1WithAmm');
 const LiquidatorProxyV2WithExternalLiquidity = artifacts.require('LiquidatorProxyV2WithExternalLiquidity');
+const LiquidatorProxyV3WithLiquidityToken = artifacts.require('LiquidatorProxyV3WithLiquidityToken');
 const PayableProxy = artifacts.require('PayableProxy');
 const SignedOperationProxy = artifacts.require('SignedOperationProxy');
 const TestAmmRebalancerProxy = artifacts.require('TestAmmRebalancerProxy');
 const TestUniswapAmmRebalancerProxy = artifacts.require('TestUniswapAmmRebalancerProxy');
 const TestUniswapV3MultiRouter = artifacts.require('TestUniswapV3MultiRouter');
 const TransferProxy = artifacts.require('TransferProxy');
-const BorrowPositionProxy = artifacts.require('BorrowPositionProxy');
+const BorrowPositionProxyV1 = artifacts.require('BorrowPositionProxyV1');
+const BorrowPositionProxyV2 = artifacts.require('BorrowPositionProxyV2');
 
 // Interest Setters
 const DoubleExponentInterestSetter = artifacts.require('DoubleExponentInterestSetter');
+const AAVECopyCatAltCoinInterestSetter = artifacts.require('AAVECopyCatAltCoinInterestSetter');
+const AAVECopyCatStableCoinInterestSetter = artifacts.require('AAVECopyCatStableCoinInterestSetter');
 
 // Amm
 const DolomiteAmmFactory = artifacts.require('DolomiteAmmFactory');
 const UniswapV2Factory = artifacts.require('UniswapV2Factory');
 const UniswapV2Router02 = artifacts.require('UniswapV2Router02');
 const SimpleFeeOwner = artifacts.require('SimpleFeeOwner');
-
-// GLP
-const GLPPriceOracleV1 = artifacts.require('GLPPriceOracleV1');
-const TestGLP = artifacts.require('TestGLP');
-const TestFGLP = artifacts.require('TestFGLP');
-const TestGLPManager = artifacts.require('TestGLPManager');
-const TestGMXVault = artifacts.require('TestGMXVault');
 
 // Paraswap
 const TestParaswapAugustusRouter = artifacts.require('TestParaswapAugustusRouter');
@@ -181,13 +182,7 @@ async function deployTestContracts(deployer, network) {
       deployer.deploy(TestExchangeWrapper),
       deployer.deploy(TestPolynomialInterestSetter, getPolynomialParams(network)),
       deployer.deploy(TestDoubleExponentInterestSetter, getDoubleExponentParams(network)),
-      deployer.deploy(TestMakerOracle),
-      deployer.deploy(TestOasisDex),
       deployer.deploy(TestChainlinkFlags),
-      deployer.deploy(TestGLP),
-      deployer.deploy(TestFGLP),
-      deployer.deploy(TestGLPManager),
-      deployer.deploy(TestGMXVault),
     ]);
   }
 }
@@ -307,6 +302,18 @@ async function deployInterestSetters(deployer, network) {
   } else {
     await deployer.deploy(DoubleExponentInterestSetter, getNoOverwriteParams());
   }
+
+  if (shouldOverwrite(AAVECopyCatAltCoinInterestSetter, network)) {
+    await deployer.deploy(AAVECopyCatAltCoinInterestSetter);
+  } else {
+    await deployer.deploy(AAVECopyCatAltCoinInterestSetter, getNoOverwriteParams());
+  }
+
+  if (shouldOverwrite(AAVECopyCatStableCoinInterestSetter, network)) {
+    await deployer.deploy(AAVECopyCatStableCoinInterestSetter);
+  } else {
+    await deployer.deploy(AAVECopyCatStableCoinInterestSetter, getNoOverwriteParams());
+  }
 }
 
 async function deployPriceOracles(deployer, network) {
@@ -324,16 +331,6 @@ async function deployPriceOracles(deployer, network) {
       deployer.deploy(TestMaticUsdChainlinkAggregator),
       deployer.deploy(TestUsdcUsdChainlinkAggregator),
     ]);
-  }
-
-  if (isDevNetwork(network)) {
-    await deployer.deploy(
-      GLPPriceOracleV1,
-      TestGLPManager.address,
-      TestGMXVault.address,
-      TestGLP.address,
-      TestFGLP.address,
-    );
   }
 
   const tokens = {
@@ -405,15 +402,28 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
-  const borrowPositionProxy = BorrowPositionProxy;
-  if (shouldOverwrite(borrowPositionProxy, network)) {
+  const borrowPositionProxyV1 = BorrowPositionProxyV1;
+  if (shouldOverwrite(borrowPositionProxyV1, network)) {
     await deployer.deploy(
-      borrowPositionProxy,
+      borrowPositionProxyV1,
       dolomiteMargin.address,
     );
   } else {
     await deployer.deploy(
-      borrowPositionProxy,
+      borrowPositionProxyV1,
+      getNoOverwriteParams(),
+    );
+  }
+
+  const borrowPositionProxyV2 = BorrowPositionProxyV2;
+  if (shouldOverwrite(borrowPositionProxyV2, network)) {
+    await deployer.deploy(
+      borrowPositionProxyV2,
+      dolomiteMargin.address,
+    );
+  } else {
+    await deployer.deploy(
+      borrowPositionProxyV2,
       getNoOverwriteParams(),
     );
   }
@@ -476,12 +486,18 @@ async function deploySecondLayer(deployer, network, accounts) {
 
   const dolomiteAmmRouterProxy = DolomiteAmmRouterProxy;
   if (shouldOverwrite(dolomiteAmmRouterProxy, network)) {
-    await deployer.deploy(
-      dolomiteAmmRouterProxy,
-      dolomiteMargin.address,
-      dolomiteAmmFactory.address,
-      expiry.address,
-    );
+    try {
+      await deployer.deploy(
+        dolomiteAmmRouterProxy,
+        dolomiteMargin.address,
+        dolomiteAmmFactory.address,
+        expiry.address,
+      );
+    } catch (e) {
+      const pairInitCodeHash = await (await DolomiteAmmFactory.deployed()).getPairInitCodeHash();
+      console.log('\n\nError deploying DolomiteAmmRouterProxy. Hash: ', pairInitCodeHash, '\n\n');
+      throw e;
+    }
   } else {
     await deployer.deploy(
       dolomiteAmmRouterProxy,
@@ -614,6 +630,27 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
+  const liquidatorProxyV3WithLiquidityToken = LiquidatorProxyV3WithLiquidityToken;
+  if (shouldOverwrite(liquidatorProxyV3WithLiquidityToken, network)) {
+    if (isDevNetwork(network)) {
+      await deployer.deploy(TestParaswapTransferProxy);
+      await deployer.deploy(TestParaswapAugustusRouter, TestParaswapTransferProxy.address);
+    }
+
+    await deployer.deploy(
+      liquidatorProxyV3WithLiquidityToken,
+      Expiry.address,
+      getParaswapAugustusRouter(network, TestParaswapAugustusRouter),
+      getParaswapTransferProxy(network, TestParaswapTransferProxy),
+      dolomiteMargin.address,
+    );
+  } else {
+    await deployer.deploy(
+      liquidatorProxyV3WithLiquidityToken,
+      getNoOverwriteParams(),
+    );
+  }
+
   const signedOperationProxy = SignedOperationProxy;
   if (shouldOverwrite(signedOperationProxy, network)) {
     await deployer.deploy(
@@ -654,7 +691,11 @@ async function deploySecondLayer(deployer, network, accounts) {
       true,
     ),
     dolomiteMargin.ownerSetGlobalOperator(
-      BorrowPositionProxy.address,
+      BorrowPositionProxyV1.address,
+      true,
+    ),
+    dolomiteMargin.ownerSetGlobalOperator(
+      BorrowPositionProxyV2.address,
       true,
     ),
     dolomiteMargin.ownerSetGlobalOperator(

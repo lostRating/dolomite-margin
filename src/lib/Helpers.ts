@@ -1,6 +1,7 @@
 import { BigNumber } from 'bignumber.js';
 import { INTEGERS } from './Constants';
 import { AmountDenomination, AmountReference, AssetAmount, Decimal, Integer } from '../types';
+import DolomiteMarginMath from '../modules/DolomiteMarginMath';
 
 export function stringToDecimal(s: string): Decimal {
   return new BigNumber(s).div(INTEGERS.INTEREST_RATE_BASE);
@@ -127,6 +128,38 @@ export function getInterestPerSecondForDoubleExponent(
     .div(INTEGERS.ONE_YEAR_IN_SECONDS)
     .div(PERCENT)
     .integerValue(BigNumber.ROUND_DOWN)
+    .div(BASE);
+}
+
+export function getInterestPerSecondForAAVECopyCat(
+  isStableCoin: boolean,
+  totals: { totalBorrowed: Integer; totalSupply: Integer },
+): Decimal {
+  const BASE = new BigNumber(1e18); // 100%
+  if (totals.totalBorrowed.isZero()) {
+    return INTEGERS.ZERO;
+  }
+  if (totals.totalSupply.isZero()) {
+    // totalBorrowed > 0
+    return BASE.dividedToIntegerBy(INTEGERS.ONE_YEAR_IN_SECONDS).div(BASE);
+  }
+
+  const utilization = DolomiteMarginMath.getPartial(BASE, totals.totalBorrowed.abs(), totals.totalSupply);
+  const NINETY_PERCENT = BASE.times(new BigNumber('0.9'));
+  const TEN_PERCENT = BASE.times(new BigNumber('0.1'));
+  const INITIAL_GOAL = BASE.times(isStableCoin ? new BigNumber('0.04') : new BigNumber('0.07'));
+
+  if (utilization.gte(BASE)) {
+    return BASE.dividedToIntegerBy(INTEGERS.ONE_YEAR_IN_SECONDS).div(BASE);
+  }
+  if (utilization.gt(NINETY_PERCENT)) {
+    // interest is equal to 4% + linear progress to 100% APR
+    const deltaToGoal = BASE.minus(INITIAL_GOAL);
+    const interestToAdd = deltaToGoal.times(utilization.minus(NINETY_PERCENT)).div(TEN_PERCENT);
+    return interestToAdd.plus(INITIAL_GOAL).dividedToIntegerBy(INTEGERS.ONE_YEAR_IN_SECONDS).div(BASE);
+  }
+  return DolomiteMarginMath.getPartial(INITIAL_GOAL, utilization, NINETY_PERCENT)
+    .dividedToIntegerBy(INTEGERS.ONE_YEAR_IN_SECONDS)
     .div(BASE);
 }
 

@@ -6,7 +6,7 @@ import {
   ContractConstantCallOptions,
   Integer,
   TxResult,
-} from '../../src/types';
+} from '../types';
 
 export class Expiry {
   private contracts: Contracts;

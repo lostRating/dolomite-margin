@@ -32,7 +32,23 @@ export async function expectThrowInvalidBalance(
     assertCertainError(e, REQUIRE_MSG);
     const accountIndexString = accountIndex instanceof BigNumber ? accountIndex.toFixed() : accountIndex.toString;
     const marketIdString = marketId instanceof BigNumber ? marketId.toFixed() : marketId.toString;
-    const reason = `AccountBalanceHelper: account cannot go negative <${account.toLowerCase()}, ${accountIndexString}, ${marketIdString}>`;
+    const reason = `AccountBalanceLib: account cannot go negative <${account.toLowerCase()}, ${accountIndexString}, ${marketIdString}>`;
+    if (process.env.COVERAGE !== 'true') {
+      assertCertainError(e, `${REQUIRE_MSG} ${reason}`);
+    }
+  }
+}
+
+export async function expectThrowUnauthorizedBase(
+  promise: Promise<any>,
+  caller: address,
+) {
+  try {
+    await promise;
+    throw new Error('Did not throw');
+  } catch (e) {
+    assertCertainError(e, REQUIRE_MSG);
+    const reason = `AuthorizationBase: unauthorized <${caller.toLowerCase()}>`;
     if (process.env.COVERAGE !== 'true') {
       assertCertainError(e, `${REQUIRE_MSG} ${reason}`);
     }

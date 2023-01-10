@@ -38,6 +38,7 @@ def hideAsserts(dir, filepath):
 
 def fixRequires(dir, filepath):
     oldRequire = 'Require.that('
+    ignoreRequire = 'ignore-coverage'
     allLines = []
     numRequiresChanged = 0
     inARequire = False
@@ -56,7 +57,8 @@ def fixRequires(dir, filepath):
             ifStatement += builder.lstrip();
 
         indexOfOldRequire = line.find(oldRequire)
-        if not inARequire and indexOfOldRequire >= 0:
+        indexOfIgnored = line.find(ignoreRequire)
+        if not inARequire and indexOfOldRequire >= 0 and indexOfIgnored == -1:
             inARequire = True
             requireLine = lineNumber
             numRequiresChanged += 1

@@ -24,6 +24,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { Account } from "../lib/Account.sol";
 import { Types } from "../lib/Types.sol";
 
+import { AccountBalanceLib } from "../../external/lib/AccountBalanceLib.sol";
+
 
 /**
  * @title IRecyclable
@@ -39,7 +41,7 @@ contract IRecyclable {
      * @notice The max timestamp at which tokens represented by this contract should be expired, allowing liquidators
      *          to close margin positions involving this token, so this contract can be recycled.
      */
-    uint public MAX_EXPIRATION_TIMESTAMP;
+    uint256 public MAX_EXPIRATION_TIMESTAMP;
 
     // ============ Public Functions ============
 
@@ -60,33 +62,47 @@ contract IRecyclable {
     function initialize() external;
 
     /**
-     * @return The account number used to index into the account for this user
+     * @param _account  The user's account that should be converted to this recyclable's unique account number
+     * @return          The account number used to index into the account for this user
      */
-    function getAccountNumber(Account.Info calldata account) external pure returns (uint256);
-
-    function getAccountPar(Account.Info calldata account) external view returns (Types.Par memory);
+    function getAccountNumber(Account.Info calldata _account) external pure returns (uint256);
 
     /**
-     * @return  True if this contract is recycled, disallowing further deposits/interactions with DolomiteMargin and freeing this
-     *          token's `MARKET_ID`.
+     * @param _account  The account whose par balance should be retrieved
+     * @return          The account number used to index into the account for this user
+     */
+    function getAccountPar(Account.Info calldata _account) external view returns (Types.Par memory);
+
+    /**
+     * @return  True if this contract is recycled, disallowing further deposits/interactions with DolomiteMargin and
+     *          freeing this token's `MARKET_ID`.
      */
     function isRecycled() external view returns (bool);
 
     /**
-     * @dev Deposits the underlying token into this smart contract and adds to the user's balance with DolomiteMargin. The user
-     *      must set an allowance for `TOKEN`, using this contract as the `spender`.
+     * @dev Deposits the underlying token into this smart contract and adds to the user's balance with DolomiteMargin.
+     *      The user must set an allowance for `TOKEN`, using this contract as the `spender`.
+     * @param _accountNumber    The account number of `msg.sender`'s user's account
+     * @param _amount           The amount of `TOKEN` to deposit
      */
-    function depositIntoDolomiteMargin(uint accountNumber, uint amount) external;
+    function depositIntoDolomiteMargin(uint256 _accountNumber, uint256 _amount) external;
 
     /**
      * @dev Withdraws a specific amount of a user's balance from the smart contract to `msg.sender`
+     * @param _accountNumber    The account number of `msg.sender`'s user's account
+     * @param _amount           The amount of `TOKEN` to withdraw
      */
-    function withdrawFromDolomiteMargin(uint accountNumber, uint amount) external;
+    function withdrawFromDolomiteMargin(
+        uint256 _accountNumber,
+        uint256 _amount
+    )
+        external;
 
     /**
      * @dev Withdraws the user's remaining balance from the smart contract, after this contract has been recycled.
+     * @param _accountNumber    The account number of `msg.sender`'s user's account
      */
-    function withdrawAfterRecycle(uint accountNumber) external;
+    function withdrawAfterRecycle(uint256 _accountNumber) external;
 
     /**
      * @dev Performs a trade between a user and the specified `IExchangeWrapper` to open or a close a margin position
@@ -95,14 +111,14 @@ contract IRecyclable {
      *      `IExchangeWrapper`.
      */
     function trade(
-        uint accountNumber,
-        Types.AssetAmount calldata supplyAmount, // equivalent to amounts[amounts.length - 1]
-        address borrowToken,
-        Types.AssetAmount calldata borrowAmount,
-        address exchangeWrapper,
-        uint expirationTimestamp,
-        bool isOpen,
-        bytes calldata tradeData
+        uint256 _accountNumber,
+        Types.AssetAmount calldata _supplyAmount, // equivalent to amounts[amounts.length - 1]
+        address _borrowToken,
+        Types.AssetAmount calldata _borrowAmount,
+        address _exchangeWrapper,
+        uint256 _expiryTimeDelta,
+        bool _isOpen,
+        bytes calldata _tradeData
     )
         external;
 

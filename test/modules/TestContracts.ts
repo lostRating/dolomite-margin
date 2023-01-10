@@ -29,7 +29,6 @@ import { TestCallee } from '../../build/testing_wrappers/TestCallee';
 import { TestSimpleCallee } from '../../build/testing_wrappers/TestSimpleCallee';
 import { TestExchangeWrapper } from '../../build/testing_wrappers/TestExchangeWrapper';
 import { TestPriceOracle } from '../../build/testing_wrappers/TestPriceOracle';
-import { TestOasisDex } from '../../build/testing_wrappers/TestOasisDex';
 import { TestInterestSetter } from '../../build/testing_wrappers/TestInterestSetter';
 import { TestPolynomialInterestSetter } from '../../build/testing_wrappers/TestPolynomialInterestSetter';
 import { TestDoubleExponentInterestSetter } from '../../build/testing_wrappers/TestDoubleExponentInterestSetter';
@@ -53,7 +52,6 @@ import testCalleeJson from '../../build/testing_contracts/TestCallee.json';
 import testSimpleCalleeJson from '../../build/testing_contracts/TestSimpleCallee.json';
 import testExchangeWrapperJson from '../../build/testing_contracts/TestExchangeWrapper.json';
 import testPriceOracleJson from '../../build/testing_contracts/TestPriceOracle.json';
-import testOasisDexJson from '../../build/testing_contracts/TestOasisDex.json';
 import testPolynomialInterestSetterJson from '../../build/testing_contracts/TestPolynomialInterestSetter.json';
 import testDoubleExponentInterestSetterJson from '../../build/testing_contracts/TestDoubleExponentInterestSetter.json';
 import testInterestSetterJson from '../../build/testing_contracts/TestInterestSetter.json';
@@ -65,6 +63,7 @@ import testUniswapV3MultiRouterJson from '../../build/testing_contracts/TestUnis
 import testChainlinkFlagsJson from '../../build/testing_contracts/TestChainlinkFlags.json';
 import testChainlinkPriceOracleJson from '../../build/testing_contracts/TestChainlinkPriceOracleV1.json';
 import testParaswapAugustusRouterJson from '../../build/testing_contracts/TestParaswapAugustusRouter.json';
+import testLiquidityTokenUnwrapperForLiquidationJson from '../../build/testing_contracts/TestLiquidityTokenUnwrapperForLiquidation.json';
 
 import { address, DolomiteMarginOptions } from '../../src';
 import { Contracts } from '../../src/lib/Contracts';
@@ -75,6 +74,9 @@ import { TestAmmRebalancerProxy } from '../../build/testing_wrappers/TestAmmReba
 import { TestUniswapV3MultiRouter } from '../../build/testing_wrappers/TestUniswapV3MultiRouter';
 import { TestChainlinkFlags } from '../../build/testing_wrappers/TestChainlinkFlags';
 import { ChainlinkPriceOracleV1 } from '../../build/wrappers/ChainlinkPriceOracleV1';
+import {
+  TestLiquidityTokenUnwrapperForLiquidation
+} from '../../build/testing_wrappers/TestLiquidityTokenUnwrapperForLiquidation';
 
 export class TestContracts extends Contracts {
   // Contract instances
@@ -99,7 +101,6 @@ export class TestContracts extends Contracts {
   public testSimpleCallee: TestSimpleCallee;
   public testExchangeWrapper: TestExchangeWrapper;
   public testPriceOracle: TestPriceOracle;
-  public testOasisDex: TestOasisDex;
   public testPolynomialInterestSetter: TestPolynomialInterestSetter;
   public testDoubleExponentInterestSetter: TestDoubleExponentInterestSetter;
   public testInterestSetter: TestInterestSetter;
@@ -108,6 +109,7 @@ export class TestContracts extends Contracts {
   public testUniswapV3MultiRouter: TestUniswapV3MultiRouter;
   public testChainlinkFlags: TestChainlinkFlags;
   public testParaswapAugustusRouter: TestParaswapAugustusRouter;
+  public testLiquidityTokenUnwrapperForLiquidation: TestLiquidityTokenUnwrapperForLiquidation;
 
   constructor(
     provider: Provider,
@@ -151,9 +153,6 @@ export class TestContracts extends Contracts {
     this.testPriceOracle = new this.web3.eth.Contract(
       testPriceOracleJson.abi,
     ) as TestPriceOracle;
-    this.testOasisDex = new this.web3.eth.Contract(
-      testOasisDexJson.abi,
-    ) as TestOasisDex;
     this.testInterestSetter = new this.web3.eth.Contract(
       testInterestSetterJson.abi,
     ) as TestInterestSetter;
@@ -181,6 +180,9 @@ export class TestContracts extends Contracts {
     this.testParaswapAugustusRouter = new this.web3.eth.Contract(
       testParaswapAugustusRouterJson.abi,
     ) as TestParaswapAugustusRouter;
+    this.testLiquidityTokenUnwrapperForLiquidation = new this.web3.eth.Contract(
+      testLiquidityTokenUnwrapperForLiquidationJson.abi,
+    ) as TestLiquidityTokenUnwrapperForLiquidation;
 
     this.setProvider(provider, networkId);
     this.setDefaultAccount(this.web3.eth.defaultAccount);
@@ -231,7 +233,6 @@ export class TestContracts extends Contracts {
       { contract: this.testSimpleCallee, json: testSimpleCalleeJson },
       { contract: this.testExchangeWrapper, json: testExchangeWrapperJson },
       { contract: this.testPriceOracle, json: testPriceOracleJson },
-      { contract: this.testOasisDex, json: testOasisDexJson },
       {
         contract: this.testPolynomialInterestSetter,
         json: testPolynomialInterestSetterJson,
@@ -247,6 +248,7 @@ export class TestContracts extends Contracts {
       { contract: this.testChainlinkFlags, json: testChainlinkFlagsJson },
       { contract: this.chainlinkPriceOracleV1, json: testChainlinkPriceOracleJson },
       { contract: this.testParaswapAugustusRouter, json: testParaswapAugustusRouterJson },
+      { contract: this.testLiquidityTokenUnwrapperForLiquidation, json: testLiquidityTokenUnwrapperForLiquidationJson },
     ];
 
     contracts.forEach(contract =>
@@ -286,7 +288,6 @@ export class TestContracts extends Contracts {
     this.testSimpleCallee.options.from = account;
     this.testExchangeWrapper.options.from = account;
     this.testPriceOracle.options.from = account;
-    this.testOasisDex.options.from = account;
     this.testPolynomialInterestSetter.options.from = account;
     this.testDoubleExponentInterestSetter.options.from = account;
     this.testInterestSetter.options.from = account;
@@ -295,6 +296,7 @@ export class TestContracts extends Contracts {
     this.testUniswapV3MultiRouter.options.from = account;
     this.testChainlinkFlags.options.from = account;
     this.testParaswapAugustusRouter.options.from = account;
+    this.testLiquidityTokenUnwrapperForLiquidation.options.from = account;
   }
 
   public getDefaultGasLimit(): string | number {

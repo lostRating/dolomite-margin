@@ -268,10 +268,10 @@ describe('RecyclableTokenProxy', () => {
 
   describe('#getAccountNumber', () => {
     it('Successfully gets the account number', async () => {
-      const accountIndex = new BigNumber(1);
-      const accountNumber = await recyclableToken.getAccountNumber(user, accountIndex);
+      const userAccountNumber = new BigNumber(1);
+      const accountNumber = await recyclableToken.getAccountNumber(user, userAccountNumber);
       const created = dolomiteMargin.web3.utils.keccak256(
-        dolomiteMargin.web3.eth.abi.encodeParameters(['address', 'uint256'], [user, accountIndex.toFixed()]),
+        dolomiteMargin.web3.eth.abi.encodeParameters(['address', 'uint256'], [user, userAccountNumber.toFixed()]),
       );
       expect(accountNumber.toFixed()).to.eql(dolomiteMargin.web3.utils.hexToNumberString(created));
     });
@@ -801,7 +801,7 @@ describe('RecyclableTokenProxy', () => {
         { from: liquidator },
       );
 
-      const liquidAccountIndex = await recyclableToken.getAccountNumber(user, accountNumber);
+      const liquidAccountNumber = await recyclableToken.getAccountNumber(user, accountNumber);
 
       const defaultAmount: Amount = {
         value: INTEGERS.ZERO,
@@ -823,7 +823,7 @@ describe('RecyclableTokenProxy', () => {
             liquidMarketId: borrowMarketId,
             payoutMarketId: marketId,
             liquidAccountOwner: recyclableToken.address,
-            liquidAccountId: liquidAccountIndex,
+            liquidAccountId: liquidAccountNumber,
             amount: defaultAmount,
           })
           .commit({ from: liquidator }),
@@ -882,8 +882,8 @@ describe('RecyclableTokenProxy', () => {
     );
   }
 
-  async function getBorrowBalance(user: address, userIndex: Integer, marketId: Integer): Promise<Integer> {
-    const accountIndex = await recyclableToken.getAccountNumber(user, userIndex);
-    return dolomiteMargin.getters.getAccountPar(recyclableToken.address, accountIndex, marketId);
+  async function getBorrowBalance(user: address, accountNumber: Integer, marketId: Integer): Promise<Integer> {
+    const userAccountNumber = await recyclableToken.getAccountNumber(user, accountNumber);
+    return dolomiteMargin.getters.getAccountPar(recyclableToken.address, userAccountNumber, marketId);
   }
 });

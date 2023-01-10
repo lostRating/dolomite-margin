@@ -108,9 +108,8 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     view
     returns (Actions.ActionArgs[] memory)
     {
-        // TODO: if the LP token is used as the `_owedMarket`:
-        // TODO: operate 1: liquidate the `_liquidAccount`, sell ALL of the `owedToken` for LP token components; in the call to
-        // TODO:            `exchange`, wrap any needed components into a single LP token for re-deposit
+        // TODO:    if the LP token is used as the `_owedMarket`, create a `wrapper` that wraps `initialOutputMarket`
+        // TODO:    into the `_owedMarket`
 
         // This cache is created to prevent "stack too deep" errors
         LiquidatorProxyV3Cache memory v3Cache = LiquidatorProxyV3Cache({
@@ -180,7 +179,8 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     ) internal view {
         if (address(_v3Cache.tokenUnwrapper) != address(0)) {
             // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
-            Actions.ActionArgs[] memory unwrapActions = _v3Cache.tokenUnwrapper.createActionsForUnwrappingForLiquidation(
+            ILiquidityTokenUnwrapperForLiquidation tokenUnwrapper = _v3Cache.tokenUnwrapper;
+            Actions.ActionArgs[] memory unwrapActions = tokenUnwrapper.createActionsForUnwrappingForLiquidation(
                 _v3Cache.solidAccountId,
                 _v3Cache.liquidAccountId,
                 _constants.solidAccount.owner,

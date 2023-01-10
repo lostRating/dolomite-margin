@@ -21,10 +21,9 @@ pragma solidity ^0.5.7;
 
 interface ITransferProxy {
 
-    function isCallerTrusted(address _caller) external view returns (bool);
-
-    function setIsCallerTrusted(address _caller, bool _isTrusted) external;
-
+    /**
+     * @notice Transfers `_token` `_amountWei` from `msg.sender` to `to`. Throws if the caller is not authorized.
+     */
     function transfer(
         uint256 _fromAccountNumber,
         address _to,
@@ -33,6 +32,10 @@ interface ITransferProxy {
         uint256 _amountWei
     ) external;
 
+    /**
+     * @notice  Transfers `_tokens` `_amountWei` from `msg.sender` to `to`. Throws if the caller is not authorized.
+     *          Throws if the length of `_tokens` and `_amountsWei` are not equal.
+     */
     function transferMultiple(
         uint256 _fromAccountNumber,
         address _to,
@@ -41,6 +44,10 @@ interface ITransferProxy {
         uint256[] calldata _amountsWei
     ) external;
 
+    /**
+     * @notice  Transfers `_markets` `_amountsWei` from `msg.sender` to `to`. Throws is the caller is not authorized.
+     *          Throws if the length of `_markets` and `_amountsWei` are not equal.
+     */
     function transferMultipleWithMarkets(
         uint256 _fromAccountNumber,
         address _to,

@@ -37,11 +37,12 @@ contract AuthorizationBase is IAuthorizationBase {
 
     // ============ Modifiers ============
 
-    modifier requireIsCallerAuthorized(address _sender) {
+    modifier requireIsCallerAuthorized(address _caller) {
         Require.that(
-            _isCallerAuthorized[_sender],
+            _isCallerAuthorized[_caller],
             FILE,
-            "unauthorized"
+            "unauthorized",
+            _caller
         );
         _;
     }
@@ -56,24 +57,16 @@ contract AuthorizationBase is IAuthorizationBase {
         DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
     }
 
-    // ============ Public Functions ============
-
-    /**
-     * @dev Allows or disallows the `_caller` from invoking the functions in this contract where a `fromAccount` can be
-     *      manually specified.
-     */
     function setIsCallerAuthorized(address _caller, bool _isAuthorized) external {
         Require.that(
             DOLOMITE_MARGIN.getIsGlobalOperator(msg.sender) || DOLOMITE_MARGIN.owner() == msg.sender,
             FILE,
-            "unauthorized"
+            "unauthorized",
+            _caller
         );
         _isCallerAuthorized[_caller] = _isAuthorized;
     }
 
-    /**
-     * @param _caller The `_caller` to check if it is authorized for calling "trusted" functions
-     */
     function isCallerAuthorized(address _caller) external view returns (bool) {
         return _isCallerAuthorized[_caller];
     }

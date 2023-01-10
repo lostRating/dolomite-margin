@@ -91,12 +91,10 @@ contract IRecyclable {
      * @dev Withdraws a specific amount of a user's balance from the smart contract to `msg.sender`
      * @param _accountNumber    The account number of `msg.sender`'s user's account
      * @param _amount           The amount of `TOKEN` to withdraw
-     * @param _balanceCheckFlag The flag used to check (if necessary) if the user has a non-negative balance.
      */
     function withdrawFromDolomiteMargin(
         uint256 _accountNumber,
-        uint256 _amount,
-        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
+        uint256 _amount
     )
         external;
 

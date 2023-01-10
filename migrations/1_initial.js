@@ -16,6 +16,10 @@
 
 */
 
+/**
+ * @typedef {Object} artifacts
+ */
+
 const { shouldOverwrite, getNoOverwriteParams } = require('./helpers');
 
 const Migrations = artifacts.require('Migrations');

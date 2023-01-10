@@ -1,6 +1,6 @@
 import BigNumber from 'bignumber.js';
 import { address, Integer, INTEGERS } from '../../src';
-import { expectThrow } from '../helpers/Expect';
+import { expectThrow, expectThrowUnauthorizedBase } from '../helpers/Expect';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { resetEVM, snapshot } from '../helpers/EVM';
@@ -21,7 +21,6 @@ const par2 = new BigNumber(500);
 const defaultIsClosing = false;
 const defaultIsRecyclable = false;
 
-const UNAUTHORIZED_REVERT_REASON = 'TransferProxy: unauthorized';
 const SECONDARY_REVERT_REASON = 'TransferProxy: invalid params length';
 
 let token1: address;
@@ -35,6 +34,7 @@ describe('TransferProxy', () => {
     admin = accounts[0];
     owner1 = dolomiteMargin.getDefaultAccount();
     owner2 = accounts[3];
+
     await resetEVM();
     await Promise.all([
       setupMarkets(dolomiteMargin, accounts),
@@ -68,27 +68,27 @@ describe('TransferProxy', () => {
 
   describe('#setIsCallerTrusted', () => {
     it('success case', async () => {
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(false);
 
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(true);
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(true);
 
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, false, { from: admin });
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, false, { from: admin });
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(false);
     });
 
     it('failure case', async () => {
-      await expectThrow(
-        dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: owner1 }),
-        UNAUTHORIZED_REVERT_REASON
+      await expectThrowUnauthorizedBase(
+        dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: owner1 }),
+        owner1,
       );
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(false);
     });
   });
 
   describe('#transfer', () => {
     it('should work normally', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner2, market1, INTEGERS.ZERO);
@@ -107,7 +107,7 @@ describe('TransferProxy', () => {
     });
 
     it('should work when amount is set to transfer all', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner2, market1, INTEGERS.ZERO);
@@ -125,9 +125,9 @@ describe('TransferProxy', () => {
       await expectBalances(owner2, market1, par1);
     });
 
-    it('should fail if caller is not trusted', async () => {
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
-      await expectThrow(
+    it('should fail if caller is not authorized', async () => {
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(false);
+      await expectThrowUnauthorizedBase(
         dolomiteMargin.transferProxy.transfer(
           INTEGERS.ZERO,
           owner2,
@@ -136,14 +136,14 @@ describe('TransferProxy', () => {
           INTEGERS.MAX_UINT,
           { from: owner1 },
         ),
-        'TransferProxy: unauthorized',
+        owner1,
       );
     });
   });
 
   describe('#transferMultiple', () => {
     it('success case with send 1', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner2, market1, INTEGERS.ZERO);
@@ -162,7 +162,7 @@ describe('TransferProxy', () => {
     });
 
     it('success case with send multiple', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner1, market2, par2);
@@ -185,15 +185,15 @@ describe('TransferProxy', () => {
     });
 
     it('failure case unauthorized', async () => {
-      await expectThrow(
-        dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: owner1 }),
-        UNAUTHORIZED_REVERT_REASON
+      await expectThrowUnauthorizedBase(
+        dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: owner1 }),
+        owner1,
       );
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(false);
     });
 
     it('failure case malformed params', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner1, market2, par2);
@@ -216,7 +216,7 @@ describe('TransferProxy', () => {
 
   describe('#transferMultipleWithMarkets', () => {
     it('success case with send 1', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner2, market1, INTEGERS.ZERO);
@@ -235,7 +235,7 @@ describe('TransferProxy', () => {
     });
 
     it('success case with send multiple', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner1, market2, par2);
@@ -258,15 +258,22 @@ describe('TransferProxy', () => {
     });
 
     it('failure case unauthorized', async () => {
-      await expectThrow(
-        dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: owner1 }),
-        UNAUTHORIZED_REVERT_REASON
+      expect(await dolomiteMargin.transferProxy.isCallerAuthorized(owner1)).to.eql(false);
+      await expectThrowUnauthorizedBase(
+        dolomiteMargin.transferProxy.transferMultipleWithMarkets(
+          INTEGERS.ZERO,
+          owner2,
+          INTEGERS.ZERO,
+          [market1, market2],
+          [par1, par2],
+          { from: owner1 },
+        ),
+        owner1,
       );
-      expect(await dolomiteMargin.transferProxy.isCallerTrusted(owner1)).to.eql(false);
     });
 
     it('failure case malformed params', async () => {
-      await dolomiteMargin.transferProxy.setIsCallerTrusted(owner1, true, { from: admin });
+      await dolomiteMargin.transferProxy.setIsCallerAuthorized(owner1, true, { from: admin });
 
       await expectBalances(owner1, market1, par1);
       await expectBalances(owner1, market2, par2);
