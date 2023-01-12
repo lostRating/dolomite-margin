@@ -52,14 +52,6 @@ export function toNumber(input: string | number | BigNumber): number {
   return new BigNumber(input).toNumber();
 }
 
-export function getInterestPerSecond(
-  maxAPR: Decimal,
-  coefficients: number[],
-  totals: { totalBorrowed: Integer; totalSupply: Integer },
-): Decimal {
-  return getInterestPerSecondForDoubleExponent(maxAPR, coefficients, totals);
-}
-
 export function getInterestPerSecondForPolynomial(
   maxAPR: Decimal,
   coefficients: number[],

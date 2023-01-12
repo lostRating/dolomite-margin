@@ -584,7 +584,13 @@
             "transactionHash": "0x4a1c794ecbafe86f89de298d47d7e5875b2e2cea02f3b0534cefa6efbfc15242"
         }
     },
-    "BorrowPositionProxyV2": {},
+    "BorrowPositionProxyV2": {
+        "42161": {
+            "links": {},
+            "address": "0x38E49A617305101216eC6306e3a18065D14Bf3a7",
+            "transactionHash": "0x6de8d7f6e27d62e73dd25e5af4de52e2ce086b51252805db63a8255760746995"
+        }
+    },
     "MultiCall": {
         "80001": {
             "links": {},
@@ -737,6 +743,20 @@
             "links": {},
             "address": "0xC033378c6eEa969C001CE9438973ca4d6460999a",
             "transactionHash": "0x0ec63faa5e5ae300a9fafb3064ad1631f98bf4fa5f7f40b05fd800ca2c57a7d0"
+        }
+    },
+    "AAVECopyCatAltCoinInterestSetter": {
+        "42161": {
+            "links": {},
+            "address": "0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1",
+            "transactionHash": "0xe0eff4b219f64d2dbdfa2e4d0163769d2f1e9eee537499a58482fe976bd3b78c"
+        }
+    },
+    "AAVECopyCatStableCoinInterestSetter": {
+        "42161": {
+            "links": {},
+            "address": "0xEA4E670fD64aE82af5a3d77b3Db6b5E28A5522de",
+            "transactionHash": "0xb5e614f72cbdb3b9a879e176bc72eac0027c08a17956ee20b2c55eeaa058b8b9"
         }
     }
 }
