@@ -39,6 +39,7 @@ import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
 import { AdvancedMath } from "../lib/AdvancedMath.sol";
 import { UQ112x112 } from "../lib/UQ112x112.sol";
 
+import { IAuthorizationBase } from "../interfaces/IAuthorizationBase.sol";
 import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
 
 import { DolomiteAmmERC20 } from "./DolomiteAmmERC20.sol";
@@ -101,7 +102,7 @@ contract DolomiteAmmPair is IDolomiteAmmPair, DolomiteAmmERC20, IAutoTrader {
             FILE,
             "forbidden"
         );
-        assert(ITransferProxy(_transferProxy).isCallerTrusted(address(this)));
+        assert(IAuthorizationBase(_transferProxy).isCallerAuthorized(address(this)));
 
         token0 = _token0;
         token1 = _token1;

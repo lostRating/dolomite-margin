@@ -1,5 +1,12 @@
 import { Contracts } from '../lib/Contracts';
-import { address, AssetAmount, ContractCallOptions, ContractConstantCallOptions, Integer, TxResult, } from '../types';
+import {
+  address,
+  AssetAmount,
+  ContractCallOptions,
+  ContractConstantCallOptions,
+  Integer,
+  TxResult,
+} from '../types';
 import { RecyclableTokenProxy as RecyclableTokenProxyContract } from '../../build/wrappers/RecyclableTokenProxy';
 import BigNumber from 'bignumber.js';
 import { assetAmountToContractAssetAmount, valueToInteger } from '../lib/Helpers';
@@ -207,7 +214,7 @@ export class RecyclableTokenProxy {
     borrowToken: address,
     borrowAmount: AssetAmount,
     exchangeWrapper: address,
-    expirationTimestamp: Integer,
+    expiryTimeDelta: Integer,
     isOpen: boolean,
     tradeDataBytes: number[][],
     options: ContractConstantCallOptions = {},
@@ -219,7 +226,7 @@ export class RecyclableTokenProxy {
         borrowToken,
         assetAmountToContractAssetAmount(borrowAmount),
         exchangeWrapper,
-        expirationTimestamp.toFixed(),
+        expiryTimeDelta.toFixed(),
         isOpen,
         tradeDataBytes,
       ),

@@ -32,7 +32,7 @@ import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { LiquidatorProxyHelper } from "../helpers/LiquidatorProxyHelper.sol";
+import { LiquidatorProxyBase } from "../helpers/LiquidatorProxyBase.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 
@@ -42,7 +42,7 @@ import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
  *
  * Contract for liquidating other accounts in DolomiteMargin.
  */
-contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorProxyHelper {
+contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorProxyBase {
     using DolomiteMarginMath for uint256;
     using SafeMath for uint256;
     using Types for Types.Par;

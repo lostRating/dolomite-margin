@@ -16,7 +16,7 @@
 
 */
 
-pragma solidity ^0.5.0;
+pragma solidity >=0.5.0;
 pragma experimental ABIEncoderV2;
 
 import { IInterestSetter } from "../interfaces/IInterestSetter.sol";
@@ -603,6 +603,9 @@ interface IDolomiteMargin {
     )
     external;
 
+    /**
+     * Sets the maximum supply wei for a given `marketId`.
+     */
     function ownerSetMaxWei(
         uint256 marketId,
         uint256 maxWei

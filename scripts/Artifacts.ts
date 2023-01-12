@@ -12,6 +12,7 @@ import { default as SignedOperationProxy } from '../build/contracts/SignedOperat
 import { default as LiquidatorProxyV1 } from '../build/contracts/LiquidatorProxyV1.json';
 import { default as LiquidatorProxyV1WithAmm } from '../build/contracts/LiquidatorProxyV1WithAmm.json';
 import { default as LiquidatorProxyV2WithExternalLiquidity } from '../build/contracts/LiquidatorProxyV2WithExternalLiquidity.json';
+import { default as LiquidatorProxyV3WithLiquidityToken } from '../build/contracts/LiquidatorProxyV3WithLiquidityToken.json';
 import { default as DolomiteAmmRouterProxy } from '../build/contracts/DolomiteAmmRouterProxy.json';
 import { default as PolynomialInterestSetter } from '../build/contracts/PolynomialInterestSetter.json';
 import { default as DoubleExponentInterestSetter } from '../build/contracts/DoubleExponentInterestSetter.json';
@@ -32,7 +33,8 @@ import { default as SimpleFeeOwner } from '../build/contracts/SimpleFeeOwner.jso
 import { default as DolomiteAmmFactory } from '../build/contracts/DolomiteAmmFactory.json';
 import { default as DolomiteAmmPair } from '../build/contracts/DolomiteAmmPair.json';
 import { default as TransferProxy } from '../build/contracts/TransferProxy.json';
-import { default as BorrowPositionProxy } from '../build/contracts/BorrowPositionProxy.json';
+import { default as BorrowPositionProxyV1 } from '../build/contracts/BorrowPositionProxyV1.json';
+import { default as BorrowPositionProxyV2 } from '../build/contracts/BorrowPositionProxyV2.json';
 import { default as DepositWithdrawalProxy } from '../build/contracts/DepositWithdrawalProxy.json';
 import { default as AmmRebalancerProxyV1 } from '../build/contracts/AmmRebalancerProxyV1.json';
 import { default as AmmRebalancerProxyV2 } from '../build/contracts/AmmRebalancerProxyV2.json';
@@ -41,7 +43,8 @@ import { default as MultiCall } from '../build/contracts/MultiCall.json';
 import { default as IArbitrumGasInfo } from '../build/contracts/IArbitrumGasInfo.json';
 import { default as TestUniswapAmmRebalancerProxy } from '../build/contracts/TestUniswapAmmRebalancerProxy.json';
 import { default as RecyclableTokenProxy } from '../build/contracts/RecyclableTokenProxy.json';
-import { default as GLPPriceOracleV1 } from '../build/contracts/GLPPriceOracleV1.json';
+import { default as AAVECopyCatAltCoinInterestSetter } from '../build/contracts/AAVECopyCatAltCoinInterestSetter.json';
+import { default as AAVECopyCatStableCoinInterestSetter } from '../build/contracts/AAVECopyCatStableCoinInterestSetter.json';
 
 export default {
   DepositImpl,
@@ -62,6 +65,7 @@ export default {
   LiquidatorProxyV1,
   LiquidatorProxyV1WithAmm,
   LiquidatorProxyV2WithExternalLiquidity,
+  LiquidatorProxyV3WithLiquidityToken,
   AmmRebalancerProxyV1,
   AmmRebalancerProxyV2,
   DolomiteAmmRouterProxy,
@@ -76,12 +80,14 @@ export default {
   DolomiteAmmPair,
   SimpleFeeOwner,
   TransferProxy,
-  BorrowPositionProxy,
+  BorrowPositionProxyV1,
+  BorrowPositionProxyV2,
   DepositWithdrawalProxy,
   ArbitrumMultiCall,
   MultiCall,
   IArbitrumGasInfo,
   TestUniswapAmmRebalancerProxy,
   RecyclableTokenProxy,
-  GLPPriceOracleV1,
+  AAVECopyCatAltCoinInterestSetter,
+  AAVECopyCatStableCoinInterestSetter,
 };

@@ -1742,7 +1742,7 @@ describe('DolomiteAmmRouterProxy', () => {
             defaultBalanceCheckFlagForMarginTrade,
             { from: owner1 },
           ),
-          'AccountActionHelper: invalid expiry time',
+          'AccountActionLib: invalid expiry time',
         );
       });
     });

@@ -26,12 +26,12 @@ export class TransferProxy {
     );
   }
 
-  public async isCallerTrusted(
+  public async isCallerAuthorized(
     caller: address,
     options: ContractConstantCallOptions = {},
   ): Promise<boolean> {
     return this.contracts.callConstantContractFunction(
-      this.contracts.transferProxy.methods.isCallerTrusted(
+      this.contracts.transferProxy.methods.isCallerAuthorized(
         caller,
       ),
       options,
@@ -40,15 +40,15 @@ export class TransferProxy {
 
   // ============ Write Functions ============
 
-  public async setIsCallerTrusted(
+  public async setIsCallerAuthorized(
     caller: address,
-    isTrusted: boolean,
+    isAuthorized: boolean,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
-      this.contracts.transferProxy.methods.setIsCallerTrusted(
+      this.contracts.transferProxy.methods.setIsCallerAuthorized(
         caller,
-        isTrusted,
+        isAuthorized,
       ),
       options,
     );

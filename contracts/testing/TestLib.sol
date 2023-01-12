@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { AccountMarginHelper } from "../external/helpers/AccountMarginHelper.sol";
+import { AccountMarginLib } from "../external/lib/AccountMarginLib.sol";
 import { AdvancedMath } from "../external/lib/AdvancedMath.sol";
 import { TypedSignature } from "../external/lib/TypedSignature.sol";
 
@@ -56,11 +56,11 @@ contract TestLib {
     // ============ Account Margin Helper Functions ============
 
     function AccountMarginHelperIsMarginAccountWithIndex(uint256 _accountIndex) external pure returns (bool) {
-        return AccountMarginHelper.isMarginAccount(_accountIndex);
+        return AccountMarginLib.isMarginAccount(_accountIndex);
     }
 
     function AccountMarginHelperIsMarginAccountWithStruct(Account.Info memory _account) public pure returns (bool) {
-        return AccountMarginHelper.isMarginAccount(_account);
+        return AccountMarginLib.isMarginAccount(_account);
     }
 
     // ============ Market Cache ============

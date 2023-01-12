@@ -26,7 +26,7 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Events } from "../../protocol/lib/Events.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
 import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
@@ -81,7 +81,7 @@ interface IDolomiteAmmRouterProxy {
         uint256 expiryTimeDelta;
         /// Setting this to `FROM` will check `tradeAccountNumber`. Setting this to `TO` will check
         /// `otherAccountNumber`. Setting this to `BOTH` will check `tradeAccountNumber` and `otherAccountNumber`.
-        AccountBalanceHelper.BalanceCheckFlag balanceCheckFlag;
+        AccountBalanceLib.BalanceCheckFlag balanceCheckFlag;
     }
 
     struct ModifyPositionCache {
@@ -105,7 +105,7 @@ interface IDolomiteAmmRouterProxy {
         uint256 amountAMinWei;
         uint256 amountBMinWei;
         uint256 deadline;
-        AccountBalanceHelper.BalanceCheckFlag balanceCheckFlag;
+        AccountBalanceLib.BalanceCheckFlag balanceCheckFlag;
     }
 
     struct RemoveLiquidityParams {
@@ -156,7 +156,7 @@ interface IDolomiteAmmRouterProxy {
         uint256 _amountOutMinWei,
         address[] calldata _tokenPath,
         uint256 _deadline,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external;
 
@@ -175,7 +175,7 @@ interface IDolomiteAmmRouterProxy {
         uint256 _amountOutWei,
         address[] calldata _tokenPath,
         uint256 _deadline,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     )
     external;
 
@@ -202,7 +202,7 @@ interface IDolomiteAmmRouterProxy {
     function removeLiquidityFromWithinDolomite(
         RemoveLiquidityParams calldata _params,
         uint256 _fromAccountNumber,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external returns (uint256 amountAWei, uint256 amountBWei);
 
     function swapExactTokensForTokensAndModifyPosition(

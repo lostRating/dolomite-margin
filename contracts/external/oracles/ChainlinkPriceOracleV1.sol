@@ -19,16 +19,15 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import "@openzeppelin/contracts/math/SafeMath.sol";
-import "@openzeppelin/contracts/ownership/Ownable.sol";
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { Ownable } from "@openzeppelin/contracts/ownership/Ownable.sol";
 
-import "../../protocol/interfaces/IPriceOracle.sol";
-import "../../protocol/lib/Monetary.sol";
-import "../../protocol/lib/Require.sol";
+import { IPriceOracle } from "../../protocol/interfaces/IPriceOracle.sol";
+import { Monetary } from "../../protocol/lib/Monetary.sol";
+import { Require } from "../../protocol/lib/Require.sol";
 
-import "../interfaces/IChainlinkAggregator.sol";
-
-import "./IChainlinkFlags.sol";
+import { IChainlinkAggregator } from "../interfaces/IChainlinkAggregator.sol";
+import { IChainlinkFlags } from "../interfaces/IChainlinkFlags.sol";
 
 
 /**
@@ -67,86 +66,86 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
     /**
      * Note, these arrays are set up, such that each index corresponds with one-another.
      *
-     * @param tokens                The tokens that are supported by this adapter.
-     * @param chainlinkAggregators  The Chainlink aggregators that have on-chain prices.
-     * @param tokenDecimals         The number of decimals that each token has.
-     * @param tokenPairs            The token against which this token's value is compared using the aggregator. The
+     * @param _tokens               The tokens that are supported by this adapter.
+     * @param _chainlinkAggregators The Chainlink aggregators that have on-chain prices.
+     * @param _tokenDecimals        The number of decimals that each token has.
+     * @param _tokenPairs           The token against which this token's value is compared using the aggregator. The
      *                              zero address means USD.
-     * @param aggregatorDecimals    The number of decimals that the value has that comes back from the corresponding
+     * @param _aggregatorDecimals   The number of decimals that the value has that comes back from the corresponding
      *                              Chainlink Aggregator.
-     * @param chainlinkFlagsOrNull  The contract for layer-2 that denotes whether or not Chainlink oracles are currently
+     * @param _chainlinkFlagsOrNull The contract for layer-2 that denotes whether or not Chainlink oracles are currently
      *                              offline, meaning data is stale and any critical operations should *not* occur. If
      *                              not on layer 2, this value can be set to `address(0)`.
      */
     constructor(
-        address[] memory tokens,
-        address[] memory chainlinkAggregators,
-        uint8[] memory tokenDecimals,
-        address[] memory tokenPairs,
-        uint8[] memory aggregatorDecimals,
-        address chainlinkFlagsOrNull
+        address[] memory _tokens,
+        address[] memory _chainlinkAggregators,
+        uint8[] memory _tokenDecimals,
+        address[] memory _tokenPairs,
+        uint8[] memory _aggregatorDecimals,
+        address _chainlinkFlagsOrNull
     ) public {
         require( // coverage-disable-line
-            tokens.length == chainlinkAggregators.length,
+            _tokens.length == _chainlinkAggregators.length,
             "invalid aggregators"
         );
         require( // coverage-disable-line
-            chainlinkAggregators.length == tokenDecimals.length,
+            _chainlinkAggregators.length == _tokenDecimals.length,
             "invalid token decimals"
         );
         require( // coverage-disable-line
-            tokenDecimals.length == tokenPairs.length,
+            _tokenDecimals.length == _tokenPairs.length,
             "invalid token pairs"
         );
         require( // coverage-disable-line
-            tokenPairs.length == aggregatorDecimals.length,
+            _tokenPairs.length == _aggregatorDecimals.length,
             "invalid aggregator decimals"
         );
 
-        for (uint i = 0; i < tokens.length; i++) {
+        for (uint256 i = 0; i < _tokens.length; i++) {
             _insertOrUpdateOracleToken(
-                tokens[i],
-                tokenDecimals[i],
-                chainlinkAggregators[i],
-                aggregatorDecimals[i],
-                tokenPairs[i]
+                _tokens[i],
+                _tokenDecimals[i],
+                _chainlinkAggregators[i],
+                _aggregatorDecimals[i],
+                _tokenPairs[i]
             );
         }
 
-        chainlinkFlags = IChainlinkFlags(chainlinkFlagsOrNull);
+        chainlinkFlags = IChainlinkFlags(_chainlinkFlagsOrNull);
     }
 
     // ============ Admin Functions ============
 
     function insertOrUpdateOracleToken(
-        address token,
-        uint8 tokenDecimals,
-        address chainlinkAggregator,
-        uint8 aggregatorDecimals,
-        address tokenPair
+        address _token,
+        uint8 _tokenDecimals,
+        address _chainlinkAggregator,
+        uint8 _aggregatorDecimals,
+        address _tokenPair
     ) public onlyOwner {
         _insertOrUpdateOracleToken(
-            token,
-            tokenDecimals,
-            chainlinkAggregator,
-            aggregatorDecimals,
-            tokenPair
+            _token,
+            _tokenDecimals,
+            _chainlinkAggregator,
+            _aggregatorDecimals,
+            _tokenPair
         );
     }
 
     // ============ Public Functions ============
 
     function getPrice(
-        address token
+        address _token
     )
     public
     view
     returns (Monetary.Price memory) {
         Require.that(
-            address(tokenToAggregatorMap[token]) != address(0),
+            address(tokenToAggregatorMap[_token]) != address(0),
             FILE,
             "invalid token",
-            token
+            _token
         );
         IChainlinkFlags _chainlinkFlags = chainlinkFlags;
         if (address(_chainlinkFlags) != address(0)) {
@@ -159,14 +158,14 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
             );
         }
 
-        uint rawChainlinkPrice = uint(tokenToAggregatorMap[token].latestAnswer());
-        address tokenPair = tokenToPairingMap[token];
+        uint256 rawChainlinkPrice = uint(tokenToAggregatorMap[_token].latestAnswer());
+        address tokenPair = tokenToPairingMap[_token];
 
         // standardize the Chainlink price to be the proper number of decimals of (36 - tokenDecimals)
-        uint standardizedPrice = standardizeNumberOfDecimals(
-            tokenToDecimalsMap[token],
+        uint256 standardizedPrice = standardizeNumberOfDecimals(
+            tokenToDecimalsMap[_token],
             rawChainlinkPrice,
-            tokenPair == address(0) ? CHAINLINK_USD_DECIMALS : tokenToAggregatorDecimalsMap[token]
+            tokenPair == address(0) ? CHAINLINK_USD_DECIMALS : tokenToAggregatorDecimalsMap[_token]
         );
 
         if (tokenPair == address(0)) {
@@ -175,9 +174,9 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
         } else {
             // The price we just got and converted is NOT against USD. So we need to get its pair's price against USD.
             // We can do so by recursively calling #getPrice using the `tokenPair` as the parameter instead of `token`.
-            uint tokenPairStandardizedPrice = getPrice(tokenPair).value;
+            uint256 tokenPairStandardizedPrice = getPrice(tokenPair).value;
             // Standardize the price to use 36 decimals.
-            uint tokenPairWith36Decimals = tokenPairStandardizedPrice.mul(10 ** uint(tokenToDecimalsMap[tokenPair]));
+            uint256 tokenPairWith36Decimals = tokenPairStandardizedPrice.mul(10 ** uint(tokenToDecimalsMap[tokenPair]));
             // Now that the chained price uses 36 decimals (and thus is standardized), we can do easy math.
             return Monetary.Price({value : standardizedPrice.mul(tokenPairWith36Decimals).div(ONE_DOLLAR)});
         }
@@ -187,33 +186,33 @@ contract ChainlinkPriceOracleV1 is IPriceOracle, Ownable {
      * Standardizes `value` to have `ONE_DOLLAR` - `tokenDecimals` number of decimals.
      */
     function standardizeNumberOfDecimals(
-        uint8 tokenDecimals,
-        uint value,
-        uint8 valueDecimals
+        uint8 _tokenDecimals,
+        uint256 _value,
+        uint8 _valueDecimals
     ) public pure returns (uint) {
-        uint tokenDecimalsFactor = 10 ** uint(tokenDecimals);
-        uint priceFactor = IPriceOracle.ONE_DOLLAR.div(tokenDecimalsFactor);
-        uint valueFactor = 10 ** uint(valueDecimals);
-        return value.mul(priceFactor).div(valueFactor);
+        uint256 tokenDecimalsFactor = 10 ** uint(_tokenDecimals);
+        uint256 priceFactor = IPriceOracle.ONE_DOLLAR.div(tokenDecimalsFactor);
+        uint256 valueFactor = 10 ** uint(_valueDecimals);
+        return _value.mul(priceFactor).div(valueFactor);
     }
 
     // ============ Internal Functions ============
 
     function _insertOrUpdateOracleToken(
-        address token,
-        uint8 tokenDecimals,
-        address chainlinkAggregator,
-        uint8 aggregatorDecimals,
-        address tokenPair
+        address _token,
+        uint8 _tokenDecimals,
+        address _chainlinkAggregator,
+        uint8 _aggregatorDecimals,
+        address _tokenPair
     ) internal {
-        tokenToAggregatorMap[token] = IChainlinkAggregator(chainlinkAggregator);
-        tokenToDecimalsMap[token] = tokenDecimals;
-        if (tokenPair != address(0)) {
+        tokenToAggregatorMap[_token] = IChainlinkAggregator(_chainlinkAggregator);
+        tokenToDecimalsMap[_token] = _tokenDecimals;
+        if (_tokenPair != address(0)) {
             // The aggregator's price is NOT against USD. Therefore, we need to store what it's against as well as the
             // # of decimals the aggregator's price has.
-            tokenToPairingMap[token] = tokenPair;
-            tokenToAggregatorDecimalsMap[token] = aggregatorDecimals;
+            tokenToPairingMap[_token] = _tokenPair;
+            tokenToAggregatorDecimalsMap[_token] = _aggregatorDecimals;
         }
-        emit TokenInsertedOrUpdated(token, chainlinkAggregator, tokenPair);
+        emit TokenInsertedOrUpdated(_token, _chainlinkAggregator, _tokenPair);
     }
 }

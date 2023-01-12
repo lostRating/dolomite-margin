@@ -16,6 +16,10 @@
 
 */
 
+/**
+ * @typedef {Object} artifacts
+ */
+
 const {
   isDevNetwork,
   getDelayedMultisigAddress,

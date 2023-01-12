@@ -18,7 +18,7 @@
 
 pragma solidity ^0.5.7;
 
-import { AccountBalanceHelper } from "../helpers/AccountBalanceHelper.sol";
+import { AccountBalanceLib } from "../lib/AccountBalanceLib.sol";
 
 
 interface IDepositWithdrawalProxy {
@@ -72,7 +72,7 @@ interface IDepositWithdrawalProxy {
         uint256 _fromAccountIndex,
         uint256 _marketId,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**
@@ -87,7 +87,7 @@ interface IDepositWithdrawalProxy {
     function withdrawETH(
         uint256 _fromAccountIndex,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**
@@ -102,7 +102,7 @@ interface IDepositWithdrawalProxy {
     function withdrawWeiFromDefaultAccount(
         uint256 _marketId,
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**
@@ -116,7 +116,7 @@ interface IDepositWithdrawalProxy {
      */
     function withdrawETHFromDefaultAccount(
         uint256 _amountWei,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**
@@ -153,7 +153,7 @@ interface IDepositWithdrawalProxy {
         uint256 _fromAccountIndex,
         uint256 _marketId,
         uint256 _amountPar,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 
     /**
@@ -167,6 +167,6 @@ interface IDepositWithdrawalProxy {
     function withdrawParFromDefaultAccount(
         uint256 _marketId,
         uint256 _amountPar,
-        AccountBalanceHelper.BalanceCheckFlag _balanceCheckFlag
+        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
     ) external;
 }

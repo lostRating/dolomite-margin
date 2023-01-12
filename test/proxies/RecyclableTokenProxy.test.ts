@@ -43,7 +43,8 @@ let testTrader: TestTrader;
 let marketId: Integer;
 
 const currentTimestamp = new BigNumber(Math.floor(new Date().getTime() / 1000));
-const defaultExpirationTimestamp = currentTimestamp.plus(3600); // add 3600 seconds (1 hour) on as a buffer
+const defaultExpiryTimeDelta = new BigNumber(3600); // 1 hour
+const defaultExpirationTimestamp = currentTimestamp.plus(defaultExpiryTimeDelta);
 const maxExpirationTimestamp = currentTimestamp.plus(86400); // expires in 1 day
 const defaultIsOpen = true;
 
@@ -267,10 +268,10 @@ describe('RecyclableTokenProxy', () => {
 
   describe('#getAccountNumber', () => {
     it('Successfully gets the account number', async () => {
-      const accountIndex = new BigNumber(1);
-      const accountNumber = await recyclableToken.getAccountNumber(user, accountIndex);
+      const userAccountNumber = new BigNumber(1);
+      const accountNumber = await recyclableToken.getAccountNumber(user, userAccountNumber);
       const created = dolomiteMargin.web3.utils.keccak256(
-        dolomiteMargin.web3.eth.abi.encodeParameters(['address', 'uint256'], [user, accountIndex.toFixed()]),
+        dolomiteMargin.web3.eth.abi.encodeParameters(['address', 'uint256'], [user, userAccountNumber.toFixed()]),
       );
       expect(accountNumber.toFixed()).to.eql(dolomiteMargin.web3.utils.hexToNumberString(created));
     });
@@ -475,17 +476,18 @@ describe('RecyclableTokenProxy', () => {
       expect(await recyclableToken.getAccountPar(user, accountNumber)).to.eql(new BigNumber(supplyBalancePar));
       expect(await getBorrowBalance(user, accountNumber, borrowMarketId)).to.eql(INTEGERS.ZERO);
 
-      await recyclableToken.trade(
+      const txResult = await recyclableToken.trade(
         accountNumber,
         { sign: true, denomination: AmountDenomination.Par, ref: AmountReference.Delta, value: supplyBalancePar },
         borrowTokenAddress,
         { sign: false, denomination: AmountDenomination.Wei, ref: AmountReference.Delta, value: borrowBalanceWei },
         testTrader.options.address,
-        defaultExpirationTimestamp,
+        defaultExpiryTimeDelta,
         defaultIsOpen,
         toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
         tx
       );
+      const block = await dolomiteMargin.web3.eth.getBlock(txResult.blockNumber);
 
       expect(await recyclableToken.getAccountPar(user, accountNumber)).to.eql(supplyBalancePar.plus(supplyBalancePar));
       expect(await getBorrowBalance(user, accountNumber, borrowMarketId)).to.eql(borrowBalanceWei.negated());
@@ -496,7 +498,7 @@ describe('RecyclableTokenProxy', () => {
           new BigNumber(recyclableAccount),
           borrowMarketId,
         ),
-      ).to.eql(new BigNumber(defaultExpirationTimestamp));
+      ).to.eql(new BigNumber(block.timestamp).plus(defaultExpiryTimeDelta));
     });
 
     it('Successfully closes a position via a trade with test wrapper', async () => {
@@ -518,17 +520,18 @@ describe('RecyclableTokenProxy', () => {
       expect(await recyclableToken.getAccountPar(user, accountNumber)).to.eql(new BigNumber(supplyBalancePar));
       expect(await getBorrowBalance(user, accountNumber, borrowMarketId)).to.eql(INTEGERS.ZERO);
 
-      await recyclableToken.trade(
+      const txResult = await recyclableToken.trade(
         accountNumber,
         { sign: true, denomination: AmountDenomination.Par, ref: AmountReference.Delta, value: supplyBalancePar },
         borrowTokenAddress,
         { sign: false, denomination: AmountDenomination.Wei, ref: AmountReference.Delta, value: borrowBalanceWei },
         testTrader.options.address,
-        defaultExpirationTimestamp,
+        defaultExpiryTimeDelta,
         defaultIsOpen,
         toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
         tx,
       );
+      const block = await dolomiteMargin.web3.eth.getBlock(txResult.blockNumber);
 
       expect(await recyclableToken.getAccountPar(user, accountNumber)).to.eql(supplyBalancePar.plus(supplyBalancePar));
       expect(await getBorrowBalance(user, accountNumber, borrowMarketId)).to.eql(new BigNumber(-borrowBalanceWei));
@@ -539,7 +542,7 @@ describe('RecyclableTokenProxy', () => {
           new BigNumber(recyclableAccount),
           borrowMarketId,
         ),
-      ).to.eql(new BigNumber(defaultExpirationTimestamp));
+      ).to.eql(new BigNumber(block.timestamp).plus(defaultExpiryTimeDelta));
 
       await recyclableToken.trade(
         accountNumber,
@@ -547,7 +550,7 @@ describe('RecyclableTokenProxy', () => {
         borrowTokenAddress,
         { sign: false, denomination: AmountDenomination.Wei, ref: AmountReference.Target, value: INTEGERS.ZERO },
         testTrader.options.address,
-        defaultExpirationTimestamp,
+        defaultExpiryTimeDelta,
         !defaultIsOpen,
         toBytes(borrowBalanceWei, supplyBalancePar, !defaultIsOpen),
         tx,
@@ -569,7 +572,7 @@ describe('RecyclableTokenProxy', () => {
           borrowTokenAddress,
           { sign: false, denomination: AmountDenomination.Wei, ref: AmountReference.Delta, value: borrowBalanceWei },
           testTrader.options.address,
-          defaultExpirationTimestamp,
+          defaultExpiryTimeDelta,
           defaultIsOpen,
           toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
           tx,
@@ -578,13 +581,14 @@ describe('RecyclableTokenProxy', () => {
       );
     });
 
-    it('Fails to trade when recyclable contract expiration timestamp is too low', async () => {
+    it('Fails to trade when recyclable contract expiration timestamp is invalid', async () => {
       const tx = {
         from: user,
       };
       const accountNumber = new BigNumber(132);
       const supplyBalancePar = new BigNumber(100);
       const borrowBalanceWei = new BigNumber(supplyBalancePar.div(10));
+      const invalidExpiryDelta = new BigNumber('1231231231233123123');
       await expectThrow(
         recyclableToken.trade(
           accountNumber,
@@ -597,40 +601,12 @@ describe('RecyclableTokenProxy', () => {
             value: borrowBalanceWei,
           },
           testTrader.options.address,
-          currentTimestamp.minus(1),
+          invalidExpiryDelta,
           defaultIsOpen,
           toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
           tx,
         ),
-        `RecyclableTokenProxy: expiration timestamp too low <${currentTimestamp.minus(1).toFixed()}>`,
-      );
-    });
-
-    it('Fails to trade when recyclable contract expiration timestamp is too high', async () => {
-      const tx = {
-        from: user,
-      };
-      const accountNumber = new BigNumber(132);
-      const supplyBalancePar = new BigNumber(100);
-      const borrowBalanceWei = new BigNumber(supplyBalancePar.div(10));
-      await expectThrow(
-        recyclableToken.trade(
-          accountNumber,
-          { sign: true, denomination: AmountDenomination.Par, ref: AmountReference.Delta, value: supplyBalancePar },
-          borrowTokenAddress,
-          {
-            sign: false,
-            denomination: AmountDenomination.Wei,
-            ref: AmountReference.Delta,
-            value: borrowBalanceWei,
-          },
-          testTrader.options.address,
-          maxExpirationTimestamp.plus(1),
-          defaultIsOpen,
-          toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
-          tx,
-        ),
-        `RecyclableTokenProxy: expiration timestamp too high <${maxExpirationTimestamp.plus(1).toFixed()}>`,
+        `RecyclableTokenProxy: expiration time delta invalid <${invalidExpiryDelta.toFixed()}>`,
       );
     });
 
@@ -654,7 +630,7 @@ describe('RecyclableTokenProxy', () => {
             value: borrowBalanceWei,
           },
           testTrader.options.address,
-          defaultExpirationTimestamp,
+          defaultExpiryTimeDelta,
           defaultIsOpen,
           toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
           tx,
@@ -692,7 +668,7 @@ describe('RecyclableTokenProxy', () => {
             value: borrowBalanceWei,
           },
           testTrader.options.address,
-          defaultExpirationTimestamp,
+          defaultExpiryTimeDelta,
           defaultIsOpen,
           toBytes(supplyBalancePar.div(10), borrowBalanceWei, defaultIsOpen),
           tx,
@@ -728,7 +704,7 @@ describe('RecyclableTokenProxy', () => {
         borrowTokenAddress,
         { sign: false, denomination: AmountDenomination.Wei, ref: AmountReference.Delta, value: borrowBalanceWei },
         testTrader.options.address,
-        defaultExpirationTimestamp,
+        defaultExpiryTimeDelta,
         defaultIsOpen,
         toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
         tx,
@@ -806,7 +782,7 @@ describe('RecyclableTokenProxy', () => {
         borrowTokenAddress,
         { sign: false, denomination: AmountDenomination.Wei, ref: AmountReference.Delta, value: borrowBalanceWei },
         testTrader.options.address,
-        defaultExpirationTimestamp,
+        defaultExpiryTimeDelta,
         defaultIsOpen,
         toBytes(supplyBalancePar, borrowBalanceWei, defaultIsOpen),
         tx,
@@ -825,7 +801,7 @@ describe('RecyclableTokenProxy', () => {
         { from: liquidator },
       );
 
-      const liquidAccountIndex = await recyclableToken.getAccountNumber(user, accountNumber);
+      const liquidAccountNumber = await recyclableToken.getAccountNumber(user, accountNumber);
 
       const defaultAmount: Amount = {
         value: INTEGERS.ZERO,
@@ -847,7 +823,7 @@ describe('RecyclableTokenProxy', () => {
             liquidMarketId: borrowMarketId,
             payoutMarketId: marketId,
             liquidAccountOwner: recyclableToken.address,
-            liquidAccountId: liquidAccountIndex,
+            liquidAccountId: liquidAccountNumber,
             amount: defaultAmount,
           })
           .commit({ from: liquidator }),
@@ -906,8 +882,8 @@ describe('RecyclableTokenProxy', () => {
     );
   }
 
-  async function getBorrowBalance(user: address, userIndex: Integer, marketId: Integer): Promise<Integer> {
-    const accountIndex = await recyclableToken.getAccountNumber(user, userIndex);
-    return dolomiteMargin.getters.getAccountPar(recyclableToken.address, accountIndex, marketId);
+  async function getBorrowBalance(user: address, accountNumber: Integer, marketId: Integer): Promise<Integer> {
+    const userAccountNumber = await recyclableToken.getAccountNumber(user, accountNumber);
+    return dolomiteMargin.getters.getAccountPar(recyclableToken.address, userAccountNumber, marketId);
   }
 });

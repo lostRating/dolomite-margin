@@ -22,33 +22,37 @@ pragma solidity ^0.5.7;
 interface ITransferProxy {
 
     /**
-     * @dev Allows or disallows the caller from invoking the different transfer functions in this contract
+     * @notice Transfers `_token` `_amountWei` from `msg.sender` to `to`. Throws if the caller is not authorized.
      */
-    function setIsCallerTrusted(address caller, bool isTrusted) external;
-
-    function isCallerTrusted(address caller) external view returns (bool);
-
     function transfer(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        address token,
-        uint256 amountWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        address _token,
+        uint256 _amountWei
     ) external;
 
+    /**
+     * @notice  Transfers `_tokens` `_amountWei` from `msg.sender` to `to`. Throws if the caller is not authorized.
+     *          Throws if the length of `_tokens` and `_amountsWei` are not equal.
+     */
     function transferMultiple(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        address[] calldata tokens,
-        uint256[] calldata amountsWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        address[] calldata _tokens,
+        uint256[] calldata _amountsWei
     ) external;
 
+    /**
+     * @notice  Transfers `_markets` `_amountsWei` from `msg.sender` to `to`. Throws is the caller is not authorized.
+     *          Throws if the length of `_markets` and `_amountsWei` are not equal.
+     */
     function transferMultipleWithMarkets(
-        uint fromAccountIndex,
-        address to,
-        uint toAccountIndex,
-        uint[] calldata markets,
-        uint[] calldata amountsWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        uint256[] calldata _markets,
+        uint256[] calldata _amountsWei
     ) external;
 }

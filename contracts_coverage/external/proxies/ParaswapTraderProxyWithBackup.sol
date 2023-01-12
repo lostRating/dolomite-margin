@@ -36,9 +36,9 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { ERC20Helper } from "../helpers/ERC20Helper.sol";
-import { LiquidatorProxyHelper } from "../helpers/LiquidatorProxyHelper.sol";
+import { LiquidatorProxyBase } from "../helpers/LiquidatorProxyBase.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { ERC20Lib } from "../lib/ERC20Lib.sol";
 
 
 /**
@@ -47,7 +47,7 @@ import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
  *
  * Contract for performing an external trade with Paraswap with a backup to other venues if the trade fails.
  */
-contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyHelper, IExchangeWrapper {
+contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyBase, IExchangeWrapper {
 
     // ============ Constants ============
 
@@ -104,7 +104,7 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyHel
     external
     onlyDolomiteMargin(msg.sender)
     returns (uint256) {
-        ERC20Helper.checkAllowanceAndApprove(_takerToken, PARASWAP_TRANSFER_PROXY, _requestedFillAmount);
+        ERC20Lib.checkAllowanceAndApprove(_takerToken, PARASWAP_TRANSFER_PROXY, _requestedFillAmount);
 
         (uint256 minAmountOutWei, bytes memory paraswapCallData) = abi.decode(_orderData, (uint256, bytes));
 
@@ -129,7 +129,7 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyHel
             amount
         );
 
-        ERC20Helper.checkAllowanceAndApprove(_makerToken, _receiver, amount);
+        ERC20Lib.checkAllowanceAndApprove(_makerToken, _receiver, amount);
 
         return amount;
     }

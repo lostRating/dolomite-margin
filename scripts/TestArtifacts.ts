@@ -18,7 +18,6 @@ import { default as TestCallee } from '../build/contracts/TestCallee.json';
 import { default as TestSimpleCallee } from '../build/contracts/TestSimpleCallee.json';
 import { default as TestExchangeWrapper } from '../build/contracts/TestExchangeWrapper.json';
 import { default as TestPriceOracle } from '../build/contracts/TestPriceOracle.json';
-import { default as TestOasisDex } from '../build/contracts/TestOasisDex.json';
 import { default as TestPolynomialInterestSetter } from '../build/contracts/TestPolynomialInterestSetter.json';
 import { default as TestDoubleExponentInterestSetter } from '../build/contracts/TestDoubleExponentInterestSetter.json';
 import { default as TestInterestSetter } from '../build/contracts/TestInterestSetter.json';
@@ -32,10 +31,8 @@ import { default as TestAmmRebalancerProxy } from '../build/contracts/TestAmmReb
 import { default as TestUniswapV3MultiRouter } from '../build/contracts/TestUniswapV3MultiRouter.json';
 import { default as TestChainlinkFlags } from '../build/contracts/TestChainlinkFlags.json';
 import { default as TestChainlinkPriceOracleV1 } from '../build/contracts/TestChainlinkPriceOracleV1.json';
-import { default as TestGMXVault } from '../build/contracts/TestGMXVault.json';
-import { default as TestGLPManager } from '../build/contracts/TestGLPManager.json';
-import { default as TestGLP } from '../build/contracts/TestGLP.json';
 import { default as TestParaswapAugustusRouter } from '../build/contracts/TestParaswapAugustusRouter.json';
+import { default as TestLiquidityTokenUnwrapperForLiquidation } from '../build/contracts/TestLiquidityTokenUnwrapperForLiquidation.json';
 
 export default {
   CustomTestToken,
@@ -55,7 +52,6 @@ export default {
   TestLib,
   TestLiquidationCallback,
   TestPriceOracle,
-  TestOasisDex,
   TestPolynomialInterestSetter,
   TestDoubleExponentInterestSetter,
   TestInterestSetter,
@@ -72,8 +68,6 @@ export default {
   TestUniswapV3MultiRouter,
   TestChainlinkFlags,
   TestChainlinkPriceOracleV1,
-  TestGMXVault,
-  TestGLPManager,
-  TestGLP,
   TestParaswapAugustusRouter,
+  TestLiquidityTokenUnwrapperForLiquidation,
 };

@@ -21,9 +21,9 @@ pragma experimental ABIEncoderV2;
 
 import { Require } from "../../protocol/lib/Require.sol";
 
+import { IAuthorizationBase } from "../interfaces/IAuthorizationBase.sol";
 import { IDolomiteAmmFactory } from "../interfaces/IDolomiteAmmFactory.sol";
 import { IDolomiteAmmPair } from "../interfaces/IDolomiteAmmPair.sol";
-import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
 
 import { DolomiteAmmPair } from "./DolomiteAmmPair.sol";
 
@@ -81,7 +81,7 @@ contract DolomiteAmmFactory is IDolomiteAmmFactory {
         assembly {
             pair := create2(0, add(bytecode, 32), mload(bytecode), salt)
         }
-        ITransferProxy(transferProxy).setIsCallerTrusted(pair, true);
+        IAuthorizationBase(transferProxy).setIsCallerAuthorized(pair, true);
         IDolomiteAmmPair(pair).initialize(token0, token1, transferProxy);
         getPair[token0][token1] = pair;
         // populate mapping in the reverse direction
