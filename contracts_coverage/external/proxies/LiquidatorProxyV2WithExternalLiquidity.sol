@@ -19,26 +19,18 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
-import { Decimal } from "../../protocol/lib/Decimal.sol";
-import { Interest } from "../../protocol/lib/Interest.sol";
-import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
-import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
-import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { AccountActionHelper } from "../helpers/AccountActionHelper.sol";
-import { LiquidatorProxyHelper } from "../helpers/LiquidatorProxyHelper.sol";
 import { IExpiry } from "../interfaces/IExpiry.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
-import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
 import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
 
 
@@ -50,10 +42,6 @@ import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.s
  * liquidity aggregation
  */
 contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTraderProxyWithBackup {
-    using DolomiteMarginMath for uint256;
-    using SafeMath for uint256;
-    using Types for Types.Par;
-    using Types for Types.Wei;
 
     // ============ Constants ============
 
@@ -103,7 +91,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     nonReentrant
     {
         // put all values that will not change into a single struct
-        Constants memory constants;
+        LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
 
         _checkConstants(
@@ -155,9 +143,9 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     // ============ Internal Functions ============
 
     function _constructAccountsArray(
-        Constants memory _constants
+        LiquidatorProxyConstants memory _constants
     )
-    private
+    internal
     pure
     returns (Account.Info[] memory)
     {
@@ -168,13 +156,13 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     }
 
     function _constructActionsArray(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _cache,
         uint256 _solidAccountId,
         uint256 _liquidAccountId,
         bytes memory _paraswapCallData
     )
-    private
+    internal
     view
     returns (Actions.ActionArgs[] memory)
     {
@@ -183,7 +171,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         if (_constants.expiry > 0) {
             // First action is a trade for closing the expired account
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = AccountActionHelper.encodeExpiryLiquidateAction(
+            actions[0] = AccountActionLib.encodeExpiryLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
                 _cache.owedMarket,
@@ -195,7 +183,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         } else {
             // First action is a liquidation
             // accountId is solidAccount; otherAccountId is liquidAccount
-            actions[0] = AccountActionHelper.encodeLiquidateAction(
+            actions[0] = AccountActionLib.encodeLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
                 _cache.owedMarket,
@@ -204,7 +192,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
             );
         }
 
-        actions[1] = AccountActionHelper.encodeExternalSellAction(
+        actions[1] = AccountActionLib.encodeExternalSellAction(
             _solidAccountId,
             _cache.heldMarket,
             _cache.owedMarket,

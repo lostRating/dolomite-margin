@@ -129,6 +129,8 @@ contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
         );
     }
 
+    // ============ Internal Functions ============
+
     function _transferMultiple(
         uint256 _fromAccountNumber,
         address _to,

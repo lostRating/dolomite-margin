@@ -91,7 +91,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     nonReentrant
     {
         // put all values that will not change into a single struct
-        Constants memory constants;
+        LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
 
         _checkConstants(
@@ -143,7 +143,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     // ============ Internal Functions ============
 
     function _constructAccountsArray(
-        Constants memory _constants
+        LiquidatorProxyConstants memory _constants
     )
     internal
     pure
@@ -156,7 +156,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     }
 
     function _constructActionsArray(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _cache,
         uint256 _solidAccountId,
         uint256 _liquidAccountId,

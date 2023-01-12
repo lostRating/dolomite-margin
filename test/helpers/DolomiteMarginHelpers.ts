@@ -1,8 +1,7 @@
 import BigNumber from 'bignumber.js';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
-import { address } from '../../src';
+import { address, ADDRESSES, INTEGERS } from '../../src';
 import { mineAvgBlock } from './EVM';
-import { ADDRESSES } from '../../src/lib/Constants';
 
 export async function setGlobalOperator(
   dolomiteMargin: TestDolomiteMargin,
@@ -22,9 +21,9 @@ export async function setupMarkets(
   const priceOracle = dolomiteMargin.testing.priceOracle.address;
   const interestSetter = dolomiteMargin.testing.interestSetter.address;
   const price = new BigNumber('1e40'); // large to prevent hitting minBorrowValue check
-  const marginPremium = new BigNumber(0);
-  const spreadPremium = new BigNumber(0);
-  const maxWei = new BigNumber(0);
+  const marginPremium = INTEGERS.ZERO;
+  const spreadPremium = INTEGERS.ZERO;
+  const maxWei = INTEGERS.ZERO;
   const isClosing = false;
   const isRecyclable = false;
 

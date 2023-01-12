@@ -58,7 +58,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
     operator = accounts[6];
 
     await resetEVM();
-    await setGlobalOperator(dolomiteMargin, accounts, dolomiteMargin.contracts.liquidatorProxyV2WithExternalLiquidity._address);
+    await setGlobalOperator(dolomiteMargin, accounts, dolomiteMargin.liquidatorProxyV2WithExternalLiquidity.address);
     await setupMarkets(dolomiteMargin, accounts);
     await Promise.all([
       dolomiteMargin.testing.priceOracle.setPrice(dolomiteMargin.testing.tokenA.address, prices[0]),
@@ -66,7 +66,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
       dolomiteMargin.testing.priceOracle.setPrice(dolomiteMargin.testing.tokenC.address, prices[2]),
       dolomiteMargin.testing.priceOracle.setPrice(dolomiteMargin.weth.address, prices[3]),
       dolomiteMargin.permissions.approveOperator(operator, { from: solidOwner }),
-      dolomiteMargin.permissions.approveOperator(dolomiteMargin.contracts.liquidatorProxyV2WithExternalLiquidity.options.address, {
+      dolomiteMargin.permissions.approveOperator(dolomiteMargin.liquidatorProxyV2WithExternalLiquidity.address, {
         from: solidOwner,
       }),
       dolomiteMargin.testing.tokenA.issueTo(par.times('1000'), dolomiteMargin.address),
@@ -354,7 +354,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await Promise.all([
           setUpBasicBalances(isOverCollateralized),
           dolomiteMargin.admin.setGlobalOperator(
-            dolomiteMargin.contracts.liquidatorProxyV2WithExternalLiquidity.options.address,
+            dolomiteMargin.liquidatorProxyV2WithExternalLiquidity.address,
             false,
             { from: admin },
           ),
@@ -628,7 +628,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await Promise.all([
           setUpBasicBalances(isOverCollateralized),
           dolomiteMargin.admin.setGlobalOperator(
-            dolomiteMargin.contracts.liquidatorProxyV2WithExternalLiquidity.options.address,
+            dolomiteMargin.liquidatorProxyV2WithExternalLiquidity.address,
             false,
             { from: admin },
           ),

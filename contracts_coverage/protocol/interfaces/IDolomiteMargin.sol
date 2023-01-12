@@ -24,7 +24,7 @@ import { IPriceOracle } from "../interfaces/IPriceOracle.sol";
 
 import { Account } from "../lib/Account.sol";
 import { Actions } from "../lib/Actions.sol";
-import { Decimal.D256 } from "../lib/Decimal.sol";
+import { Decimal } from "../lib/Decimal.sol";
 import { Interest } from "../lib/Interest.sol";
 import { Monetary } from "../lib/Monetary.sol";
 import { Storage } from "../lib/Storage.sol";
@@ -397,11 +397,6 @@ interface IDolomiteMargin {
      */
     function getIsAutoTraderSpecial(address autoTrader) external view returns (bool);
 
-    /**
-     * @return The address that owns the DolomiteMargin protocol
-     */
-    function owner() external view returns (address);
-
     // ============ Getters for Risk Params ============
 
     /**
@@ -608,6 +603,9 @@ interface IDolomiteMargin {
     )
     external;
 
+    /**
+     * Sets the maximum supply wei for a given `marketId`.
+     */
     function ownerSetMaxWei(
         uint256 marketId,
         uint256 maxWei
@@ -680,4 +678,31 @@ interface IDolomiteMargin {
         bool special
     )
     external;
+
+    // ============ Owner Functions ============
+
+    /**
+     * @dev Returns the address of the current owner.
+     */
+    function owner() external view returns (address);
+
+    /**
+     * @dev Returns true if the caller is the current owner.
+     */
+    function isOwner() external view returns (bool);
+
+    /**
+     * @dev Leaves the contract without owner. It will not be possible to call
+     * `onlyOwner` functions anymore. Can only be called by the current owner.
+     *
+     * NOTE: Renouncing ownership will leave the contract without an owner,
+     * thereby removing any functionality that is only available to the owner.
+     */
+    function renounceOwnership() external;
+
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     */
+    function transferOwnership(address newOwner) external;
 }

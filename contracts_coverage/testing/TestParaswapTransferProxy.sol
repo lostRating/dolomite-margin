@@ -39,7 +39,9 @@ contract TestParaswapTransferProxy {
         if (TestToken(_token).balanceOf(_from) >= _amount) { /* FOR COVERAGE TESTING */ }
         Require.that(TestToken(_token).balanceOf(_from) >= _amount,
             FILE,
-            "insufficient balance"
+            "insufficient balance",
+            TestToken(_token).balanceOf(_from),
+            _amount
         );
         if (_amount == 420) {
             revert(); // fail silently to test the "no msg" branch

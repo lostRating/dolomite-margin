@@ -1,12 +1,13 @@
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
+import Contract from 'web3/eth/contract';
 
 // eslint-disable-next-line import/prefer-default-export
-export async function deployContract(
+export async function deployContract<T extends Contract>(
   dolomiteMargin: TestDolomiteMargin,
   json: any,
-  args?: any[]
+  args?: any[],
 ) {
-  const contract = new dolomiteMargin.web3.eth.Contract(json.abi);
+  const contract = new dolomiteMargin.web3.eth.Contract(json.abi) as T;
   const receipt = await contract
     .deploy({
       arguments: args,

@@ -28,7 +28,8 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 
-import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { AuthorizationBase } from "../helpers/AuthorizationBase.sol";
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
 
@@ -39,167 +40,124 @@ import { ITransferProxy } from "../interfaces/ITransferProxy.sol";
  *
  * Contract for sending internal balances within Dolomite to other users/margin accounts easily
  */
-contract TransferProxy is ITransferProxy, OnlyDolomiteMargin, ReentrancyGuard {
+contract TransferProxy is ITransferProxy, AuthorizationBase, ReentrancyGuard {
 
     // ============ Constants ============
 
     bytes32 constant FILE = "TransferProxy";
 
-    // ============ State Variables ============
-
-    mapping(address => bool) public isCallerTrusted;
-
-    // ============ Modifiers ============
-
-    modifier isAuthorized(address sender) {
-        if (isCallerTrusted[sender]) { /* FOR COVERAGE TESTING */ }
-        Require.that(isCallerTrusted[sender],
-            FILE,
-            "unauthorized"
-        );
-        _;
-    }
-
     // ============ Constructor ============
 
     constructor (
-        address dolomiteMargin
+        address _dolomiteMargin
     )
     public
-    OnlyDolomiteMargin(dolomiteMargin)
+    AuthorizationBase(_dolomiteMargin)
     {}
 
     // ============ External Functions ============
 
-    function setIsCallerTrusted(address caller, bool isTrusted) external {
-        if (DOLOMITE_MARGIN.getIsGlobalOperator(msg.sender)) { /* FOR COVERAGE TESTING */ }
-        Require.that(DOLOMITE_MARGIN.getIsGlobalOperator(msg.sender),
-            FILE,
-            "unauthorized"
-        );
-        isCallerTrusted[caller] = isTrusted;
-    }
-
     function transfer(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        address token,
-        uint256 amountWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        address _token,
+        uint256 _amountWei
     )
         external
         nonReentrant
-        isAuthorized(msg.sender)
+        requireIsCallerAuthorized(msg.sender)
     {
         uint256[] memory markets = new uint256[](1);
-        markets[0] = DOLOMITE_MARGIN.getMarketIdByTokenAddress(token);
+        markets[0] = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_token);
 
         uint256[] memory amounts = new uint256[](1);
-        amounts[0] = amountWei;
+        amounts[0] = _amountWei;
 
         _transferMultiple(
-            fromAccountIndex,
-            to,
-            toAccountIndex,
+            _fromAccountNumber,
+            _to,
+            _toAccountNumber,
             markets,
             amounts
         );
     }
 
     function transferMultiple(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        address[] calldata tokens,
-        uint256[] calldata amountsWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        address[] calldata _tokens,
+        uint256[] calldata _amountsWei
     )
         external
         nonReentrant
-        isAuthorized(msg.sender)
+        requireIsCallerAuthorized(msg.sender)
     {
         IDolomiteMargin dolomiteMargin = DOLOMITE_MARGIN;
-        uint256[] memory markets = new uint256[](tokens.length);
+        uint256[] memory markets = new uint256[](_tokens.length);
         for (uint256 i = 0; i < markets.length; i++) {
-            markets[i] = dolomiteMargin.getMarketIdByTokenAddress(tokens[i]);
+            markets[i] = dolomiteMargin.getMarketIdByTokenAddress(_tokens[i]);
         }
 
         _transferMultiple(
-            fromAccountIndex,
-            to,
-            toAccountIndex,
+            _fromAccountNumber,
+            _to,
+            _toAccountNumber,
             markets,
-            amountsWei
+            _amountsWei
         );
     }
 
     function transferMultipleWithMarkets(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        uint256[] calldata markets,
-        uint256[] calldata amountsWei
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        uint256[] calldata _markets,
+        uint256[] calldata _amountsWei
     )
         external
         nonReentrant
-        isAuthorized(msg.sender)
+        requireIsCallerAuthorized(msg.sender)
     {
         _transferMultiple(
-            fromAccountIndex,
-            to,
-            toAccountIndex,
-            markets,
-            amountsWei
+            _fromAccountNumber,
+            _to,
+            _toAccountNumber,
+            _markets,
+            _amountsWei
         );
     }
 
+    // ============ Internal Functions ============
+
     function _transferMultiple(
-        uint256 fromAccountIndex,
-        address to,
-        uint256 toAccountIndex,
-        uint256[] memory markets,
-        uint256[] memory amounts
+        uint256 _fromAccountNumber,
+        address _to,
+        uint256 _toAccountNumber,
+        uint256[] memory _markets,
+        uint256[] memory _amounts
     )
         internal
     {
-        if (markets.length == amounts.length) { /* FOR COVERAGE TESTING */ }
-        Require.that(markets.length == amounts.length,
+        if (_markets.length == _amounts.length) { /* FOR COVERAGE TESTING */ }
+        Require.that(_markets.length == _amounts.length,
             FILE,
             "invalid params length"
         );
 
         Account.Info[] memory accounts = new Account.Info[](2);
-        accounts[0] = Account.Info(msg.sender, fromAccountIndex);
-        accounts[1] = Account.Info(to, toAccountIndex);
+        accounts[0] = Account.Info(msg.sender, _fromAccountNumber);
+        accounts[1] = Account.Info(_to, _toAccountNumber);
 
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](markets.length);
-        for (uint i = 0; i < markets.length; i++) {
-            Types.AssetAmount memory assetAmount;
-            if (amounts[i] == uint(- 1)) {
-                assetAmount = Types.AssetAmount({
-                    sign: true,
-                    denomination: Types.AssetDenomination.Wei,
-                    ref: Types.AssetReference.Target,
-                    value: 0
-                });
-            } else {
-                assetAmount = Types.AssetAmount({
-                    sign: false,
-                    denomination: Types.AssetDenomination.Wei,
-                    ref: Types.AssetReference.Delta,
-                    value: amounts[i]
-                });
-            }
-
-            actions[i] = Actions.ActionArgs({
-                actionType : Actions.ActionType.Transfer,
-                accountId : 0,
-                amount : assetAmount,
-                primaryMarketId : markets[i],
-                secondaryMarketId : uint(- 1),
-                otherAddress : address(0),
-                otherAccountId : 1,
-                data : bytes("")
-            });
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](_markets.length);
+        for (uint i = 0; i < _markets.length; i++) {
+            actions[i] = AccountActionLib.encodeTransferAction(
+                /* _fromAccountId = */ 0, // solhint-disable-line indent
+                /* _fromAccountId = */ 1, // solhint-disable-line indent
+                _markets[i],
+                _amounts[i]
+            );
         }
 
         DOLOMITE_MARGIN.operate(accounts, actions);

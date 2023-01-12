@@ -194,8 +194,7 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
 
     function withdrawFromDolomiteMargin(
         uint256 _accountNumber,
-        uint256 _amount,
-        AccountBalanceLib.BalanceCheckFlag _balanceCheckFlag
+        uint256 _amount
     ) public nonReentrant {
         Require.that(
             !isRecycled,
@@ -207,7 +206,7 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
             DOLOMITE_MARGIN,
             /* _accountOwner = */ address(this), // solium-disable-line indentation
             _getAccountNumber(msg.sender, _accountNumber),
-            /* _fromOwner = */ address(this), // solium-disable-line indentation
+            /* _toAccount = */ msg.sender, // solium-disable-line indentation
             MARKET_ID,
             Types.AssetAmount({
                 sign : false,
@@ -215,7 +214,7 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
                 ref : Types.AssetReference.Delta,
                 value : _amount
             }),
-            _balanceCheckFlag
+            AccountBalanceLib.BalanceCheckFlag.Both
         );
     }
 

@@ -18,8 +18,12 @@
 
 import { BigNumber } from 'bignumber.js';
 import { Decimal, Integer } from '../types';
-import { getInterestPerSecond } from './Helpers';
+import { getInterestPerSecondForDoubleExponent, getInterestPerSecondForAAVECopyCat } from './Helpers';
 import interestConstants from './interest-constants.json';
+
+export interface AAVECopyCatData {
+  isStableCoin: boolean;
+}
 
 export class Interest {
   private networkId: number;
@@ -44,6 +48,7 @@ export class Interest {
   public getInterestPerSecondByMarket(
     marketId: Integer,
     totals: { totalBorrowed: Integer; totalSupply: Integer },
+    extraData?: AAVECopyCatData,
   ): {
     borrowInterestRate: Integer,
     supplyInterestRate: Integer,
@@ -52,11 +57,17 @@ export class Interest {
     const constants = this.getMarketConstants(marketId);
 
     // determine the borrow interest rate (capped at 18 decimal places)
-    const borrowInterestRate = getInterestPerSecond(
-      new BigNumber(constants.maxAPR),
-      constants.coefficients,
-      totals,
-    );
+    let borrowInterestRate: Decimal;
+    if (constants.interestRateModel === 'DoubleExponent') {
+      borrowInterestRate = getInterestPerSecondForDoubleExponent(constants.maxAPR, constants.coefficients, totals);
+    } else if (constants.interestRateModel === 'AAVECopyCat') {
+      borrowInterestRate = getInterestPerSecondForAAVECopyCat(
+        extraData?.isStableCoin ?? constants.isStableCoin,
+        totals,
+      );
+    } else {
+      throw new Error(`Invalid interest rate model, found: ${constants.interestRateModel}`);
+    }
 
     // determine the supply interest rate (uncapped decimal places)
     let supplyInterestRate = borrowInterestRate.times(earningsRate);

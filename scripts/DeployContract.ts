@@ -1,6 +1,6 @@
-import { abi, bytecode, contractName } from '../build/contracts/LiquidatorProxyV1WithAmm.json';
+import { abi, bytecode, contractName } from '../build/contracts/AAVECopyCatStableCoinInterestSetter.json';
 import { ConfirmationType, DolomiteMargin } from '../src';
-import { LiquidatorProxyV1WithAmm } from '../build/wrappers/LiquidatorProxyV1WithAmm';
+import { AAVECopyCatStableCoinInterestSetter } from '../build/wrappers/AAVECopyCatStableCoinInterestSetter';
 import { execSync } from 'child_process';
 import deployed from '../migrations/deployed.json';
 import { promisify } from 'es6-promisify';
@@ -13,15 +13,20 @@ async function deploy(): Promise<void> {
     return Promise.reject(new Error('No NETWORK specified!'));
   }
 
+  const nodeVersion = execSync('node --version', { stdio: 'pipe' });
+  if (nodeVersion.toString().trim() !== 'v14.17.0') {
+    return Promise.reject(new Error('Incorrect node version! Expected v14.17.0'));
+  }
+
   const networkId = truffle.networks[process.env.NETWORK]['network_id'];
   const provider = truffle.networks[process.env.NETWORK].provider();
   const dolomiteMargin = new DolomiteMargin(provider, networkId);
   const deployer = (await dolomiteMargin.web3.eth.getAccounts())[0];
-  const contract = new dolomiteMargin.web3.eth.Contract(abi) as LiquidatorProxyV1WithAmm;
+  const contract = new dolomiteMargin.web3.eth.Contract(abi) as AAVECopyCatStableCoinInterestSetter;
   const txResult = await dolomiteMargin.contracts.callContractFunction(
     contract.deploy({
       data: bytecode,
-      arguments: [dolomiteMargin.address, dolomiteMargin.dolomiteAmmRouterProxy.address, dolomiteMargin.expiry.address],
+      arguments: [],
     }),
     { confirmationType: ConfirmationType.Confirmed, gas: '15000000', gasPrice: '1000000000', from: deployer },
   );

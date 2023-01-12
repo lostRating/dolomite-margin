@@ -32,7 +32,7 @@ import { AccountBalanceLib } from "./AccountBalanceLib.sol";
 
 
 /**
- * @title AccountActionHelper
+ * @title AccountActionLib
  * @author Dolomite
  *
  * Library contract that makes specific actions easy to call
@@ -41,7 +41,7 @@ library AccountActionLib {
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "AccountActionHelper";
+    bytes32 constant FILE = "AccountActionLib";
 
     uint256 constant ALL = uint256(-1);
 

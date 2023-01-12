@@ -61,7 +61,7 @@ contract LiquidatorProxyBase {
 
     // ============ Structs ============
 
-    struct Constants {
+    struct LiquidatorProxyConstants {
         IDolomiteMargin dolomiteMargin;
         Account.Info solidAccount;
         Account.Info liquidAccount;
@@ -97,7 +97,7 @@ contract LiquidatorProxyBase {
      * Pre-populates cache values for some pair of markets.
      */
     function _initializeCache(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         uint256 _heldMarket,
         uint256 _owedMarket
     )
@@ -159,7 +159,7 @@ contract LiquidatorProxyBase {
      *    not just what's being liquidated)
      */
     function _checkConstants(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         Account.Info memory _liquidAccount,
         uint256 _owedMarket,
         uint256 _heldMarket,
@@ -205,7 +205,7 @@ contract LiquidatorProxyBase {
      *    not just what's being liquidated)
      */
     function _checkBasicRequirements(
-        Constants memory _constants,
+        LiquidatorProxyConstants memory _constants,
         uint256 _owedMarket
     )
     internal

@@ -27,8 +27,7 @@ import { Monetary } from "../../protocol/lib/Monetary.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 
 import { IChainlinkAggregator } from "../interfaces/IChainlinkAggregator.sol";
-
-import { IChainlinkFlags } from "./IChainlinkFlags.sol";
+import { IChainlinkFlags } from "../interfaces/IChainlinkFlags.sol";
 
 
 /**
