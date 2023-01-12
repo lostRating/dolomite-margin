@@ -21,8 +21,19 @@ import { Decimal, Integer } from '../types';
 import { getInterestPerSecondForDoubleExponent, getInterestPerSecondForAAVECopyCat } from './Helpers';
 import interestConstants from './interest-constants.json';
 
-export interface AAVECopyCatData {
+interface ExtraData {
+  interestRateModel: string;
+}
+
+export interface AAVECopyCatData extends ExtraData {
+  interestRateModel: 'AAVECopyCat';
   isStableCoin: boolean;
+}
+
+export interface DoubleExponentData extends ExtraData {
+  interestRateModel: 'DoubleExponent';
+  maxAPR: Decimal;
+  coefficients: number[];
 }
 
 export class Interest {
@@ -48,25 +59,20 @@ export class Interest {
   public getInterestPerSecondByMarket(
     marketId: Integer,
     totals: { totalBorrowed: Integer; totalSupply: Integer },
-    extraData?: AAVECopyCatData,
+    extraData?: AAVECopyCatData | DoubleExponentData,
   ): {
     borrowInterestRate: Integer,
     supplyInterestRate: Integer,
   } {
     const earningsRate = this.getEarningsRate();
-    const constants = this.getMarketConstants(marketId);
+    const constants = extraData ?? this.getMarketConstants(marketId);
 
     // determine the borrow interest rate (capped at 18 decimal places)
     let borrowInterestRate: Decimal;
     if (constants.interestRateModel === 'DoubleExponent') {
       borrowInterestRate = getInterestPerSecondForDoubleExponent(constants.maxAPR, constants.coefficients, totals);
     } else if (constants.interestRateModel === 'AAVECopyCat') {
-      borrowInterestRate = getInterestPerSecondForAAVECopyCat(
-        extraData?.isStableCoin ?? constants.isStableCoin,
-        totals,
-      );
-    } else {
-      throw new Error(`Invalid interest rate model, found: ${constants.interestRateModel}`);
+      borrowInterestRate = getInterestPerSecondForAAVECopyCat(constants.isStableCoin, totals);
     }
 
     // determine the supply interest rate (uncapped decimal places)
@@ -93,7 +99,7 @@ export class Interest {
     return networkConstants;
   }
 
-  private getMarketConstants(marketId: Integer) {
+  private getMarketConstants(marketId: Integer): AAVECopyCatData | DoubleExponentData {
     const networkConstants = this.getNetworkConstants();
     const constants = networkConstants[marketId.toFixed(0)];
     if (!constants) {
