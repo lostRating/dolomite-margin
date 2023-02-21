@@ -23,6 +23,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 import { IExpiry } from "../interfaces/IExpiry.sol";
+import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Bits } from "../../protocol/lib/Bits.sol";
@@ -89,6 +90,44 @@ contract LiquidatorProxyBase {
         uint256 owedPrice;
         uint256 owedPriceAdj;
         bool flipMarkets;
+    }
+
+    // ============ Storage ============
+
+    ILiquidatorAssetRegistry public liquidatorAssetRegistry;
+
+    // ============ Constructors ============
+
+    constructor(
+        address _liquidatorAssetRegistry
+    )
+        public
+    {
+        liquidatorAssetRegistry = ILiquidatorAssetRegistry(_liquidatorAssetRegistry);
+    }
+
+    // ============ Internal Functions ============
+
+    modifier requireIsAssetWhitelistedForLiquidation(uint256 _marketId) {
+        Require.that(
+            liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketId, address(this)),
+            FILE,
+            "Asset not whitelisted",
+            _marketId
+        );
+        _;
+    }
+
+    modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
+        for (uint256 i = 0; i < _marketIds.length; i++) {
+            Require.that(
+                liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
+                FILE,
+                "Asset not whitelisted",
+                _marketIds[i]
+            );
+        }
+        _;
     }
 
     // ============ Internal Functions ============

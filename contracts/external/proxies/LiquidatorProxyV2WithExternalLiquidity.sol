@@ -57,9 +57,16 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         address _expiryProxy,
         address _paraswapAugustusRouter,
         address _paraswapTransferProxy,
-        address _dolomiteMargin
+        address _dolomiteMargin,
+        address _liquidatorAssetRegistry
     )
-    public ParaswapTraderProxyWithBackup(_paraswapAugustusRouter, _paraswapTransferProxy, _dolomiteMargin)
+        public
+        ParaswapTraderProxyWithBackup(
+            _paraswapAugustusRouter,
+            _paraswapTransferProxy,
+            _dolomiteMargin,
+            _liquidatorAssetRegistry
+        )
     {
         EXPIRY_PROXY = IExpiry(_expiryProxy);
     }
@@ -87,8 +94,9 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         uint256 _expiry,
         bytes memory _paraswapCallData
     )
-    public
-    nonReentrant
+        public
+        nonReentrant
+        requireIsAssetWhitelistedForLiquidation(_heldMarket)
     {
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;

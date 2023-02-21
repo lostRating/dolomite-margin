@@ -120,6 +120,7 @@ const AmmRebalancerProxyV2 = artifacts.require('AmmRebalancerProxyV2');
 const DepositWithdrawalProxy = artifacts.require('DepositWithdrawalProxy');
 const DolomiteAmmRouterProxy = artifacts.require('DolomiteAmmRouterProxy');
 const Expiry = artifacts.require('Expiry');
+const LiquidatorAssetRegistry = artifacts.require('LiquidatorAssetRegistry');
 const LiquidatorProxyV1 = artifacts.require('LiquidatorProxyV1');
 const LiquidatorProxyV1WithAmm = artifacts.require('LiquidatorProxyV1WithAmm');
 const LiquidatorProxyV2WithExternalLiquidity = artifacts.require('LiquidatorProxyV2WithExternalLiquidity');
@@ -581,10 +582,24 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   }
 
+  const liquidatorAssetRegistry = LiquidatorAssetRegistry;
+  if (shouldOverwrite(liquidatorAssetRegistry, network)) {
+    await deployer.deploy(
+      liquidatorAssetRegistry,
+      dolomiteMargin.address,
+    );
+  } else {
+    await deployer.deploy(
+      liquidatorAssetRegistry,
+      getNoOverwriteParams(),
+    );
+  }
+
   const liquidatorProxyV1 = LiquidatorProxyV1;
   if (shouldOverwrite(liquidatorProxyV1, network)) {
     await deployer.deploy(
       liquidatorProxyV1,
+      liquidatorAssetRegistry.address,
       dolomiteMargin.address,
     );
   } else {
@@ -601,6 +616,7 @@ async function deploySecondLayer(deployer, network, accounts) {
       dolomiteMargin.address,
       DolomiteAmmRouterProxy.address,
       Expiry.address,
+      liquidatorAssetRegistry.address,
     );
   } else {
     await deployer.deploy(
@@ -622,6 +638,7 @@ async function deploySecondLayer(deployer, network, accounts) {
       getParaswapAugustusRouter(network, TestParaswapAugustusRouter),
       getParaswapTransferProxy(network, TestParaswapTransferProxy),
       dolomiteMargin.address,
+      liquidatorAssetRegistry.address,
     );
   } else {
     await deployer.deploy(
@@ -643,6 +660,7 @@ async function deploySecondLayer(deployer, network, accounts) {
       getParaswapAugustusRouter(network, TestParaswapAugustusRouter),
       getParaswapTransferProxy(network, TestParaswapTransferProxy),
       dolomiteMargin.address,
+      liquidatorAssetRegistry.address,
     );
   } else {
     await deployer.deploy(

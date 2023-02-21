@@ -50,6 +50,7 @@ import { MultiCall } from './modules/MultiCall';
 import { ArbitrumGasInfo } from './modules/ArbitrumGasInfo';
 import { DepositProxy } from './modules/DepositProxy';
 import { BorrowPositionProxyV2 } from './modules/BorrowPositionProxyV2';
+import { LiquidatorAssetRegistry } from './modules/LiquidatorAssetRegistry';
 
 export class DolomiteMargin {
   public networkId: number;
@@ -64,6 +65,7 @@ export class DolomiteMargin {
   public admin: Admin;
   public getters: Getters;
   public signedOperations: SignedOperations;
+  public liquidatorAssetRegistry: LiquidatorAssetRegistry;
   public liquidatorProxyV1: LiquidatorProxyV1;
   public liquidatorProxyV1WithAmm: LiquidatorProxyV1WithAmm;
   public liquidatorProxyV2WithExternalLiquidity: LiquidatorProxyV2WithExternalLiquidity;
@@ -114,6 +116,7 @@ export class DolomiteMargin {
     this.admin = new Admin(this.contracts);
     this.getters = new Getters(this.contracts);
     this.signedOperations = new SignedOperations(this.contracts, this.web3, networkId);
+    this.liquidatorAssetRegistry = new LiquidatorAssetRegistry(this.contracts);
     this.liquidatorProxyV1 = new LiquidatorProxyV1(this.contracts);
     this.liquidatorProxyV1WithAmm = new LiquidatorProxyV1WithAmm(this.contracts);
     this.liquidatorProxyV2WithExternalLiquidity = new LiquidatorProxyV2WithExternalLiquidity(this.contracts);
