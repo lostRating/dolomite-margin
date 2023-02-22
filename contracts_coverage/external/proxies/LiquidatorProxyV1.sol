@@ -83,9 +83,11 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
     // ============ Constructor ============
 
     constructor (
+        address _liquidatorAssetRegistry,
         address _dolomiteMargin
     )
         public
+        LiquidatorProxyBase(_liquidatorAssetRegistry)
         OnlyDolomiteMargin(_dolomiteMargin)
     {} /* solium-disable-line no-empty-blocks */
 
@@ -111,6 +113,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
     )
         public
         nonReentrant
+        requireIsAssetsWhitelistedForLiquidation(_heldPreferences)
     {
         // put all values that will not change into a single struct
         LiquidatorProxyV1Constants memory constants;

@@ -364,8 +364,8 @@
     "LiquidatorProxyV1": {
         "42161": {
             "links": {},
-            "address": "0x6d13e5F5458f2bC4D6589093ee5632bE658Caa53",
-            "transactionHash": "0x31c06079803c2866c5da78096bf95dc04d04539df2befe52c0a7a413223ecaea"
+            "address": "0x84b027f8fcefe40d044ccf9ccb54cc6e48c53450",
+            "transactionHash": "0x8fdbb4829ee20722e7510502ba6b7a450c3dbe9b623b21eb3e589f71c0f6945c"
         },
         "80001": {
             "links": {},
@@ -386,8 +386,8 @@
     "LiquidatorProxyV1WithAmm": {
         "42161": {
             "links": {},
-            "address": "0x7a20b3d15097c052222b25a5535451dd93aaa8c6",
-            "transactionHash": "0x7570b0f5bd06df7d386f39195b21448f680c86753afdd0041c75705c10a92113"
+            "address": "0xF61A26FF162685c22b880E568f607D0aEB41f1f2",
+            "transactionHash": "0x3a84d4410b63086f4edb7428bc2161abe1959a32fd5aa39cd545bc9a5dfb73b7"
         },
         "80001": {
             "links": {},
@@ -408,11 +408,17 @@
     "LiquidatorProxyV2WithExternalLiquidity": {
         "42161": {
             "links": {},
-            "address": "0x1bBC201f68f209A054E3e86891401d7255f8D3BA",
-            "transactionHash": "0x862d5bed4da7851f9598eff2c41856bfe7e1e25ede0ca5fbe7cfd292373cd108"
+            "address": "0xCC24cAA605375c011a4F7E6BE7f6C2a3e377F368",
+            "transactionHash": "0xffe973a5458fc1c2c33f1ef541d94a5683f176348de3d379ca1526be5469f54b"
         }
     },
-    "LiquidatorProxyV3WithLiquidityToken": {},
+    "LiquidatorProxyV3WithLiquidityToken": {
+        "42161": {
+            "links": {},
+            "address": "0x0c35882B90bc7Da4d499553A8C681Ce4e17fCC02",
+            "transactionHash": "0xf21cbba038938d50edd1894922d05b06dce8a1b3e4d19a537b33392bdd23c329"
+        }
+    },
     "AmmRebalancerProxyV1": {
         "42161": {
             "links": {},
@@ -757,6 +763,13 @@
             "links": {},
             "address": "0xEA4E670fD64aE82af5a3d77b3Db6b5E28A5522de",
             "transactionHash": "0xb5e614f72cbdb3b9a879e176bc72eac0027c08a17956ee20b2c55eeaa058b8b9"
+        }
+    },
+    "LiquidatorAssetRegistry": {
+        "42161": {
+            "links": {},
+            "address": "0x89324260096f1e7D3678Bf0ec9E3b8c7530111b2",
+            "transactionHash": "0x8023408ca5d1408a4d887eb11674da54dcb910affd091e9f0e9a13f04f7a3b53"
         }
     }
 }

@@ -57,8 +57,8 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
     // ============ Modifiers ============
 
     modifier onlyDolomiteMarginOwner(address _from) {
-        Require.that(
-            _from == DOLOMITE_MARGIN.owner(),
+        if (_from == DOLOMITE_MARGIN.owner()) { /* FOR COVERAGE TESTING */ }
+        Require.that(_from == DOLOMITE_MARGIN.owner(),
             FILE,
             "Only Dolomite owner can call",
             _from

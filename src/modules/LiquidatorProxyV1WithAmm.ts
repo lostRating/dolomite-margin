@@ -8,6 +8,10 @@ export class LiquidatorProxyV1WithAmm {
     this.contracts = contracts;
   }
 
+  public get address(): address {
+    return this.contracts.liquidatorProxyV1WithAmm.options.address;
+  }
+
   // ============ State-Changing Functions ============
 
   /**

@@ -1,15 +1,21 @@
-import { abi, bytecode, contractName } from '../build/contracts/AAVECopyCatStableCoinInterestSetter.json';
+import { abi, bytecode, contractName } from '../build/contracts/LiquidatorProxyV3WithLiquidityToken.json';
 import { ConfirmationType, DolomiteMargin } from '../src';
-import { AAVECopyCatStableCoinInterestSetter } from '../build/wrappers/AAVECopyCatStableCoinInterestSetter';
+import { LiquidatorProxyV3WithLiquidityToken } from '../build/wrappers/LiquidatorProxyV3WithLiquidityToken';
 import { execSync } from 'child_process';
 import deployed from '../migrations/deployed.json';
 import { promisify } from 'es6-promisify';
 import fs from 'fs';
 const truffle = require('../truffle');
 const writeFileAsync = promisify(fs.writeFile);
+const { getParaswapAugustusRouter, getParaswapTransferProxy } = require('../migrations/liquidator_helpers.js');
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
 
 async function deploy(): Promise<void> {
-  if (!process.env.NETWORK) {
+  const network = process.env.NETWORK;
+  if (!network) {
     return Promise.reject(new Error('No NETWORK specified!'));
   }
 
@@ -18,20 +24,31 @@ async function deploy(): Promise<void> {
     return Promise.reject(new Error('Incorrect node version! Expected v14.17.0'));
   }
 
-  const networkId = truffle.networks[process.env.NETWORK]['network_id'];
-  const provider = truffle.networks[process.env.NETWORK].provider();
+  const networkId = truffle.networks[network]['network_id'];
+  const provider = truffle.networks[network].provider();
   const dolomiteMargin = new DolomiteMargin(provider, networkId);
   const deployer = (await dolomiteMargin.web3.eth.getAccounts())[0];
-  const contract = new dolomiteMargin.web3.eth.Contract(abi) as AAVECopyCatStableCoinInterestSetter;
+  const contract = new dolomiteMargin.web3.eth.Contract(abi) as LiquidatorProxyV3WithLiquidityToken;
   const txResult = await dolomiteMargin.contracts.callContractFunction(
     contract.deploy({
       data: bytecode,
-      arguments: [],
+      arguments: [
+        dolomiteMargin.expiry.address,
+        getParaswapAugustusRouter(network),
+        getParaswapTransferProxy(network),
+        dolomiteMargin.address,
+        dolomiteMargin.liquidatorAssetRegistry.address,
+      ],
     }),
-    { confirmationType: ConfirmationType.Confirmed, gas: '15000000', gasPrice: '1000000000', from: deployer },
+    { confirmationType: ConfirmationType.Confirmed, gas: '30000000', gasPrice: '1000000000', from: deployer },
   );
 
-  execSync(`truffle run verify --network ${process.env.NETWORK} ${contractName}@${txResult.contractAddress}`, {
+  console.log(`Deployed ${contractName} to ${txResult.contractAddress}`);
+  // sleeping for 5 seconds to allow for the transaction to settle before verification
+  console.log('Sleeping for 5 seconds...');
+  await sleep(5000);
+
+  execSync(`truffle run verify --network ${network} ${contractName}@${txResult.contractAddress}`, {
     stdio: 'inherit',
   });
 

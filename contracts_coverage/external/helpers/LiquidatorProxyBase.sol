@@ -23,6 +23,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 import { IExpiry } from "../interfaces/IExpiry.sol";
+import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Bits } from "../../protocol/lib/Bits.sol";
@@ -36,7 +37,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 
 
 /**
- * @title LiquidatorProxyHelper
+ * @title LiquidatorProxyBase
  * @author Dolomite
  *
  * Inheritable contract that allows sharing code across different liquidator proxy contracts
@@ -47,7 +48,7 @@ contract LiquidatorProxyBase {
 
     // ============ Constants ============
 
-    bytes32 private constant FILE = "LiquidatorProxyHelper";
+    bytes32 private constant FILE = "LiquidatorProxyBase";
     uint256 private constant MAX_UINT_BITS = 256;
     uint256 private constant ONE = 1;
 
@@ -89,6 +90,44 @@ contract LiquidatorProxyBase {
         uint256 owedPrice;
         uint256 owedPriceAdj;
         bool flipMarkets;
+    }
+
+    // ============ Storage ============
+
+    ILiquidatorAssetRegistry public liquidatorAssetRegistry;
+
+    // ============ Constructors ============
+
+    constructor(
+        address _liquidatorAssetRegistry
+    )
+        public
+    {
+        liquidatorAssetRegistry = ILiquidatorAssetRegistry(_liquidatorAssetRegistry);
+    }
+
+    // ============ Internal Functions ============
+
+    modifier requireIsAssetWhitelistedForLiquidation(uint256 _marketId) {
+        if (liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketId, address(this))) { /* FOR COVERAGE TESTING */ }
+        Require.that(liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketId, address(this)),
+            FILE,
+            "Asset not whitelisted",
+            _marketId
+        );
+        _;
+    }
+
+    modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
+        for (uint256 i = 0; i < _marketIds.length; i++) {
+            if (liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this))) { /* FOR COVERAGE TESTING */ }
+            Require.that(liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
+                FILE,
+                "Asset not whitelisted",
+                _marketIds[i]
+            );
+        }
+        _;
     }
 
     // ============ Internal Functions ============
@@ -447,7 +486,7 @@ contract LiquidatorProxyBase {
     ) private pure returns (MarketInfo memory) {
         uint len = endExclusive - beginInclusive;
         if (len == 0 || (len == 1 && markets[beginInclusive].marketId != marketId)) {
-            revert("LiquidatorProxyHelper: market not found");
+            revert("LiquidatorProxyBase: market not found");
         }
 
         uint mid = beginInclusive + len / 2;

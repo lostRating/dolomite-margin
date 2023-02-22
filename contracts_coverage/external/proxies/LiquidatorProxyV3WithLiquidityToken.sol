@@ -70,14 +70,16 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         address _expiryProxy,
         address _paraswapAugustusRouter,
         address _paraswapTransferProxy,
-        address _dolomiteMargin
+        address _dolomiteMargin,
+        address _liquidatorAssetRegistry
     )
     public
     LiquidatorProxyV2WithExternalLiquidity(
         _expiryProxy,
         _paraswapAugustusRouter,
         _paraswapTransferProxy,
-        _dolomiteMargin
+        _dolomiteMargin,
+        _liquidatorAssetRegistry
     )
     {}
 
@@ -131,9 +133,9 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
             v3Cache.actions = new Actions.ActionArgs[](2);
         }
 
-        encodeLiquidateAction(_proxyCache, _constants, v3Cache);
+        _encodeLiquidateAction(_proxyCache, _constants, v3Cache);
 
-        encodeUnwrapAndSellActions(
+        _encodeUnwrapAndSellActions(
             _proxyCache,
             _constants,
             v3Cache,
@@ -143,7 +145,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         return v3Cache.actions;
     }
 
-    function encodeLiquidateAction(
+    function _encodeLiquidateAction(
         LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyV3Cache memory _v3Cache
@@ -171,7 +173,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         }
     }
 
-    function encodeUnwrapAndSellActions(
+    function _encodeUnwrapAndSellActions(
         LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyV3Cache memory _v3Cache,

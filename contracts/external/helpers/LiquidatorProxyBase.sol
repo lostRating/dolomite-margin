@@ -37,7 +37,7 @@ import { Types } from "../../protocol/lib/Types.sol";
 
 
 /**
- * @title LiquidatorProxyHelper
+ * @title LiquidatorProxyBase
  * @author Dolomite
  *
  * Inheritable contract that allows sharing code across different liquidator proxy contracts
@@ -48,7 +48,7 @@ contract LiquidatorProxyBase {
 
     // ============ Constants ============
 
-    bytes32 private constant FILE = "LiquidatorProxyHelper";
+    bytes32 private constant FILE = "LiquidatorProxyBase";
     uint256 private constant MAX_UINT_BITS = 256;
     uint256 private constant ONE = 1;
 
@@ -486,7 +486,7 @@ contract LiquidatorProxyBase {
     ) private pure returns (MarketInfo memory) {
         uint len = endExclusive - beginInclusive;
         if (len == 0 || (len == 1 && markets[beginInclusive].marketId != marketId)) {
-            revert("LiquidatorProxyHelper: market not found");
+            revert("LiquidatorProxyBase: market not found");
         }
 
         uint mid = beginInclusive + len / 2;
