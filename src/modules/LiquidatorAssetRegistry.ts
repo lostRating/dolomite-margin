@@ -1,0 +1,61 @@
+import { Contracts } from '../lib/Contracts';
+import { address, ContractCallOptions, ContractConstantCallOptions, Integer, } from '../types';
+
+export class LiquidatorAssetRegistry {
+  private contracts: Contracts;
+
+  constructor(contracts: Contracts) {
+    this.contracts = contracts;
+  }
+
+  public get address(): address {
+    return this.contracts.liquidatorAssetRegistry.options.address;
+  }
+
+  // ============ State-Changing Functions ============
+
+  public async addLiquidatorToAssetWhitelist(
+    marketId: Integer,
+    liquidatorProxy: address,
+    options?: ContractCallOptions,
+  ) {
+    return this.contracts.callContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.addLiquidatorToAssetWhitelist(
+        marketId.toFixed(0),
+        liquidatorProxy,
+      ),
+      options,
+    );
+  }
+
+  public async removeLiquidatorFromAssetWhitelist(
+    marketId: Integer,
+    liquidatorProxy: address,
+    options?: ContractCallOptions,
+  ) {
+    return this.contracts.callContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.removeLiquidatorFromAssetWhitelist(
+        marketId.toFixed(0),
+        liquidatorProxy,
+      ),
+      options,
+    );
+  }
+
+  // ============ Getter Functions ============
+
+  public async isAssetWhitelistedForLiquidation(
+    marketId: Integer,
+    liquidatorProxy: address,
+    options?: ContractConstantCallOptions,
+  ) {
+    return this.contracts.callConstantContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.isAssetWhitelistedForLiquidation(
+        marketId.toFixed(0),
+        liquidatorProxy,
+      ),
+      options,
+    );
+  }
+
+}

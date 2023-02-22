@@ -4,7 +4,7 @@ import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { fastForward, mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { setGlobalOperator, setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { expectThrow } from '../helpers/Expect';
-import { AccountStatus, address, INTEGERS } from '../../src';
+import { AccountStatus, address, ADDRESSES, INTEGERS } from '../../src';
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
@@ -315,6 +315,17 @@ describe('LiquidatorProxyV1', () => {
         ]);
         await liquidate();
         await expectBalances([zero, par.times('107')], [zero, par.times('18')]);
+      });
+
+      it('Succeeds when held asset is whitelisted for this contract', async () => {
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          dolomiteMargin.liquidatorProxyV1.address,
+          { from: admin },
+        );
+        await setUpBasicBalances();
+        await liquidate();
+        await expectBalances([zero, par.times('105')], [zero, par.times('5')]);
       });
     });
 
@@ -1016,6 +1027,20 @@ describe('LiquidatorProxyV1', () => {
         await expectThrow(
           liquidate(),
           'LiquidatorProxyV1: Liquid account not liquidatable',
+        );
+      });
+
+      it('Fails if asset is blacklisted by registry for this proxy contract', async () => {
+        // Market2 (if held) cannot be liquidated by any contract
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          ADDRESSES.ZERO,
+          { from: admin },
+        );
+        await setUpBasicBalances();
+        await expectThrow(
+          liquidate(),
+          `LiquidatorProxyBase: Asset not whitelisted <${market2.toFixed()}>`,
         );
       });
     });

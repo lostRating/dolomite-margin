@@ -45,6 +45,7 @@ import { default as TestUniswapAmmRebalancerProxy } from '../build/contracts/Tes
 import { default as RecyclableTokenProxy } from '../build/contracts/RecyclableTokenProxy.json';
 import { default as AAVECopyCatAltCoinInterestSetter } from '../build/contracts/AAVECopyCatAltCoinInterestSetter.json';
 import { default as AAVECopyCatStableCoinInterestSetter } from '../build/contracts/AAVECopyCatStableCoinInterestSetter.json';
+import { default as LiquidatorAssetRegistry } from '../build/contracts/LiquidatorAssetRegistry.json';
 
 export default {
   DepositImpl,
@@ -90,4 +91,5 @@ export default {
   RecyclableTokenProxy,
   AAVECopyCatAltCoinInterestSetter,
   AAVECopyCatStableCoinInterestSetter,
+  LiquidatorAssetRegistry,
 };

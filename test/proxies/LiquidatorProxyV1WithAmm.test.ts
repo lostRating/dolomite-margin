@@ -1,5 +1,5 @@
 import BigNumber from 'bignumber.js';
-import { AccountStatus, address, BalanceCheckFlag, Index, Integer, INTEGERS } from '../../src';
+import { AccountStatus, address, ADDRESSES, BalanceCheckFlag, Index, Integer, INTEGERS } from '../../src';
 import { expectThrow } from '../helpers/Expect';
 import DolomiteMarginMath from '../../src/modules/DolomiteMarginMath';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
@@ -368,6 +368,20 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await liquidate(market1, market2, defaultTokenPath);
         await expectBalances([par, par.times('107').minus(amountIn)], [zero, par.times('18')]);
       });
+
+      it('Succeeds when held asset is whitelisted for this contract', async () => {
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          dolomiteMargin.liquidatorProxyV1WithAmm.address,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+
+        // amountIn is the quantity of heldAmount needed to repay the debt
+        const amountIn1 = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
+        await liquidate(market1, market2, defaultTokenPath);
+        await expectBalances([par, par.times('105').minus(amountIn1)], [zero, par.times('5')]);
+      });
     });
 
     describe('Success cases for various initial liquidator balances', () => {
@@ -489,7 +503,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         ];
         await expectThrow(
           liquidate(market3, market2, tokenPath),
-          'LiquidatorProxyHelper: market not found',
+          'LiquidatorProxyBase: market not found',
         );
       });
 
@@ -500,7 +514,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         ]);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
-          `LiquidatorProxyHelper: Sender not operator <${operator.toLowerCase()}>`,
+          `LiquidatorProxyBase: Sender not operator <${operator.toLowerCase()}>`,
         );
       });
 
@@ -536,7 +550,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market1, defaultTokenPath),
-          `LiquidatorProxyHelper: owedMarket equals heldMarket <${market1.toFixed()}>`,
+          `LiquidatorProxyBase: owedMarket equals heldMarket <${market1.toFixed()}>`,
         );
       });
 
@@ -544,7 +558,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market2, market1, defaultTokenPath), // swap the two markets so owed = held
-          `LiquidatorProxyHelper: owed market cannot be positive <${market2.toFixed()}>`,
+          `LiquidatorProxyBase: owed market cannot be positive <${market2.toFixed()}>`,
         );
       });
 
@@ -553,7 +567,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, INTEGERS.ZERO);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
-          `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
+          `LiquidatorProxyBase: held market cannot be negative <${market2.toFixed()}>`,
         );
       });
 
@@ -582,6 +596,20 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, null, INTEGERS.ZERO, true),
           'DolomiteAmmLibrary: insufficient liquidity',
+        );
+      });
+
+      it('Fails if asset is blacklisted by registry for this proxy contract', async () => {
+        // Market2 (if held) cannot be liquidated by any contract
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          ADDRESSES.ZERO,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath, null, INTEGERS.ZERO, true),
+          `LiquidatorProxyBase: Asset not whitelisted <${market2.toFixed()}>`,
         );
       });
     });
@@ -890,6 +918,21 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await liquidate(market1, market2, defaultTokenPath, expiration);
         await expectBalances([par, par.times('107').minus(amountIn)], [zero, par.times('23')]);
       });
+
+      it('Succeeds when held asset is whitelisted for this contract', async () => {
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          dolomiteMargin.liquidatorProxyV1WithAmm.address,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+
+        // amountIn is the quantity of heldAmount needed to repay the debt
+        const amountIn1 = await dolomiteMargin.dolomiteAmmRouterProxy.getDolomiteAmmAmountIn(par, token2, token1);
+        const expiration = await setUpExpiration(market1);
+        await liquidate(market1, market2, defaultTokenPath, expiration);
+        await expectBalances([par, par.times('105').minus(amountIn1)], [zero, par.times('15')]);
+      });
     });
 
     describe('Success cases for various initial liquidator balances', () => {
@@ -1017,7 +1060,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const expiry = await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, expiry),
-          `LiquidatorProxyHelper: Sender not operator <${operator.toLowerCase()}>`,
+          `LiquidatorProxyBase: Sender not operator <${operator.toLowerCase()}>`,
         );
       });
 
@@ -1060,7 +1103,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const expiry = await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market1, defaultTokenPath, expiry),
-          `LiquidatorProxyHelper: owedMarket equals heldMarket <${market1.toFixed()}>`,
+          `LiquidatorProxyBase: owedMarket equals heldMarket <${market1.toFixed()}>`,
         );
       });
 
@@ -1080,7 +1123,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const inputtedExpiry = new BigNumber('123');
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, inputtedExpiry),
-          `LiquidatorProxyHelper: Expiry mismatch <${actualExpiry.toFixed()}, ${inputtedExpiry.toFixed()}>`,
+          `LiquidatorProxyBase: Expiry mismatch <${actualExpiry.toFixed()}, ${inputtedExpiry.toFixed()}>`,
         );
       });
 
@@ -1089,7 +1132,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const realExpiry = await setUpExpiration(market1, new BigNumber('864000'), false);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, realExpiry),
-          `LiquidatorProxyHelper: Borrow not yet expired <${realExpiry.toFixed()}>`,
+          `LiquidatorProxyBase: Borrow not yet expired <${realExpiry.toFixed()}>`,
         );
       });
 
@@ -1098,7 +1141,22 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, INTEGERS.MAX_UINT_128),
-          `LiquidatorProxyHelper: expiry overflow <${INTEGERS.MAX_UINT_128.toFixed()}>`,
+          `LiquidatorProxyBase: expiry overflow <${INTEGERS.MAX_UINT_128.toFixed()}>`,
+        );
+      });
+
+      it('Fails if asset is blacklisted by registry for this proxy contract', async () => {
+        // Market2 (if held) cannot be liquidated by any contract
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          ADDRESSES.ZERO,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+        await setUpExpiration(market1);
+        await expectThrow(
+          liquidate(market1, market2, defaultTokenPath, INTEGERS.MAX_UINT_128),
+          `LiquidatorProxyBase: Asset not whitelisted <${market2.toFixed()}>`,
         );
       });
     });

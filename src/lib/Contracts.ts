@@ -43,7 +43,8 @@ import expiryJson from '../../build/published_contracts/Expiry.json';
 import erc20Json from '../../build/published_contracts/IERC20.json';
 import interestSetterJson from '../../build/published_contracts/IInterestSetter.json';
 import priceOracleJson from '../../build/published_contracts/IPriceOracle.json';
-import liquidatorV1Json from '../../build/published_contracts/LiquidatorProxyV1.json';
+import liquidatorAssetRegistryJson from '../../build/published_contracts/LiquidatorAssetRegistry.json';
+import liquidatorProxyV1Json from '../../build/published_contracts/LiquidatorProxyV1.json';
 import liquidatorProxyV1WithAmmJson from '../../build/published_contracts/LiquidatorProxyV1WithAmm.json';
 import liquidatorProxyV2WithExternalLiquidityJson from '../../build/published_contracts/LiquidatorProxyV2WithExternalLiquidity.json';
 import liquidatorProxyV3WithLiquidityTokenJson from '../../build/published_contracts/LiquidatorProxyV3WithLiquidityToken.json';
@@ -106,6 +107,7 @@ import { AmmRebalancerProxyV2 } from '../../build/wrappers/AmmRebalancerProxyV2'
 import { IArbitrumGasInfo } from '../../build/wrappers/IArbitrumGasInfo';
 import { AAVECopyCatAltCoinInterestSetter } from '../../build/wrappers/AAVECopyCatAltCoinInterestSetter';
 import { AAVECopyCatStableCoinInterestSetter } from '../../build/wrappers/AAVECopyCatStableCoinInterestSetter';
+import { LiquidatorAssetRegistry } from '../../build/wrappers/LiquidatorAssetRegistry';
 
 interface CallableTransactionObject<T> {
   call(tx?: Tx, blockNumber?: number): Promise<T>;
@@ -120,6 +122,7 @@ export class Contracts {
   public expiry: Expiry;
   public payableProxy: PayableProxy;
   public signedOperationProxy: SignedOperationProxy;
+  public liquidatorAssetRegistry: LiquidatorAssetRegistry;
   public liquidatorProxyV1: LiquidatorProxyV1;
   public liquidatorProxyV1WithAmm: LiquidatorProxyV1WithAmm;
   public liquidatorProxyV2WithExternalLiquidity: LiquidatorProxyV2WithExternalLiquidity;
@@ -186,8 +189,11 @@ export class Contracts {
       signedOperationProxyJson.abi,
     ) as SignedOperationProxy;
     this.liquidatorProxyV1 = new this.web3.eth.Contract(
-      liquidatorV1Json.abi,
+      liquidatorProxyV1Json.abi,
     ) as LiquidatorProxyV1;
+    this.liquidatorAssetRegistry = new this.web3.eth.Contract(
+      liquidatorAssetRegistryJson.abi,
+    ) as LiquidatorAssetRegistry;
     this.liquidatorProxyV1WithAmm = new this.web3.eth.Contract(
       liquidatorProxyV1WithAmmJson.abi,
     ) as LiquidatorProxyV1WithAmm;
@@ -294,7 +300,8 @@ export class Contracts {
       { contract: this.expiry, json: expiryJson },
       { contract: this.payableProxy, json: payableProxyJson },
       { contract: this.signedOperationProxy, json: signedOperationProxyJson },
-      { contract: this.liquidatorProxyV1, json: liquidatorV1Json },
+      { contract: this.liquidatorAssetRegistry, json: liquidatorAssetRegistryJson },
+      { contract: this.liquidatorProxyV1, json: liquidatorProxyV1Json },
       { contract: this.liquidatorProxyV1WithAmm, json: liquidatorProxyV1WithAmmJson },
       { contract: this.liquidatorProxyV2WithExternalLiquidity, json: liquidatorProxyV2WithExternalLiquidityJson },
       { contract: this.liquidatorProxyV3WithLiquidityToken, json: liquidatorProxyV3WithLiquidityTokenJson },
@@ -339,6 +346,7 @@ export class Contracts {
     this.expiry.options.from = account;
     this.payableProxy.options.from = account;
     this.signedOperationProxy.options.from = account;
+    this.liquidatorAssetRegistry.options.from = account;
     this.liquidatorProxyV1.options.from = account;
     this.liquidatorProxyV1WithAmm.options.from = account;
     this.liquidatorProxyV2WithExternalLiquidity.options.from = account;

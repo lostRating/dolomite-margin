@@ -85,8 +85,13 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyBas
     constructor(
         address _paraswapAugustusRouter,
         address _paraswapTransferProxy,
-        address _dolomiteMargin
-    ) public OnlyDolomiteMargin(_dolomiteMargin) {
+        address _dolomiteMargin,
+        address _liquidatorAssetRegistry
+    )
+        public
+        OnlyDolomiteMargin(_dolomiteMargin)
+        LiquidatorProxyBase(_liquidatorAssetRegistry)
+    {
         PARASWAP_AUGUSTUS_ROUTER = _paraswapAugustusRouter;
         PARASWAP_TRANSFER_PROXY = _paraswapTransferProxy;
     }

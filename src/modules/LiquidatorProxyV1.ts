@@ -15,6 +15,10 @@ export class LiquidatorProxyV1 {
     this.contracts = contracts;
   }
 
+  public get address(): address {
+    return this.contracts.liquidatorProxyV1.options.address;
+  }
+
   // ============ State-Changing Functions ============
 
   public async liquidate(

@@ -93,9 +93,11 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
     constructor (
         address dolomiteMargin,
         address dolomiteAmmRouterProxy,
-        address expiryProxy
+        address expiryProxy,
+        address _liquidatorAssetRegistry
     )
-    public
+        public
+        LiquidatorProxyBase(_liquidatorAssetRegistry)
     {
         DOLOMITE_MARGIN = IDolomiteMargin(dolomiteMargin);
         ROUTER_PROXY = DolomiteAmmRouterProxy(dolomiteAmmRouterProxy);
@@ -137,6 +139,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
     )
     public
     nonReentrant
+    requireIsAssetWhitelistedForLiquidation(_heldMarket)
     {
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;
@@ -217,6 +220,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
                 actions[0].amount.value
             );
 
+            address[] memory tokenPathInFrontOfStack = _tokenPath; // used to prevent "stack too deep" error
             // This value needs to be calculated before `actions` is overwritten below with the new swap parameters
             uint256 profit = actions[0].amount.value.sub(cache.solidHeldUpdateWithReward);
             (accounts, actions) = ROUTER_PROXY.getParamsForSwapExactTokensForTokens(
@@ -224,7 +228,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
                 constants.solidAccount.number,
                 totalSolidHeldWei, // inputWei
                 _minOwedOutputAmount,
-                _tokenPath
+                tokenPathInFrontOfStack
             );
 
             emit LogLiquidateWithAmm(

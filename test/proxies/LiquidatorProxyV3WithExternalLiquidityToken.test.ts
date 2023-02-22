@@ -397,6 +397,18 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await liquidate(market1, market2);
         await expectBalances([par.plus(par.times('0.07')), zero], [zero, par.times('18')]);
       });
+
+      it('Succeeds when held asset is whitelisted for this contract', async () => {
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          dolomiteMargin.liquidatorProxyV3WithLiquidityToken.address,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+
+        await liquidate(market1, market2);
+        await expectBalances([par.plus(par.times('0.05')), zero], [zero, par.times('5')]);
+      });
     });
 
     describe('Failure cases', () => {
@@ -404,7 +416,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market3, market2),
-          'LiquidatorProxyHelper: market not found',
+          'LiquidatorProxyBase: market not found',
         );
       });
 
@@ -415,7 +427,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         ]);
         await expectThrow(
           liquidate(market1, market2),
-          `LiquidatorProxyHelper: Sender not operator <${operator.toLowerCase()}>`,
+          `LiquidatorProxyBase: Sender not operator <${operator.toLowerCase()}>`,
         );
       });
 
@@ -435,7 +447,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market1),
-          `LiquidatorProxyHelper: owedMarket equals heldMarket <${market1.toFixed()}>`,
+          `LiquidatorProxyBase: owedMarket equals heldMarket <${market1.toFixed()}>`,
         );
       });
 
@@ -443,7 +455,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market2, market1), // swap the two markets so owed = held
-          `LiquidatorProxyHelper: owed market cannot be positive <${market2.toFixed()}>`,
+          `LiquidatorProxyBase: owed market cannot be positive <${market2.toFixed()}>`,
         );
       });
 
@@ -452,7 +464,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, new BigNumber(-1));
         await expectThrow(
           liquidate(market1, market2),
-          `LiquidatorProxyHelper: held market cannot be negative <${market2.toFixed()}>`,
+          `LiquidatorProxyBase: held market cannot be negative <${market2.toFixed()}>`,
         );
       });
 
@@ -500,6 +512,20 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await expectThrow(
           liquidate(owedMarket, heldMarket, null, FailureType.TooLittleOutput),
           `ParaswapTraderProxyWithBackup: insufficient output amount <1, ${owedAmount.toFixed()}>`,
+        );
+      });
+
+      it('Fails if asset is blacklisted by registry for this proxy contract', async () => {
+        // Market2 (if held) cannot be liquidated by any contract
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          ADDRESSES.ZERO,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+        await expectThrow(
+          liquidate(market1, market2, null),
+          `LiquidatorProxyBase: Asset not whitelisted <${market2.toFixed()}>`,
         );
       });
     });
@@ -700,6 +726,19 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await liquidate(market1, market2, expiration);
         await expectBalances([par.plus(par.times('0.07')), zero], [zero, par.times('23')]);
       });
+
+      it('Succeeds when held asset is whitelisted for this contract', async () => {
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          dolomiteMargin.liquidatorProxyV3WithLiquidityToken.address,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+        const expiry = await setUpExpiration(market1);
+
+        await liquidate(market1, market2, expiry);
+        await expectBalances([par.plus(par.times('0.05')), zero], [zero, par.times('15')]);
+      });
     });
 
     describe('Failure cases', () => {
@@ -711,7 +750,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         const expiry = await setUpExpiration(market1, INTEGERS.ONE, true);
         await expectThrow(
           liquidate(market1, market2, expiry),
-          `LiquidatorProxyHelper: Sender not operator <${operator.toLowerCase()}>`,
+          `LiquidatorProxyBase: Sender not operator <${operator.toLowerCase()}>`,
         );
       });
 
@@ -736,7 +775,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         const expiry = await setUpExpiration(market1, INTEGERS.ONE, true);
         await expectThrow(
           liquidate(market1, market1, expiry),
-          `LiquidatorProxyHelper: owedMarket equals heldMarket <${market1.toFixed()}>`,
+          `LiquidatorProxyBase: owedMarket equals heldMarket <${market1.toFixed()}>`,
         );
       });
 
@@ -746,7 +785,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         const inputtedExpiry = new BigNumber('123');
         await expectThrow(
           liquidate(market1, market2, inputtedExpiry),
-          `LiquidatorProxyHelper: Expiry mismatch <${actualExpiry.toFixed()}, ${inputtedExpiry.toFixed()}>`,
+          `LiquidatorProxyBase: Expiry mismatch <${actualExpiry.toFixed()}, ${inputtedExpiry.toFixed()}>`,
         );
       });
 
@@ -755,7 +794,22 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         const realExpiry = await setUpExpiration(market1, new BigNumber('864000'), false);
         await expectThrow(
           liquidate(market1, market2, realExpiry),
-          `LiquidatorProxyHelper: Borrow not yet expired <${realExpiry.toFixed()}>`,
+          `LiquidatorProxyBase: Borrow not yet expired <${realExpiry.toFixed()}>`,
+        );
+      });
+
+      it('Fails if asset is blacklisted by registry for this proxy contract', async () => {
+        // Market2 (if held) cannot be liquidated by any contract
+        await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
+          market2,
+          ADDRESSES.ZERO,
+          { from: admin },
+        );
+        await setUpBasicBalances(isOverCollateralized);
+        const expiry = await setUpExpiration(market1);
+        await expectThrow(
+          liquidate(market1, market2, expiry),
+          `LiquidatorProxyBase: Asset not whitelisted <${market2.toFixed()}>`,
         );
       });
     });
