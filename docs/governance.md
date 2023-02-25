@@ -2,8 +2,8 @@
 
 ## Primer
 
-In an effort to increase transparency, we will do our best document all governance transactions in this part of the
-docs. As we transition to a DAO model, there will likely be a tidier archive of past proposals, on-chain votes, and
+In an effort to increase transparency, we will do our best to document all governance transactions in this section of
+the docs. As we transition to a DAO model, there will likely be a tidier archive of past proposals, on-chain votes, and
 more, which will render this document deprecated.
 
 ## Transaction Logs
