@@ -1,5 +1,6 @@
 - [DolomiteMargin Protocol](protocol.md "Dolomite Documentation - DolomiteMargin Protocol")
 - [Smart Contracts](contracts.md "Dolomite Documentation - Smart Contracts")
+- [Governance Transactions](governance.md "Dolomite Documentation - Governance Transactions")
 - [TypeScript Client](typescript.md "Dolomite Documentation - DolomiteMargin TypeScript Client")
 - [Subgraph API](subgraph.md "Dolomite Documentation - Subgraph API")
 - [Trading](trading.md "Dolomite Documentation - Trading")

@@ -77,8 +77,8 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyBas
 
     // ============ Storage ============
 
-    address PARASWAP_AUGUSTUS_ROUTER;
-    address PARASWAP_TRANSFER_PROXY;
+    address public PARASWAP_AUGUSTUS_ROUTER;
+    address public PARASWAP_TRANSFER_PROXY;
 
     // ============ Constructor ============
 

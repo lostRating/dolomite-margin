@@ -94,7 +94,7 @@ contract LiquidatorProxyBase {
 
     // ============ Storage ============
 
-    ILiquidatorAssetRegistry public liquidatorAssetRegistry;
+    ILiquidatorAssetRegistry public LIQUIDATOR_ASSET_REGISTRY;
 
     // ============ Constructors ============
 
@@ -103,14 +103,14 @@ contract LiquidatorProxyBase {
     )
         public
     {
-        liquidatorAssetRegistry = ILiquidatorAssetRegistry(_liquidatorAssetRegistry);
+        LIQUIDATOR_ASSET_REGISTRY = ILiquidatorAssetRegistry(_liquidatorAssetRegistry);
     }
 
     // ============ Internal Functions ============
 
     modifier requireIsAssetWhitelistedForLiquidation(uint256 _marketId) {
         Require.that(
-            liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketId, address(this)),
+            LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketId, address(this)),
             FILE,
             "Asset not whitelisted",
             _marketId
@@ -121,7 +121,7 @@ contract LiquidatorProxyBase {
     modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
         for (uint256 i = 0; i < _marketIds.length; i++) {
             Require.that(
-                liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
+                LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
                 FILE,
                 "Asset not whitelisted",
                 _marketIds[i]
