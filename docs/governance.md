@@ -8,10 +8,11 @@ more, which will render this document deprecated.
 
 ## Transaction Logs
 
-#### 2/23/2023 - [Queued Transaction #38](https://arbiscan.io/tx/0x9b6de66db51680b86d5e410c256725ecdbdd9825d50abcf8d798ff1a9e921a9f)
+#### [Gnosis Safe Transaction #38](https://arbiscan.io/tx/0x9b6de66db51680b86d5e410c256725ecdbdd9825d50abcf8d798ff1a9e921a9f) - 2/23/2023
 
 - This transaction is enqueued behind Dolomite
-  Margin's [multisig time delay](https://arbiscan.io/address/0xE412991Fb026df586C2f2F9EE06ACaD1A34f585B).
+  Margin's [multisig time delay](https://arbiscan.io/address/0xE412991Fb026df586C2f2F9EE06ACaD1A34f585B). The following
+  actions may be effectuated after waiting 24 hours.
 - Disables the following global operators:
     - `BorrowPositionProxyV1` (OLD; no balance check flags): `0x144DcFcd3287cF4372887Ef55225696924A82511`
     - `LiquidatorProxyV1` (OLD; no registry): `0x6d13e5F5458f2bC4D6589093ee5632bE658Caa53`
@@ -25,8 +26,11 @@ more, which will render this document deprecated.
     - `LiquidatorProxyV2WithExternalLiquidity`: `0xCC24cAA605375c011a4F7E6BE7f6C2a3e377F368`
     - `LiquidatorProxyV3WithLiquidityToken`: `0x0c35882B90bc7Da4d499553A8C681Ce4e17fCC02`
 
-#### 2/25/2023 - [Queued Transaction #39](https://arbiscan.io/tx/0xead4847f68064b462c80e43608fe5a5294e1b73ae8de9542d92f60c1e3f03fa2)
+#### [Gnosis Safe Transaction #39](https://arbiscan.io/tx/0xead4847f68064b462c80e43608fe5a5294e1b73ae8de9542d92f60c1e3f03fa2) - 2/25/2023
 
+- This transaction is enqueued behind Dolomite
+  Margin's [multisig time delay](https://arbiscan.io/address/0xE412991Fb026df586C2f2F9EE06ACaD1A34f585B). The following
+  actions may be effectuated after waiting 24 hours.
 - Adds the following as a new market:
     - `Dolomite: Fee + Staked GLP` (`dfsGLP`): `0x34DF4E8062A8C8Ae97E3382B452bd7BF60542698`
         - Borrowing is disabled
