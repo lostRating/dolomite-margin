@@ -35,7 +35,8 @@ more, which will render this document deprecated.
     - `Dolomite: Fee + Staked GLP` (`dfsGLP`): `0x34DF4E8062A8C8Ae97E3382B452bd7BF60542698`
         - Borrowing is disabled
         - All rewards (ETH + esGMX + sGMX + vesting) are passed along to each user's proxy vault
-        - Supply is capped at 5,000,000 (`5000000000000000000000000`) `dfsGLP` (for now, this value can change)
+        - Supply is capped at 5,000,000 (`5000000000000000000000000`) `dfsGLP` (this value will likely increase in the
+          future)
         - Min collateralization is 120%
             - This is done via the `marginPremium` being set to `43478260869565217` (4.3478%; 115% * 1.043478% == 120%)
         - Price oracle is set to `0x26cf2B04bA936Aff81435e67c7C1551E17271744`
