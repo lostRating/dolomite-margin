@@ -48,8 +48,10 @@ The contracts are officially deployed to the following networks:
 | [`TransferProxy`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/external/proxies/TransferProxy.sol)                                                     | Contract for transferring funds within Dolomite to other users                                                                                                                                            | [0xe04f884e8BB9868b6013dEAd84ad5A3B8cb1Df5A](https://arbiscan.io/address/0xe04f884e8BB9868b6013dEAd84ad5A3B8cb1Df5A) |
 | [`WithdrawalImpl`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/protocol/impl/WithdrawalImpl.sol)                                                      | DolomiteMargin library containing the logic for executing withdrawals                                                                                                                                     | [0x8dC7C04644b14e04E7A84654680Bbf5E83A88332](https://arbiscan.io/address/0x8dC7C04644b14e04E7A84654680Bbf5E83A88332) |
 
-##### Modularized Smart Contracts (these smart contracts rest atop the core system)
+##### Modularized Smart Contracts
 
+These smart contracts rest atop the core system and are used to provide additional functionality. They are not required
+for the core system to function.
 
 | Contract Name                                                                                                                                                            | Description                                                                                                                                                                                                                         | Address                                                                                                              |
 |--------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------|
@@ -59,7 +61,6 @@ The contracts are officially deployed to the following networks:
 | [`GLPPriceOracleV1`](https://github.com/dolomite-exchange/dolomite-margin-modules/blob/master/contracts/external/glp/GLPPriceOracleV1.sol)                               | An implementation of the IDolomitePriceOracle interface that makes GMX's GLP prices compatible with `DolomiteMargin`. The GLP price it calculates understates the price by using the highest bid and factors in any withdrawal fees | [0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1](https://arbiscan.io/address/0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1) |
 | [`GLPWrapperTraderV1`](https://github.com/dolomite-exchange/dolomite-margin-modules/blob/master/contracts/external/glp/GLPWrapperTraderV1.sol)                           | Used for wrapping GLP (via minting from the GLPRewardsRouter) from USDC. Upon settlement, the minted GLP is sent to the user's vault and dfsGLP is minted to `DolomiteMargin`.                                                      | [0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1](https://arbiscan.io/address/0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1) |
 | [`GLPUnwrapperTraderV1`](https://github.com/dolomite-exchange/dolomite-margin-modules/blob/master/contracts/external/glp/GLPUnwrapperTraderV1.sol)                       | Used for unwrapping GLP (via burning via the GLPRewardsRouter) into USDC. Upon settlement, the burned GLP is sent from the user's vault to this contract and dfsGLP is burned from `DolomiteMargin`.                                | [0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1](https://arbiscan.io/address/0xc2cBd99bb35b22C43010a8c8266Cdff057f70BB1) |
-
 
 #### Arbitrum Goerli
 
@@ -100,25 +101,24 @@ The contracts are officially deployed to the following networks:
 | [`WBTC`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/CustomTestToken.sol) | WBTC token                                                                | [0x6fA07522F1dd8D8cb5b400c957418b4bD2C96F80](https://goerli.arbiscan.io/address/0x6fA07522F1dd8D8cb5b400c957418b4bD2C96F80) |
 | [`WETH`](https://github.com/dolomite-exchange/dolomite-margin/blob/master/contracts/testing/TestWETH.sol)        | WETH token                                                                | [0xC033378c6eEa969C001CE9438973ca4d6460999a](https://goerli.arbiscan.io/address/0xC033378c6eEa969C001CE9438973ca4d6460999a) |
 
-
-> All testnet tokens have an `addBalance(address _target, uint256 _value)` function which can be used to give yourself 
-> tokens for testing purposes. The tokens are sent directly to `__taget`'s wallet, NOT to the Dolomite virtual balance. 
+> All testnet tokens have an `addBalance(address _target, uint256 _value)` function which can be used to give yourself
+> tokens for testing purposes. The tokens are sent directly to `__taget`'s wallet, NOT to the Dolomite virtual balance.
 
 ### Admin Privileges
 
 In the initial stages of the protocol, the admin rights are owned by Dolomite's executive team using a simple multi
 signature wallet (Gnosis Safe) that is stood up behind a delayed multi signature wallet (custom-made by the dYdX team).
-The Gnosis Safe is a 2/3 wallet that is owned by the Dolomite team. Meaning, 2 signers are needed out of the 3 owners to 
-execute a transaction. The delayed multi signature wallet is solely owned by the Gnosis Safe, which means the security 
-and ownership of the delayed multi signature wallet falls back on to the Gnosis Safe. On the other hand, the time delay 
-falls completely on the delayed multi signature wallet; what ever delay is set for the delayed multi signature wallet 
-indiscriminately requires that *all* transactions sent to it wait the same delay before the transaction can be executed. 
-This means, all admin transactions involving the `DolomiteMargin` protocol require that `secondsTimeLocked` amount of 
+The Gnosis Safe is a 2/3 wallet that is owned by the Dolomite team. Meaning, 2 signers are needed out of the 3 owners to
+execute a transaction. The delayed multi signature wallet is solely owned by the Gnosis Safe, which means the security
+and ownership of the delayed multi signature wallet falls back on to the Gnosis Safe. On the other hand, the time delay
+falls completely on the delayed multi signature wallet; what ever delay is set for the delayed multi signature wallet
+indiscriminately requires that *all* transactions sent to it wait the same delay before the transaction can be executed.
+This means, all admin transactions involving the `DolomiteMargin` protocol require that `secondsTimeLocked` amount of
 time must be waited before the transaction effectuates.
 
 
-> At the time of launch, the delay on the delayed multi signature wallet is 1 day (86,400 seconds). The intention is to 
-> raise it incrementally until the protocol is more battle-tested and ownership of the protocol becomes much more 
+> At the time of launch, the delay on the delayed multi signature wallet is 1 day (86,400 seconds). The intention is to
+> raise it incrementally until the protocol is more battle-tested and ownership of the protocol becomes much more
 > decentralized.
 
 
@@ -218,7 +218,7 @@ the protocol (subject to any time delays, of course). These values include the f
 The following market-specific functions and parameters can be called or changed by the protocol's admin and are subject
 to the same, universal, time delays as well as any applicable limits defined above.
 
-To verify any of these parameters for a particular market, you can first get the `marketId` from the 
+To verify any of these parameters for a particular market, you can first get the `marketId` from the
 [Markets](https://docs.dolomite.io/#/protocol?id=markets) section of the docs. Alternatively, you can visit the
 DolomiteMargin smart contract on
 [Arbiscan](https://arbiscan.io/address/0x6a76986201E1906eb8d887Bb4Ad74b55888617af#readContract) and get the `marketId`
@@ -248,9 +248,9 @@ function ownerAddMarket(
 )
 ```
 
-> This function allows a new market to be added to DolomiteMargin. Upon initialization, `isRecyclable` (explanation 
+> This function allows a new market to be added to DolomiteMargin. Upon initialization, `isRecyclable` (explanation
 > below) and the token's address cannot be changed. Other values that are initialized and can be changed include
->`isClosing`, `priceOracle`, `interestSetter`, `marginPremium`, `spreadPremium`, and `maxWei`.
+> `isClosing`, `priceOracle`, `interestSetter`, `marginPremium`, `spreadPremium`, and `maxWei`.
 
 ---
 
@@ -321,9 +321,9 @@ perspective of safeguarding users' funds.
 
 Taking a step back, what is an operator?
 
-An operator is an external address that has the same permissions to manipulate an account within `DolomiteMargin` as the 
-owner of the account. Operators are simply addresses and therefore may either be externally-owned Ethereum accounts 
-(EoAs) OR smart contracts. Operators are also able to act as AutoTrader contracts on behalf of the account owner if the 
+An operator is an external address that has the same permissions to manipulate an account within `DolomiteMargin` as the
+owner of the account. Operators are simply addresses and therefore may either be externally-owned Ethereum accounts
+(EoAs) OR smart contracts. Operators are also able to act as AutoTrader contracts on behalf of the account owner if the
 operator is a smart contract and implements the `IAutoTrader` interface.
 
 ---
