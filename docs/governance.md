@@ -8,7 +8,7 @@ more, which will render this document deprecated.
 
 ## Transaction Logs
 
-#### [Safe Transaction #38](https://arbiscan.io/tx/0x9b6de66db51680b86d5e410c256725ecdbdd9825d50abcf8d798ff1a9e921a9f) - 2/23/2023
+#### [Safe Transaction #38](https://arbiscan.io/tx/0x544750a635a2f919c6af6b6d69138a31ac86d57627c138e9eb8ccc0d12b7fe4f) - 2/23/2023
 
 - This transaction is enqueued behind Dolomite
   Margin's [multisig time delay](https://arbiscan.io/address/0xE412991Fb026df586C2f2F9EE06ACaD1A34f585B). The following
