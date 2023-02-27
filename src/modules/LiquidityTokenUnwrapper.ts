@@ -6,36 +6,36 @@ import BigNumber from 'bignumber.js';
 
 export class LiquidityTokenUnwrapper {
   private contracts: Contracts;
-  private unwrapper: ILiquidityTokenUnwrapperForLiquidation;
+  public unwrapperContract: ILiquidityTokenUnwrapperForLiquidation;
 
   constructor(
     contracts: Contracts,
-    unwrapper: ILiquidityTokenUnwrapperForLiquidation,
+    unwrapperContract: ILiquidityTokenUnwrapperForLiquidation,
   ) {
     this.contracts = contracts;
-    this.unwrapper = unwrapper;
+    this.unwrapperContract = unwrapperContract;
   }
 
   public get address(): address {
-    return this.unwrapper.options.address;
+    return this.unwrapperContract.options.address;
   }
 
   public async token(): Promise<address> {
     return this.contracts.callConstantContractFunction(
-      this.unwrapper.methods.token()
+      this.unwrapperContract.methods.token()
     );
   }
 
   public async actionsLength(): Promise<Integer> {
     const result = await this.contracts.callConstantContractFunction(
-      this.unwrapper.methods.actionsLength()
+      this.unwrapperContract.methods.actionsLength()
     );
     return new BigNumber(result);
   }
 
   public async outputMarketId(): Promise<Integer> {
     const result = await this.contracts.callConstantContractFunction(
-      this.unwrapper.methods.outputMarketId()
+      this.unwrapperContract.methods.outputMarketId()
     );
     return new BigNumber(result);
   }
@@ -51,7 +51,7 @@ export class LiquidityTokenUnwrapper {
     heldAmountWithReward: Integer,
   ): Promise<ActionArgs[]> {
     return this.contracts.callConstantContractFunction(
-      this.unwrapper.methods.createActionsForUnwrappingForLiquidation(
+      this.unwrapperContract.methods.createActionsForUnwrappingForLiquidation(
         solidAccountId.toFixed(),
         liquidAccountId.toFixed(),
         solidAccountOwner,
@@ -69,14 +69,15 @@ export class LiquidityTokenUnwrapper {
     takerToken: address,
     desiredMakerToken: Integer,
     orderData: string,
-  ): Promise<address> {
-    return this.contracts.callConstantContractFunction(
-      this.unwrapper.methods.getExchangeCost(
+  ): Promise<Integer> {
+    const result = await this.contracts.callConstantContractFunction(
+      this.unwrapperContract.methods.getExchangeCost(
         makerToken,
         takerToken,
         desiredMakerToken.toFixed(),
         hexStringToBytes(orderData),
       )
     );
+    return new BigNumber(result);
   }
 }
