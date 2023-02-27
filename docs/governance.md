@@ -62,4 +62,9 @@ more, which will render this document deprecated.
     - `GLPWrapperTraderV1`: [0xFa60E0fC3da354d68F9d3ec5AC638d36bbB13bFe](https://arbiscan.io/address/0xFa60E0fC3da354d68F9d3ec5AC638d36bbB13bFe)
     - `GLPUnwrapperTraderV1`: [0xe2E26241E8572912d0fA3c213b935D10a4Fe2268](https://arbiscan.io/address/0xe2E26241E8572912d0fA3c213b935D10a4Fe2268)
 - Enables the following contracts as unwrappers for `LiquidatorProxyV3WithLiquidityToken`
-    - `GLPUnwrapperTraderV1`: [0xe2E26241E8572912d0fA3c213b935D10a4Fe2268](https://arbiscan.io/address/0xe2E26241E8572912d0fA3c213b935D10a4Fe2268) 
+    - `GLPUnwrapperTraderV1`: [0xe2E26241E8572912d0fA3c213b935D10a4Fe2268](https://arbiscan.io/address/0xe2E26241E8572912d0fA3c213b935D10a4Fe2268)
+
+#### [Safe Transaction #40](https://arbiscan.io/tx/0xeb0777a81adbf603d30575f6198503f2a11d465276d6dac2b7f1fcd3e49087bc) - 2/27/2023
+
+- This transaction executes the queued transactions from Safe Transaction #39 and Safe Transaction #40 since the 24-hour
+  time delay has passed.
