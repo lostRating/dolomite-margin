@@ -51,6 +51,7 @@ import { ArbitrumGasInfo } from './modules/ArbitrumGasInfo';
 import { DepositProxy } from './modules/DepositProxy';
 import { BorrowPositionProxyV2 } from './modules/BorrowPositionProxyV2';
 import { LiquidatorAssetRegistry } from './modules/LiquidatorAssetRegistry';
+import { LiquidityTokenUnwrapper } from './modules/LiquidityTokenUnwrapper';
 
 export class DolomiteMargin {
   public networkId: number;
@@ -187,6 +188,10 @@ export class DolomiteMargin {
 
   getDolomiteAmmPair(pairAddress: address): DolomiteAmmPair {
     return new DolomiteAmmPair(this.contracts, this.contracts.getDolomiteAmmPair(pairAddress));
+  }
+
+  getTokenUnwrapper(unwrapperAddress: address): LiquidityTokenUnwrapper {
+    return new LiquidityTokenUnwrapper(this.contracts, this.contracts.getTokenUnwrapper(unwrapperAddress));
   }
 
   protected createContractsModule(

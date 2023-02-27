@@ -46,6 +46,7 @@ import { default as RecyclableTokenProxy } from '../build/contracts/RecyclableTo
 import { default as AAVECopyCatAltCoinInterestSetter } from '../build/contracts/AAVECopyCatAltCoinInterestSetter.json';
 import { default as AAVECopyCatStableCoinInterestSetter } from '../build/contracts/AAVECopyCatStableCoinInterestSetter.json';
 import { default as LiquidatorAssetRegistry } from '../build/contracts/LiquidatorAssetRegistry.json';
+import { default as ILiquidityTokenUnwrapperForLiquidation } from '../build/contracts/ILiquidityTokenUnwrapperForLiquidation.json';
 
 export default {
   DepositImpl,
@@ -92,4 +93,5 @@ export default {
   AAVECopyCatAltCoinInterestSetter,
   AAVECopyCatStableCoinInterestSetter,
   LiquidatorAssetRegistry,
+  ILiquidityTokenUnwrapperForLiquidation,
 };
