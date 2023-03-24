@@ -771,5 +771,19 @@
             "address": "0x89324260096f1e7D3678Bf0ec9E3b8c7530111b2",
             "transactionHash": "0x8023408ca5d1408a4d887eb11674da54dcb910affd091e9f0e9a13f04f7a3b53"
         }
+    },
+    "PartiallyDelayedMultiSig": {
+        "42161": {
+            "links": {},
+            "address": "0x52d7BcB650c591f6E8da90f797A1d0Bfd8fD05F9",
+            "transactionHash": "0xd4534bcd27dadbf4a3743dd5f6b325e8a370709f681d7c7e678a5d8745a6e551"
+        }
+    },
+    "AlwaysZeroInterestSetter": {
+        "42161": {
+            "links": {},
+            "address": "0x37b6fF70654EDfBdAA3c9a723fdAdF5844De2168",
+            "transactionHash": "0x6992828fe897b2b26ee8707e07019491f40b9b660760a39a8e85b46ef2057e7c"
+        }
     }
 }
