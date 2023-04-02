@@ -1,6 +1,6 @@
-import { abi, bytecode, contractName } from '../build/contracts/AlwaysZeroInterestSetter.json';
+import { abi, bytecode, contractName } from '../build/contracts/LiquidatorProxyV1WithAmm.json';
 import { ConfirmationType, DolomiteMargin } from '../src';
-import { AlwaysZeroInterestSetter } from '../build/wrappers/AlwaysZeroInterestSetter';
+import { LiquidatorProxyV1WithAmm } from '../build/wrappers/LiquidatorProxyV1WithAmm';
 import { execSync } from 'child_process';
 import deployed from '../migrations/deployed.json';
 import { promisify } from 'es6-promisify';
@@ -27,13 +27,18 @@ async function deploy(): Promise<void> {
   const provider = truffle.networks[network].provider();
   const dolomiteMargin = new DolomiteMargin(provider, networkId);
   const deployer = (await dolomiteMargin.web3.eth.getAccounts())[0];
-  const contract = new dolomiteMargin.web3.eth.Contract(abi) as AlwaysZeroInterestSetter;
+  const contract = new dolomiteMargin.web3.eth.Contract(abi) as LiquidatorProxyV1WithAmm;
   const txResult = await dolomiteMargin.contracts.callContractFunction(
     contract.deploy({
       data: bytecode,
-      arguments: [],
+      arguments: [
+        dolomiteMargin.address,
+        dolomiteMargin.dolomiteAmmRouterProxy.address,
+        dolomiteMargin.expiry.address,
+        dolomiteMargin.liquidatorAssetRegistry.address,
+      ],
     }),
-    { confirmationType: ConfirmationType.Confirmed, gas: '30000000', gasPrice: '500000000', from: deployer },
+    { confirmationType: ConfirmationType.Confirmed, gas: '30000000', gasPrice: '100000000', from: deployer },
   );
 
   console.log(`Deployed ${contractName} to ${txResult.contractAddress}`);
