@@ -139,6 +139,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
     )
     public
     nonReentrant
+    requireIsAssetWhitelistedForLiquidation(_owedMarket)
     requireIsAssetWhitelistedForLiquidation(_heldMarket)
     {
         // put all values that will not change into a single struct

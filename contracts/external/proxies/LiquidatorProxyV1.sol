@@ -113,6 +113,7 @@ contract LiquidatorProxyV1 is OnlyDolomiteMargin, ReentrancyGuard, LiquidatorPro
     )
         public
         nonReentrant
+        requireIsAssetsWhitelistedForLiquidation(_owedPreferences)
         requireIsAssetsWhitelistedForLiquidation(_heldPreferences)
     {
         // put all values that will not change into a single struct

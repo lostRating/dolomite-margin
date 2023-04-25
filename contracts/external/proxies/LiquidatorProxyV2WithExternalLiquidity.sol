@@ -49,6 +49,13 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
 
     // ============ Storage ============
 
+    struct TraderParams {
+        address trader;
+        bytes orderData;
+    }
+
+    // ============ Storage ============
+
     IExpiry public EXPIRY_PROXY;
 
     // ============ Constructor ============
@@ -91,11 +98,14 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         Account.Info memory _liquidAccount,
         uint256 _owedMarket,
         uint256 _heldMarket,
+        uint256[] memory _marketIdsForLiquidationPath,
+        uint256[] memory _amountsForLiquidationPath,
         uint256 _expiry,
         bytes memory _paraswapCallData
     )
         public
         nonReentrant
+        requireIsAssetWhitelistedForLiquidation(_owedMarket)
         requireIsAssetWhitelistedForLiquidation(_heldMarket)
     {
         // put all values that will not change into a single struct

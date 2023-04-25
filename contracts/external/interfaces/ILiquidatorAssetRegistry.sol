@@ -44,7 +44,7 @@ interface ILiquidatorAssetRegistry {
      * @param _marketId     The market ID of the asset
      * @param _liquidator   The address of the liquidator to add
      */
-    function addLiquidatorToAssetWhitelist(
+    function ownerAddLiquidatorToAssetWhitelist(
         uint256 _marketId,
         address _liquidator
     )
@@ -54,11 +54,21 @@ interface ILiquidatorAssetRegistry {
      * @param _marketId     The market ID of the asset
      * @param _liquidator   The address of the liquidator to remove
      */
-    function removeLiquidatorFromAssetWhitelist(
+    function ownerRemoveLiquidatorFromAssetWhitelist(
         uint256 _marketId,
         address _liquidator
     )
     external;
+
+    /**
+     * @param _marketId    The market ID of the asset to check
+     * @return  An array of whitelisted liquidators for the asset. An empty array is returned if any liquidator can be
+     *          used for this asset
+     */
+    function getLiquidatorsForAsset(
+        uint256 _marketId
+    )
+    external view returns (address[] memory);
 
     /**
      * @param _marketId     The market ID of the asset to check

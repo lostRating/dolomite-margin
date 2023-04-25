@@ -32,7 +32,7 @@ import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry
  * @title   LiquidatorAssetRegistry
  * @author  Dolomite
  *
- * @dev Registry contract for tracking which assets can be liquidated by each contract.
+ * @notice  A registry contract for tracking which assets can be liquidated by each contract.
  */
 contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin {
     using OpenZeppelinEnumerableSet for OpenZeppelinEnumerableSet.AddressSet;
@@ -68,7 +68,9 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
 
     // ============ Public Functions ============
 
-    function addLiquidatorToAssetWhitelist(
+    // TODO add unwrappers/wrappers to this contract from the V3 liquidator. Refactor to include `owner` in beginning
+
+    function ownerAddLiquidatorToAssetWhitelist(
         uint256 _marketId,
         address _liquidator
     )
@@ -78,7 +80,7 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
         emit LiquidatorAddedToWhitelist(_marketId, _liquidator);
     }
 
-    function removeLiquidatorFromAssetWhitelist(
+    function ownerRemoveLiquidatorFromAssetWhitelist(
         uint256 _marketId,
         address _liquidator
     )
@@ -86,6 +88,13 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
     onlyDolomiteMarginOwner(msg.sender) {
         _marketIdToLiquidatorWhitelistMap[_marketId].remove(_liquidator);
         emit LiquidatorRemovedFromWhitelist(_marketId, _liquidator);
+    }
+
+    function getLiquidatorsForAsset(
+        uint256 _marketId
+    )
+    external view returns (address[] memory) {
+        return _marketIdToLiquidatorWhitelistMap[_marketId].enumerate();
     }
 
     function isAssetWhitelistedForLiquidation(

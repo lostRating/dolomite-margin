@@ -20,7 +20,7 @@ export class LiquidatorAssetRegistry {
     options?: ContractCallOptions,
   ) {
     return this.contracts.callContractFunction(
-      this.contracts.liquidatorAssetRegistry.methods.addLiquidatorToAssetWhitelist(
+      this.contracts.liquidatorAssetRegistry.methods.ownerAddLiquidatorToAssetWhitelist(
         marketId.toFixed(0),
         liquidatorProxy,
       ),
@@ -34,7 +34,7 @@ export class LiquidatorAssetRegistry {
     options?: ContractCallOptions,
   ) {
     return this.contracts.callContractFunction(
-      this.contracts.liquidatorAssetRegistry.methods.removeLiquidatorFromAssetWhitelist(
+      this.contracts.liquidatorAssetRegistry.methods.ownerRemoveLiquidatorFromAssetWhitelist(
         marketId.toFixed(0),
         liquidatorProxy,
       ),
@@ -43,6 +43,18 @@ export class LiquidatorAssetRegistry {
   }
 
   // ============ Getter Functions ============
+
+  public async getLiquidatorsForAsset(
+    marketId: Integer,
+    options?: ContractConstantCallOptions,
+  ) {
+    return this.contracts.callConstantContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.getLiquidatorsForAsset(
+        marketId.toFixed(0),
+      ),
+      options,
+    );
+  }
 
   public async isAssetWhitelistedForLiquidation(
     marketId: Integer,
@@ -57,5 +69,4 @@ export class LiquidatorAssetRegistry {
       options,
     );
   }
-
 }
