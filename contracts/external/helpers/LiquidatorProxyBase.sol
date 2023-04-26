@@ -193,15 +193,18 @@ contract LiquidatorProxyBase {
 
     /**
      * Make some basic checks before attempting to liquidate an account.
-     *  - Require that the msg.sender has the permission to use the liquidator account
-     *  - Require that the liquid account is liquidatable based on the accounts global value (all assets held and owed,
-     *    not just what's being liquidated)
+     *  - Make sure the market IDs do not equal
+     *  - Make sure the liquid account has a negative balance for `_owedMarket`
+     *  - Make sure the liquid account has a positive balance for `_heldMarket`
+     *  - Make sure that `_expiry` does not overflow
      */
     function _checkConstants(
         LiquidatorProxyConstants memory _constants,
         Account.Info memory _liquidAccount,
         uint256 _owedMarket,
         uint256 _heldMarket,
+        uint256[] memory _marketIdsForSellActionsPath,
+        uint256[] memory _amountsForSellActionsPath,
         uint256 _expiry
     )
     internal
@@ -211,29 +214,61 @@ contract LiquidatorProxyBase {
         Require.that(
             _owedMarket != _heldMarket,
             FILE,
-            "owedMarket equals heldMarket",
+            "Owed market equals held market",
             _owedMarket
         );
 
         Require.that(
             !_constants.dolomiteMargin.getAccountPar(_liquidAccount, _owedMarket).isPositive(),
             FILE,
-            "owed market cannot be positive",
+            "Owed market cannot be positive",
             _owedMarket
         );
 
         Require.that(
             _constants.dolomiteMargin.getAccountPar(_liquidAccount, _heldMarket).isPositive(),
             FILE,
-            "held market cannot be negative",
+            "Held market cannot be negative",
             _heldMarket
+        );
+
+        Require.that(
+            _marketIdsForSellActionsPath.length == _amountsForSellActionsPath.length && _marketIdsForSellActionsPath.length >= 2,
+            FILE,
+            "Invalid action paths length",
+            _marketIdsForSellActionsPath.length,
+            _amountsForSellActionsPath.length
+        );
+
+        Require.that(
+            _marketIdsForSellActionsPath[0] == _heldMarket,
+            FILE,
+            "Invalid market ID action path[0]",
+            _marketIdsForSellActionsPath[0],
+            _heldMarket
+        );
+
+        Require.that(
+            _marketIdsForSellActionsPath[_marketIdsForSellActionsPath.length - 1] == _owedMarket,
+            FILE,
+            "Invalid market ID action path[0]",
+            _marketIdsForSellActionsPath.length,
+            _amountsForSellActionsPath.length
         );
 
         Require.that(
             uint32(_expiry) == _expiry,
             FILE,
-            "expiry overflow",
+            "Expiry overflows",
             _expiry
+        );
+
+        Require.that(
+            _expiry < block.timestamp,
+            FILE,
+            "Not expired yet",
+            _expiry,
+            block.timestamp
         );
     }
 
@@ -253,7 +288,7 @@ contract LiquidatorProxyBase {
         // check credentials for msg.sender
         Require.that(
             _constants.solidAccount.owner == msg.sender
-            || _constants.dolomiteMargin.getIsLocalOperator(_constants.solidAccount.owner, msg.sender),
+                || _constants.dolomiteMargin.getIsLocalOperator(_constants.solidAccount.owner, msg.sender),
             FILE,
             "Sender not operator",
             msg.sender

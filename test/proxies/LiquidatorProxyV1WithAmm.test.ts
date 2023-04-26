@@ -550,7 +550,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market1, defaultTokenPath),
-          `LiquidatorProxyBase: owedMarket equals heldMarket <${market1.toFixed()}>`,
+          `LiquidatorProxyBase: Owed market equals held market <${market1.toFixed()}>`,
         );
       });
 
@@ -558,7 +558,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market2, market1, defaultTokenPath), // swap the two markets so owed = held
-          `LiquidatorProxyBase: owed market cannot be positive <${market2.toFixed()}>`,
+          `LiquidatorProxyBase: Owed market cannot be positive <${market2.toFixed()}>`,
         );
       });
 
@@ -567,7 +567,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, INTEGERS.ZERO);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath),
-          `LiquidatorProxyBase: held market cannot be negative <${market2.toFixed()}>`,
+          `LiquidatorProxyBase: Held market cannot be negative <${market2.toFixed()}>`,
         );
       });
 
@@ -1103,7 +1103,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         const expiry = await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market1, defaultTokenPath, expiry),
-          `LiquidatorProxyBase: owedMarket equals heldMarket <${market1.toFixed()}>`,
+          `LiquidatorProxyBase: Owed market equals held market <${market1.toFixed()}>`,
         );
       });
 
@@ -1141,7 +1141,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         await setUpExpiration(market1);
         await expectThrow(
           liquidate(market1, market2, defaultTokenPath, INTEGERS.MAX_UINT_128),
-          `LiquidatorProxyBase: expiry overflow <${INTEGERS.MAX_UINT_128.toFixed()}>`,
+          `LiquidatorProxyBase: Expiry overflows <${INTEGERS.MAX_UINT_128.toFixed()}>`,
         );
       });
 

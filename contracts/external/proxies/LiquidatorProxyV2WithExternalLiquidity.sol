@@ -89,6 +89,8 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
      * @param _owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
      * @param _heldMarket                   The held market whose collateral will be recovered to take on the debt of
      *                                      `owedMarket`
+     * @param _marketIdsForSellActionsPath  The market IDs to use for selling held market into owed market path
+     * @param _amountsForSellActionsPath    The amounts to use for the actions path
      * @param _expiry                       The time at which the position expires, if this liquidation is for closing
      *                                      an expired position. Else, 0.
      * @param _paraswapCallData             The calldata to be passed along to Paraswap's router for liquidation
@@ -98,8 +100,8 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         Account.Info memory _liquidAccount,
         uint256 _owedMarket,
         uint256 _heldMarket,
-        uint256[] memory _marketIdsForLiquidationPath,
-        uint256[] memory _amountsForLiquidationPath,
+        uint256[] memory _marketIdsForSellActionsPath,
+        uint256[] memory _amountsForSellActionsPath,
         uint256 _expiry,
         bytes memory _paraswapCallData
     )
@@ -117,6 +119,8 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
             _liquidAccount,
             _owedMarket,
             _heldMarket,
+            _marketIdsForSellActionsPath,
+            _amountsForSellActionsPath,
             _expiry
         );
 
