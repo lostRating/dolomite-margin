@@ -76,6 +76,13 @@
     },
     "6": {
       "interestRateModel": "AlwaysZero"
+    },
+    "7": {
+      "interestRateModel": "AAVECopyCat",
+      "isStableCoin": false
+    },
+    "8": {
+      "interestRateModel": "AlwaysZero"
     }
   },
   "421611": {
