@@ -68,16 +68,12 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
 
     constructor (
         address _expiryProxy,
-        address _paraswapAugustusRouter,
-        address _paraswapTransferProxy,
         address _dolomiteMargin,
         address _liquidatorAssetRegistry
     )
     public
     LiquidatorProxyV2WithExternalLiquidity(
         _expiryProxy,
-        _paraswapAugustusRouter,
-        _paraswapTransferProxy,
         _dolomiteMargin,
         _liquidatorAssetRegistry
     )
@@ -103,12 +99,11 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _proxyCache,
         uint256 _solidAccountId,
-        uint256 _liquidAccountId,
-        bytes memory _paraswapCallData
+        uint256 _liquidAccountId
     )
-    internal
-    view
-    returns (Actions.ActionArgs[] memory)
+        internal
+        view
+        returns (Actions.ActionArgs[] memory)
     {
         // TODO:    if the LP token is used as the `_owedMarket`, create a `wrapper` that wraps `initialOutputMarket`
         // TODO:    into the `_owedMarket`
@@ -138,8 +133,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         _encodeUnwrapAndSellActions(
             _proxyCache,
             _constants,
-            v3Cache,
-            _paraswapCallData
+            v3Cache
         );
 
         return v3Cache.actions;
@@ -149,7 +143,10 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyV3Cache memory _v3Cache
-    ) internal pure {
+    )
+        internal
+        pure
+    {
         if (_constants.expiry > 0) {
             // accountId is solidAccount; otherAccountId is liquidAccount
             _v3Cache.actions[_v3Cache.actionCursor++] = AccountActionLib.encodeExpiryLiquidateAction(
@@ -176,8 +173,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     function _encodeUnwrapAndSellActions(
         LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache,
-        bytes memory _paraswapCallData
+        LiquidatorProxyV3Cache memory _v3Cache
     ) internal view {
         if (address(_v3Cache.tokenUnwrapper) != address(0)) {
             // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
@@ -208,10 +204,10 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                     _v3Cache.solidAccountId,
                     _v3Cache.initialOutputMarket,
                     _proxyCache.owedMarket,
-                    /* _trader = */ address(this), // solium-disable-line indentation
+                    _constants.trader,
                     outputAmountFromPreviousStep, // liquidate whatever we get from the intermediate step
                     /* _amountOutMinWei = */ _proxyCache.owedWeiToLiquidate, // solium-disable-line indentation
-                    _paraswapCallData
+                    _constants.orderData
                 );
             }
         } else {
@@ -219,10 +215,10 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _v3Cache.solidAccountId,
                 _proxyCache.heldMarket,
                 _proxyCache.owedMarket,
-                /* _trader = */ address(this), // solium-disable-line indentation
+                _constants.trader,
                 _proxyCache.solidHeldUpdateWithReward,
                 _proxyCache.owedWeiToLiquidate,
-                _paraswapCallData
+                _constants.orderData
             );
         }
     }

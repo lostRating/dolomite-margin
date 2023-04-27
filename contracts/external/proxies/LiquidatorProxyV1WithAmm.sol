@@ -137,10 +137,10 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
         uint256 _minOwedOutputAmount,
         bool _revertOnFailToSellCollateral
     )
-    public
-    nonReentrant
-    requireIsAssetWhitelistedForLiquidation(_owedMarket)
-    requireIsAssetWhitelistedForLiquidation(_heldMarket)
+        public
+        nonReentrant
+        requireIsAssetWhitelistedForLiquidation(_owedMarket)
+        requireIsAssetWhitelistedForLiquidation(_heldMarket)
     {
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;
@@ -190,6 +190,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             totalSolidHeldWei = totalSolidHeldWei.add(cache.solidHeldWei.value);
         }
 
+        address[] memory tokenPathInFrontOfStack = _tokenPath; // used to prevent "stack too deep" error
         (
             Account.Info[] memory accounts,
             Actions.ActionArgs[] memory actions
@@ -198,7 +199,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             constants.solidAccount.number,
             /* _amountInMaxWei = */ uint(- 1), // solium-disable-line indentation
             cache.owedWeiToLiquidate, // the amount of owedMarket that needs to be repaid. Exact output amount
-            _tokenPath
+            tokenPathInFrontOfStack
         );
 
         if (cache.solidHeldUpdateWithReward >= actions[0].amount.value) {
@@ -221,7 +222,6 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
                 actions[0].amount.value
             );
 
-            address[] memory tokenPathInFrontOfStack = _tokenPath; // used to prevent "stack too deep" error
             // This value needs to be calculated before `actions` is overwritten below with the new swap parameters
             uint256 profit = actions[0].amount.value.sub(cache.solidHeldUpdateWithReward);
             (accounts, actions) = ROUTER_PROXY.getParamsForSwapExactTokensForTokens(

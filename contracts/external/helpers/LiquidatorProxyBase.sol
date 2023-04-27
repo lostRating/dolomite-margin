@@ -70,6 +70,8 @@ contract LiquidatorProxyBase {
         uint256[] liquidMarkets;
         IExpiry expiryProxy;
         uint32 expiry;
+        address trader;
+        bytes orderData;
     }
 
     struct LiquidatorProxyCache {
@@ -109,23 +111,31 @@ contract LiquidatorProxyBase {
     // ============ Internal Functions ============
 
     modifier requireIsAssetWhitelistedForLiquidation(uint256 _marketId) {
-        Require.that(
-            LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketId, address(this)),
-            FILE,
-            "Asset not whitelisted",
-            _marketId
-        );
+        {
+            // changes the block scope for the stack to be within the braces
+            Require.that(
+                LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketId, address(this)),
+                FILE,
+                "Asset not whitelisted",
+                _marketId
+            );
+        }
         _;
     }
 
     modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
-        for (uint256 i = 0; i < _marketIds.length; i++) {
-            Require.that(
-                LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
-                FILE,
-                "Asset not whitelisted",
-                _marketIds[i]
-            );
+        {
+            // changes the block scope for the stack to be within the braces
+            ILiquidatorAssetRegistry liquidatorAssetRegistry = LIQUIDATOR_ASSET_REGISTRY;
+            address self = address(this);
+            for (uint256 i = 0; i < _marketIds.length; i++) {
+                Require.that(
+                    liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], self),
+                    FILE,
+                    "Asset not whitelisted",
+                    _marketIds[i]
+                );
+            }
         }
         _;
     }
@@ -203,8 +213,6 @@ contract LiquidatorProxyBase {
         Account.Info memory _liquidAccount,
         uint256 _owedMarket,
         uint256 _heldMarket,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountsForSellActionsPath,
         uint256 _expiry
     )
     internal
@@ -233,7 +241,33 @@ contract LiquidatorProxyBase {
         );
 
         Require.that(
-            _marketIdsForSellActionsPath.length == _amountsForSellActionsPath.length && _marketIdsForSellActionsPath.length >= 2,
+            uint32(_expiry) == _expiry,
+            FILE,
+            "Expiry overflows",
+            _expiry
+        );
+
+        Require.that(
+            _expiry < block.timestamp,
+            FILE,
+            "Not expired yet",
+            _expiry,
+            block.timestamp
+        );
+    }
+
+    function _checkActionsPath(
+        uint256 _heldMarket,
+        uint256 _owedMarket,
+        uint256[] memory _marketIdsForSellActionsPath,
+        uint256[] memory _amountsForSellActionsPath
+    )
+        internal
+        pure
+    {
+        Require.that(
+            _marketIdsForSellActionsPath.length == _amountsForSellActionsPath.length
+                && _marketIdsForSellActionsPath.length >= 2,
             FILE,
             "Invalid action paths length",
             _marketIdsForSellActionsPath.length,
@@ -254,21 +288,6 @@ contract LiquidatorProxyBase {
             "Invalid market ID action path[0]",
             _marketIdsForSellActionsPath.length,
             _amountsForSellActionsPath.length
-        );
-
-        Require.that(
-            uint32(_expiry) == _expiry,
-            FILE,
-            "Expiry overflows",
-            _expiry
-        );
-
-        Require.that(
-            _expiry < block.timestamp,
-            FILE,
-            "Not expired yet",
-            _expiry,
-            block.timestamp
         );
     }
 

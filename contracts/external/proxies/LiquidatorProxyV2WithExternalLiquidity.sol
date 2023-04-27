@@ -28,31 +28,26 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { IExpiry } from "../interfaces/IExpiry.sol";
-import { AccountActionLib } from "../lib/AccountActionLib.sol";
+import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
+import { LiquidatorProxyBase } from "../helpers/LiquidatorProxyBase.sol";
 
-import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
+import { IExpiry } from "../interfaces/IExpiry.sol";
+
+import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 
 /**
  * @title LiquidatorProxyV2WithExternalLiquidity
  * @author Dolomite
  *
- * Contract for liquidating other accounts in DolomiteMargin and atomically selling off collateral via Paraswap
- * liquidity aggregation
+ * Contract for liquidating other accounts in DolomiteMargin and atomically selling off collateral via an external
+ * trader contract
  */
-contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTraderProxyWithBackup {
+contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomiteMargin, LiquidatorProxyBase {
 
     // ============ Constants ============
 
     bytes32 private constant FILE = "LiquidatorProxyV2";
-
-    // ============ Storage ============
-
-    struct TraderParams {
-        address trader;
-        bytes orderData;
-    }
 
     // ============ Storage ============
 
@@ -62,16 +57,14 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
 
     constructor (
         address _expiryProxy,
-        address _paraswapAugustusRouter,
-        address _paraswapTransferProxy,
         address _dolomiteMargin,
         address _liquidatorAssetRegistry
     )
         public
-        ParaswapTraderProxyWithBackup(
-            _paraswapAugustusRouter,
-            _paraswapTransferProxy,
-            _dolomiteMargin,
+        OnlyDolomiteMargin(
+            _dolomiteMargin
+        )
+        LiquidatorProxyBase(
             _liquidatorAssetRegistry
         )
     {
@@ -93,7 +86,8 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
      * @param _amountsForSellActionsPath    The amounts to use for the actions path
      * @param _expiry                       The time at which the position expires, if this liquidation is for closing
      *                                      an expired position. Else, 0.
-     * @param _paraswapCallData             The calldata to be passed along to Paraswap's router for liquidation
+     * @param _trader                       The address of the trader contract to use for selling the held market
+     * @param _traderCallData               The calldata to be passed along to the `_trader`'s IExchangeWrapper.
      */
     function liquidate(
         Account.Info memory _solidAccount,
@@ -103,7 +97,8 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         uint256[] memory _marketIdsForSellActionsPath,
         uint256[] memory _amountsForSellActionsPath,
         uint256 _expiry,
-        bytes memory _paraswapCallData
+        address _trader,
+        bytes memory _traderCallData
     )
         public
         nonReentrant
@@ -113,15 +108,21 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
+        constants.trader = _trader;
+        constants.orderData = _traderCallData;
 
         _checkConstants(
             constants,
             _liquidAccount,
             _owedMarket,
             _heldMarket,
-            _marketIdsForSellActionsPath,
-            _amountsForSellActionsPath,
             _expiry
+        );
+        _checkActionsPath(
+            _heldMarket,
+            _owedMarket,
+            _marketIdsForSellActionsPath,
+            _amountsForSellActionsPath
         );
 
         constants.solidAccount = _solidAccount;
@@ -156,8 +157,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
                 constants,
                 cache,
                 /* _solidAccountId = */ 0, // solium-disable-line indentation
-                /* _liquidAccount = */ 1, // solium-disable-line indentation
-                _paraswapCallData
+                /* _liquidAccount = */ 1 // solium-disable-line indentation
             )
         );
     }
@@ -167,9 +167,9 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
     function _constructAccountsArray(
         LiquidatorProxyConstants memory _constants
     )
-    internal
-    pure
-    returns (Account.Info[] memory)
+        internal
+        pure
+        returns (Account.Info[] memory)
     {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = _constants.solidAccount;
@@ -182,11 +182,12 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
         LiquidatorProxyCache memory _cache,
         uint256 _solidAccountId,
         uint256 _liquidAccountId,
-        bytes memory _paraswapCallData
+        uint256[] memory _marketIdsForSellActionsPath,
+        uint256[] memory _amountsForSellActionsPath
     )
-    internal
-    view
-    returns (Actions.ActionArgs[] memory)
+        internal
+        view
+        returns (Actions.ActionArgs[] memory)
     {
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
 
@@ -218,10 +219,10 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
             _solidAccountId,
             _cache.heldMarket,
             _cache.owedMarket,
-            /* _trader = */ address(this), // solium-disable-line indentation
-            _cache.solidHeldUpdateWithReward,
+            _constants.trader,
+            _amountsForSellActionsPath[0],
             _cache.owedWeiToLiquidate,
-            _paraswapCallData
+            _constants.orderData
         );
 
         return actions;
