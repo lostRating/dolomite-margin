@@ -62,7 +62,7 @@ import arbitrumMultiCallJson from '../../build/published_contracts/ArbitrumMulti
 import wethJson from '../../build/published_contracts/Weth.json';
 import testUniswapAmmRebalancerJson from '../../build/published_contracts/TestUniswapAmmRebalancerProxy.json';
 import liquidityTokenUnwrapperJson
-  from '../../build/published_contracts/ILiquidityTokenUnwrapperForLiquidation.json';
+  from '../../build/published_contracts/ILiquidityTokenUnwrapperTrader.json';
 
 // Contracts
 import { AmmRebalancerProxyV1 } from '../../build/wrappers/AmmRebalancerProxyV1';
@@ -110,7 +110,7 @@ import { IArbitrumGasInfo } from '../../build/wrappers/IArbitrumGasInfo';
 import { AAVECopyCatAltCoinInterestSetter } from '../../build/wrappers/AAVECopyCatAltCoinInterestSetter';
 import { AAVECopyCatStableCoinInterestSetter } from '../../build/wrappers/AAVECopyCatStableCoinInterestSetter';
 import { LiquidatorAssetRegistry } from '../../build/wrappers/LiquidatorAssetRegistry';
-import { ILiquidityTokenUnwrapperForLiquidation } from '../../build/wrappers/ILiquidityTokenUnwrapperForLiquidation';
+import { ILiquidityTokenUnwrapperTrader } from '../../build/wrappers/ILiquidityTokenUnwrapperTrader';
 
 interface CallableTransactionObject<T> {
   call(tx?: Tx, blockNumber?: number): Promise<T>;
@@ -280,11 +280,11 @@ export class Contracts {
     return pair;
   }
 
-  public getTokenUnwrapper(contractAddress: address): ILiquidityTokenUnwrapperForLiquidation {
+  public getTokenUnwrapper(contractAddress: address): ILiquidityTokenUnwrapperTrader {
     const unwrapper = new this.web3.eth.Contract(
       liquidityTokenUnwrapperJson.abi,
       contractAddress,
-    ) as ILiquidityTokenUnwrapperForLiquidation;
+    ) as ILiquidityTokenUnwrapperTrader;
     unwrapper.setProvider(this.provider);
     unwrapper.options.from = this.dolomiteMargin.options.from;
     return unwrapper;

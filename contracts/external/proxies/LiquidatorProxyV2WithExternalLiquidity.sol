@@ -83,7 +83,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
      * @param _heldMarket                   The held market whose collateral will be recovered to take on the debt of
      *                                      `owedMarket`
      * @param _marketIdsForSellActionsPath  The market IDs to use for selling held market into owed market path
-     * @param _amountsForSellActionsPath    The amounts to use for the actions path
+     * @param _amountWeisForSellActionsPath The amounts (in wei) to use for the actions path
      * @param _expiry                       The time at which the position expires, if this liquidation is for closing
      *                                      an expired position. Else, 0.
      * @param _trader                       The address of the trader contract to use for selling the held market
@@ -95,7 +95,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
         uint256 _owedMarket,
         uint256 _heldMarket,
         uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountsForSellActionsPath,
+        uint256[] memory _amountWeisForSellActionsPath,
         uint256 _expiry,
         address _trader,
         bytes memory _traderCallData
@@ -122,7 +122,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
             _heldMarket,
             _owedMarket,
             _marketIdsForSellActionsPath,
-            _amountsForSellActionsPath
+            _amountWeisForSellActionsPath
         );
 
         constants.solidAccount = _solidAccount;
@@ -145,8 +145,11 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
         // validate the msg.sender and that the liquidAccount can be liquidated
         _checkBasicRequirements(constants, _owedMarket);
 
-        // get the max liquidation amount
+        // set the max liquidation amount
         _calculateAndSetMaxLiquidationAmount(cache);
+
+        // set the actual liquidation amount
+        _calculateAndSetActualLiquidationAmount(_amountWeisForSellActionsPath, cache);
 
         Account.Info[] memory accounts = _constructAccountsArray(constants);
 
@@ -157,7 +160,9 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
                 constants,
                 cache,
                 /* _solidAccountId = */ 0, // solium-disable-line indentation
-                /* _liquidAccount = */ 1 // solium-disable-line indentation
+                /* _liquidAccount = */ 1, // solium-disable-line indentation
+                _marketIdsForSellActionsPath,
+                _amountWeisForSellActionsPath
             )
         );
     }
@@ -183,7 +188,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
         uint256 _solidAccountId,
         uint256 _liquidAccountId,
         uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountsForSellActionsPath
+        uint256[] memory _amountWeisForSellActionsPath
     )
         internal
         view
@@ -201,7 +206,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
                 _cache.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
-                _cache.flipMarkets
+                _cache.flipMarketsForExpiration
             );
         } else {
             // First action is a liquidation
@@ -220,7 +225,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
             _cache.heldMarket,
             _cache.owedMarket,
             _constants.trader,
-            _amountsForSellActionsPath[0],
+            _amountWeisForSellActionsPath[0],
             _cache.owedWeiToLiquidate,
             _constants.orderData
         );

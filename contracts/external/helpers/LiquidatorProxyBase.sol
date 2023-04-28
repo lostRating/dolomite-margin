@@ -84,6 +84,11 @@ contract LiquidatorProxyBase {
         Types.Wei solidOwedWei;
         Types.Wei liquidHeldWei;
         Types.Wei liquidOwedWei;
+        // This exists purely for expirations. If the amount being repaid is meant to be ALL but the value of the debt
+        // is greater than the value of the collateral, then we need to flip the markets in the trade for the Target=0
+        // encoding of the Amount. There's a rounding issue otherwise because amounts are calculated differently for
+        // trades vs. liquidations
+        bool flipMarketsForExpiration;
 
         // immutable
         uint256 heldMarket;
@@ -91,7 +96,6 @@ contract LiquidatorProxyBase {
         uint256 heldPrice;
         uint256 owedPrice;
         uint256 owedPriceAdj;
-        bool flipMarkets;
     }
 
     // ============ Storage ============
@@ -192,12 +196,12 @@ contract LiquidatorProxyBase {
                 _constants.dolomiteMargin.getAccountPar(_constants.liquidAccount, _owedMarket),
                 owedMarketInfo.index
             ),
+            flipMarkets: false,
             heldMarket: _heldMarket,
             owedMarket: _owedMarket,
             heldPrice: heldMarketInfo.price.value,
             owedPrice: owedMarketInfo.price.value,
-            owedPriceAdj: owedPriceAdj,
-            flipMarkets: false
+            owedPriceAdj: owedPriceAdj
         });
     }
 
@@ -260,34 +264,30 @@ contract LiquidatorProxyBase {
         uint256 _heldMarket,
         uint256 _owedMarket,
         uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountsForSellActionsPath
+        uint256[] memory _amountWeisForSellActionsPath
     )
         internal
         pure
     {
         Require.that(
-            _marketIdsForSellActionsPath.length == _amountsForSellActionsPath.length
+            _marketIdsForSellActionsPath.length == _amountWeisForSellActionsPath.length
                 && _marketIdsForSellActionsPath.length >= 2,
             FILE,
             "Invalid action paths length",
             _marketIdsForSellActionsPath.length,
-            _amountsForSellActionsPath.length
+            _amountWeisForSellActionsPath.length
         );
 
         Require.that(
             _marketIdsForSellActionsPath[0] == _heldMarket,
             FILE,
-            "Invalid market ID action path[0]",
-            _marketIdsForSellActionsPath[0],
-            _heldMarket
+            "Invalid market in path[0]"
         );
 
         Require.that(
             _marketIdsForSellActionsPath[_marketIdsForSellActionsPath.length - 1] == _owedMarket,
             FILE,
-            "Invalid market ID action path[0]",
-            _marketIdsForSellActionsPath.length,
-            _amountsForSellActionsPath.length
+            "Invalid market in path[last]"
         );
     }
 
@@ -333,15 +333,13 @@ contract LiquidatorProxyBase {
     }
 
     /**
-     * Calculate the additional owedAmount that can be liquidated until the collateralization of the liquidator account
-     * reaches the minLiquidatorRatio. By this point, the cache will be set such that the amount of owedMarket is
-     * non-positive and the amount of heldMarket is non-negative.
+     * Calculate the maximum amount that can be liquidated on `liquidAccount`
      */
     function _calculateAndSetMaxLiquidationAmount(
         LiquidatorProxyCache memory _cache
     )
-    internal
-    pure
+        internal
+        pure
     {
         uint256 liquidHeldValue = _cache.heldPrice.mul(_cache.liquidHeldWei.value);
         uint256 liquidOwedValue = _cache.owedPriceAdj.mul(_cache.liquidOwedWei.value);
@@ -353,7 +351,7 @@ contract LiquidatorProxyBase {
                 _cache.heldPrice,
                 _cache.owedPriceAdj
             );
-            _cache.flipMarkets = true;
+            _cache.flipMarketsForExpiration = true;
         } else {
             _cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
                 _cache.liquidOwedWei.value,
@@ -361,6 +359,22 @@ contract LiquidatorProxyBase {
                 _cache.heldPrice
             );
             _cache.owedWeiToLiquidate = _cache.liquidOwedWei.value;
+        }
+    }
+
+    function _calculateAndSetActualLiquidationAmount(
+        uint256[] memory _amountWeisForSellActionsPath,
+        LiquidatorProxyCache memory _cache
+    )
+        internal
+        pure
+    {
+        // at this point, _cache.owedWeiToLiquidate should be the max amount that can be liquidated on the user.
+        assert(_cache.owedWeiToLiquidate > 0); // assert it was initialized
+
+        uint256 desiredLiquidationOwedAmount = _amountWeisForSellActionsPath[_amountWeisForSellActionsPath.length - 1];
+        if (desiredLiquidationOwedAmount < _cache.owedWeiToLiquidate) {
+            _cache.owedWeiToLiquidate = desiredLiquidationOwedAmount;
         }
     }
 

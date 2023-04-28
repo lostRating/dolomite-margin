@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { ILiquidityTokenUnwrapperForLiquidation } from "../external/interfaces/ILiquidityTokenUnwrapperForLiquidation.sol";
+import { ILiquidityTokenUnwrapperTrader } from "../external/interfaces/ILiquidityTokenUnwrapperTrader.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -32,7 +32,7 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenUnwrapperForLiquidation is ILiquidityTokenUnwrapperForLiquidation {
+contract TestLiquidityTokenUnwrapperForLiquidation is ILiquidityTokenUnwrapperTrader {
 
     bytes32 constant FILE = "TestLiquidityTokenUnwrapper";
 

@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { ILiquidityTokenUnwrapperForLiquidation } from "../external/interfaces/ILiquidityTokenUnwrapperForLiquidation.sol";
+import {ILiquidityTokenUnwrapperTrader} from "../external/interfaces/ILiquidityTokenUnwrapperTrader.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -32,7 +32,7 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenUnwrapperForLiquidation is ILiquidityTokenUnwrapperForLiquidation {
+contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
 
     bytes32 constant FILE = "TestLiquidityTokenUnwrapper";
 
@@ -40,19 +40,13 @@ contract TestLiquidityTokenUnwrapperForLiquidation is ILiquidityTokenUnwrapperFo
 
     IDolomiteMargin public DOLOMITE_MARGIN;
     address public INPUT_TOKEN;
-    address public OUTPUT_TOKEN;
-    uint256 public OUTPUT_MARKET_ID;
 
     constructor(
         address _inputToken,
-        address _outputToken,
         address _dolomiteMargin
     ) public {
         INPUT_TOKEN = _inputToken;
-        OUTPUT_TOKEN = _outputToken;
         DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
-
-        OUTPUT_MARKET_ID = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_outputToken);
     }
 
     function token() external view returns (address) {
@@ -63,41 +57,45 @@ contract TestLiquidityTokenUnwrapperForLiquidation is ILiquidityTokenUnwrapperFo
         return ACTIONS_LENGTH;
     }
 
-    function outputMarketId() external view returns (uint256) {
-        return OUTPUT_MARKET_ID;
-    }
-
-    function createActionsForUnwrappingForLiquidation(
-        uint256 _solidAccountId,
+    //         uint256 _primaryAccountId,
+    //        uint256 _otherAccountId,
+    //        address _primaryAccountOwner,
+    //        address _otherAccountOwner,
+    //        uint256 _outputMarket,
+    //        uint256 _inputMarket,
+    //        uint256 _minOutputAmount,
+    //        uint256 _inputAmount
+    function createActionsForUnwrapping(
+        uint256 _primaryAccountId,
         uint256,
         address,
         address,
         uint256,
-        uint256 _heldMarket,
+        uint256 _inputMarket,
         uint256,
-        uint256 _heldAmountWithReward
+        uint256 _inputAmount
     )
     external
     view
     returns (Actions.ActionArgs[] memory) {
         Require.that(
-            DOLOMITE_MARGIN.getMarketIdByTokenAddress(INPUT_TOKEN) == _heldMarket,
+            DOLOMITE_MARGIN.getMarketIdByTokenAddress(INPUT_TOKEN) == _inputMarket,
             FILE,
-            "Invalid held market",
-            _heldMarket
+            "Invalid input market",
+            _inputMarket
         );
         uint256 amountOut;
-        uint256 heldPrice = DOLOMITE_MARGIN.getMarketPrice(_heldMarket).value;
+        uint256 inputPrice = DOLOMITE_MARGIN.getMarketPrice(_inputMarket).value;
         uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(OUTPUT_MARKET_ID).value;
-        amountOut = DolomiteMarginMath.getPartial(heldPrice, _heldAmountWithReward, outputPrice);
+        amountOut = DolomiteMarginMath.getPartial(inputPrice, _inputAmount, outputPrice);
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](ACTIONS_LENGTH);
         actions[0] = AccountActionLib.encodeExternalSellAction(
-            _solidAccountId,
-            _heldMarket,
+            _primaryAccountId,
+            _inputMarket,
             OUTPUT_MARKET_ID,
             address(this),
-            _heldAmountWithReward,
+            _inputAmount,
             amountOut,
             bytes("")
         );

@@ -334,7 +334,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
                 _cache.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
-                _cache.flipMarkets
+                _cache.flipMarketsForExpiration
             );
         } else {
             // First action is a liquidation
