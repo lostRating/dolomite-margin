@@ -156,6 +156,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _proxyCache.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
+                _proxyCache.owedWeiToLiquidate,
                 _proxyCache.flipMarketsForExpiration
             );
         } else {

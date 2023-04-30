@@ -373,8 +373,17 @@ contract LiquidatorProxyBase {
         assert(_cache.owedWeiToLiquidate > 0); // assert it was initialized
 
         uint256 desiredLiquidationOwedAmount = _amountWeisForSellActionsPath[_amountWeisForSellActionsPath.length - 1];
-        if (desiredLiquidationOwedAmount < _cache.owedWeiToLiquidate) {
+        if (
+            desiredLiquidationOwedAmount < _cache.owedWeiToLiquidate
+            && desiredLiquidationOwedAmount.mul(_cache.owedPriceAdj) < _cache.heldPrice.mul(_cache.liquidHeldWei.value)
+        ) {
+            // The user wants to liquidate less than the max amount, and the held collateral is worth more than the debt
             _cache.owedWeiToLiquidate = desiredLiquidationOwedAmount;
+            _cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
+                desiredLiquidationOwedAmount.value,
+                _cache.owedPriceAdj,
+                _cache.heldPrice
+            );
         }
     }
 

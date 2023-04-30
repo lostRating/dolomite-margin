@@ -254,17 +254,30 @@ library AccountActionLib {
         uint256 _heldMarketId,
         address _expiryProxy,
         uint32 _expiry,
+        uint256 _owedWeiToLiquidate,
         bool _flipMarkets
     ) internal pure returns (Actions.ActionArgs memory) {
-        return Actions.ActionArgs({
-        actionType: Actions.ActionType.Trade,
-            accountId: _solidAccountId,
-            amount: Types.AssetAmount({
+        Types.AssetAmount memory assetAmount;
+        if (_owedWeiToLiquidate == uint(-1)) {
+            assetAmount = Types.AssetAmount({
                 sign: true,
                 denomination: Types.AssetDenomination.Wei,
                 ref: Types.AssetReference.Target,
                 value: 0
-            }),
+            });
+        } else {
+            assetAmount = Types.AssetAmount({
+                sign: true,
+                denomination: Types.AssetDenomination.Wei,
+                ref: Types.AssetReference.Delta,
+                value: _owedWeiToLiquidate
+            });
+        }
+
+        return Actions.ActionArgs({
+        actionType: Actions.ActionType.Trade,
+            accountId: _solidAccountId,
+            amount: assetAmount,
             primaryMarketId: !_flipMarkets ? _owedMarketId : _heldMarketId,
             secondaryMarketId: !_flipMarkets ? _heldMarketId : _owedMarketId,
             otherAddress: _expiryProxy,
