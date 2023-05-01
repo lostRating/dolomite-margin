@@ -32,7 +32,7 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
+contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTrader {
 
     bytes32 constant FILE = "TestLiquidityTokenUnwrapper";
 
@@ -57,20 +57,12 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
         return ACTIONS_LENGTH;
     }
 
-    //        uint256 _primaryAccountId,
-    //        uint256 _otherAccountId,
-    //        address _primaryAccountOwner,
-    //        address _otherAccountOwner,
-    //        uint256 _outputMarket,
-    //        uint256 _inputMarket,
-    //        uint256 _minOutputAmount,
-    //        uint256 _inputAmount
     function createActionsForUnwrapping(
         uint256 _primaryAccountId,
         uint256,
         address,
         address,
-        uint256,
+        uint256 _outputMarket,
         uint256 _inputMarket,
         uint256,
         uint256 _inputAmount
@@ -86,14 +78,14 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
         );
         uint256 amountOut;
         uint256 inputPrice = DOLOMITE_MARGIN.getMarketPrice(_inputMarket).value;
-        uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(OUTPUT_MARKET_ID).value;
+        uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(_outputMarket).value;
         amountOut = DolomiteMarginMath.getPartial(inputPrice, _inputAmount, outputPrice);
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](ACTIONS_LENGTH);
         actions[0] = AccountActionLib.encodeExternalSellAction(
             _primaryAccountId,
             _inputMarket,
-            OUTPUT_MARKET_ID,
+            _outputMarket,
             address(this),
             _inputAmount,
             amountOut,
@@ -113,9 +105,9 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
     external
     returns (uint256) {
         Require.that(
-            _makerToken == OUTPUT_TOKEN,
+            _makerToken == INPUT_TOKEN,
             FILE,
-            "Maker token must be OUTPUT_TOKEN",
+            "Maker token must be INPUT_TOKEN",
             _makerToken
         );
 
@@ -141,9 +133,9 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
             _makerToken
         );
         Require.that(
-            _takerToken == OUTPUT_TOKEN,
+            _takerToken == INPUT_TOKEN,
             FILE,
-            "Taker token must be OUTPUT_TOKEN",
+            "Taker token must be INPUT_TOKEN",
             _takerToken
         );
 
