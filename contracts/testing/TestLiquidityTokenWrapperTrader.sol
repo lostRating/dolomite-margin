@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import {ILiquidityTokenUnwrapperTrader} from "../external/interfaces/ILiquidityTokenUnwrapperTrader.sol";
+import {ILiquidityTokenWrapperTrader} from "../external/interfaces/ILiquidityTokenWrapperTrader.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -32,40 +32,32 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
+contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
 
-    bytes32 constant FILE = "TestLiquidityTokenUnwrapper";
+    bytes32 constant FILE = "TestLiquidityTokenWrapper";
 
     uint256 constant public ACTIONS_LENGTH = 1;
 
     IDolomiteMargin public DOLOMITE_MARGIN;
-    address public UNDERLYING_TOKEN;
+    address public OUTPUT_TOKEN;
 
     constructor(
-        address _inputToken,
+        address _outputToken,
         address _dolomiteMargin
     ) public {
-        UNDERLYING_TOKEN = _inputToken;
+        OUTPUT_TOKEN = _outputToken;
         DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
     }
 
     function token() external view returns (address) {
-        return UNDERLYING_TOKEN;
+        return OUTPUT_TOKEN;
     }
 
     function actionsLength() external pure returns (uint256) {
         return ACTIONS_LENGTH;
     }
 
-    //        uint256 _primaryAccountId,
-    //        uint256 _otherAccountId,
-    //        address _primaryAccountOwner,
-    //        address _otherAccountOwner,
-    //        uint256 _outputMarket,
-    //        uint256 _inputMarket,
-    //        uint256 _minOutputAmount,
-    //        uint256 _inputAmount
-    function createActionsForUnwrapping(
+    function createActionsForWrapping(
         uint256 _primaryAccountId,
         uint256,
         address,
@@ -79,14 +71,14 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
     view
     returns (Actions.ActionArgs[] memory) {
         Require.that(
-            DOLOMITE_MARGIN.getMarketIdByTokenAddress(UNDERLYING_TOKEN) == _inputMarket,
+            DOLOMITE_MARGIN.getMarketIdByTokenAddress(OUTPUT_TOKEN) == _outputMarket,
             FILE,
-            "Invalid input market",
-            _inputMarket
+            "Invalid output market",
+            _outputMarket
         );
         uint256 amountOut;
         uint256 inputPrice = DOLOMITE_MARGIN.getMarketPrice(_inputMarket).value;
-        uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(OUTPUT_MARKET_ID).value;
+        uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(_outputMarket).value;
         amountOut = DolomiteMarginMath.getPartial(inputPrice, _inputAmount, outputPrice);
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](ACTIONS_LENGTH);
@@ -106,17 +98,17 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
         address,
         address _receiver,
         address _makerToken,
-        address _takerToken,
+        address,
         uint256,
         bytes calldata _orderData
     )
     external
     returns (uint256) {
         Require.that(
-            _takerToken == UNDERLYING_TOKEN,
+            _makerToken == OUTPUT_TOKEN,
             FILE,
-            "Taker token must be UNDERLYING_TOKEN",
-            _takerToken
+            "Maker token must be OUTPUT_TOKEN",
+            _makerToken
         );
 
         (uint256 amountOut,) = abi.decode(_orderData, (uint256, bytes));
@@ -135,10 +127,10 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
     view
     returns (uint256) {
         Require.that(
-            _makerToken == UNDERLYING_TOKEN,
+            _takerToken == OUTPUT_TOKEN,
             FILE,
-            "Maker token must be wrapper",
-            _makerToken
+            "Taker token must be OUTPUT_TOKEN",
+            _takerToken
         );
 
         uint256 makerMarketId = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_makerToken);
