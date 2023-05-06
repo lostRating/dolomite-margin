@@ -26,6 +26,8 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry.sol";
+import { ILiquidityTokenUnwrapperTrader } from "../interfaces/ILiquidityTokenUnwrapperTrader.sol";
+import { ILiquidityTokenWrapperTrader } from "../interfaces/ILiquidityTokenWrapperTrader.sol";
 
 
 /**
@@ -44,6 +46,8 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
     // ============ Storage ============
 
     mapping(uint256 => OpenZeppelinEnumerableSet.AddressSet) private _marketIdToLiquidatorWhitelistMap;
+    mapping(uint256 => ILiquidityTokenUnwrapperTrader) private _marketIdToUnwrapperMap;
+    mapping(uint256 => ILiquidityTokenWrapperTrader) private _marketIdToWrapperMap;
 
     // ============ Constructor ============
 
@@ -68,8 +72,6 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
 
     // ============ Public Functions ============
 
-    // TODO add unwrappers/wrappers to this contract from the V3 liquidator. Refactor to include `owner` in beginning
-
     function ownerAddLiquidatorToAssetWhitelist(
         uint256 _marketId,
         address _liquidator
@@ -90,6 +92,26 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
         emit LiquidatorRemovedFromWhitelist(_marketId, _liquidator);
     }
 
+    function ownerSetLiquidityTokenUnwrapper(
+        uint256 _marketId,
+        ILiquidityTokenUnwrapperTrader _unwrapper
+    )
+    external
+    onlyDolomiteMarginOwner(msg.sender) {
+        _marketIdToUnwrapperMap[_marketId] = _unwrapper;
+        emit TokenUnwrapperForLiquidationSet(_marketId, address(_unwrapper));
+    }
+
+    function ownerSetLiquidityTokenWrapper(
+        uint256 _marketId,
+        ILiquidityTokenWrapperTrader _wrapper
+    )
+    external
+    onlyDolomiteMarginOwner(msg.sender) {
+        _marketIdToWrapperMap[_marketId] = _wrapper;
+        emit TokenWrapperForLiquidationSet(_marketId, address(_wrapper));
+    }
+
     function getLiquidatorsForAsset(
         uint256 _marketId
     )
@@ -103,5 +125,19 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
     ) external view returns (bool) {
         OpenZeppelinEnumerableSet.AddressSet storage whitelist = _marketIdToLiquidatorWhitelistMap[_marketId];
         return whitelist.length() == 0 || whitelist.contains(_liquidator);
+    }
+
+    function getLiquidityTokenUnwrapperForAsset(
+        uint256 _marketId
+    )
+    external view returns (ILiquidityTokenUnwrapperTrader) {
+        return _marketIdToUnwrapperMap[_marketId];
+    }
+
+    function getLiquidityTokenWrapperForAsset(
+        uint256 _marketId
+    )
+    external view returns (ILiquidityTokenWrapperTrader) {
+        return _marketIdToWrapperMap[_marketId];
     }
 }

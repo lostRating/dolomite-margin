@@ -18,6 +18,9 @@
 
 pragma solidity ^0.5.7;
 
+import { ILiquidityTokenUnwrapperTrader } from "./ILiquidityTokenUnwrapperTrader.sol";
+import { ILiquidityTokenWrapperTrader } from "./ILiquidityTokenWrapperTrader.sol";
+
 
 /**
  * @title   ILiquidatorAssetRegistry
@@ -36,6 +39,16 @@ interface ILiquidatorAssetRegistry {
     event LiquidatorRemovedFromWhitelist(
         uint256 indexed marketId,
         address indexed liquidator
+    );
+
+    event TokenUnwrapperForLiquidationSet(
+        uint256 indexed _marketId,
+        address _liquidityTokenUnwrapper
+    );
+
+    event TokenWrapperForLiquidationSet(
+        uint256 indexed _marketId,
+        address _liquidityTokenWrapper
     );
 
     // ========== Public Functions ==========
@@ -61,6 +74,24 @@ interface ILiquidatorAssetRegistry {
     external;
 
     /**
+     * @param _marketId    The market ID of the asset
+     * @param _unwrapper   The address of the liquidity token unwrapper to set
+     */
+    function ownerSetLiquidityTokenUnwrapper(
+        uint256 _marketId,
+        ILiquidityTokenUnwrapperTrader _unwrapper
+    ) external;
+
+    /**
+     * @param _marketId    The market ID of the asset
+     * @param _wrapper      The address of the liquidity token wrapper to set
+     */
+    function ownerSetLiquidityTokenWrapper(
+        uint256 _marketId,
+        ILiquidityTokenWrapperTrader _wrapper
+    ) external;
+
+    /**
      * @param _marketId    The market ID of the asset to check
      * @return  An array of whitelisted liquidators for the asset. An empty array is returned if any liquidator can be
      *          used for this asset
@@ -81,4 +112,22 @@ interface ILiquidatorAssetRegistry {
         address _liquidator
     )
     external view returns (bool);
+
+    /**
+     * @param _marketId The market ID of the asset whose unwrapper trader should be retrieved
+     * @return          The unwrapper trader for the asset
+     */
+    function getLiquidityTokenUnwrapperForAsset(
+        uint256 _marketId
+    )
+    external view returns (ILiquidityTokenUnwrapperTrader);
+
+    /**
+     * @param _marketId The market ID of the asset whose wrapper trader should be retrieved
+     * @return          The wrapper trader for the asset
+     */
+    function getLiquidityTokenWrapperForAsset(
+        uint256 _marketId
+    )
+    external view returns (ILiquidityTokenWrapperTrader);
 }
