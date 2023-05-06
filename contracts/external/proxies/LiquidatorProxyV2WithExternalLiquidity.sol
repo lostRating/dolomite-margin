@@ -206,6 +206,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
                 _cache.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
+                _cache.owedWeiToLiquidate,
                 _cache.flipMarketsForExpiration
             );
         } else {

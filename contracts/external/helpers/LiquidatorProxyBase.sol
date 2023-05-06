@@ -196,7 +196,7 @@ contract LiquidatorProxyBase {
                 _constants.dolomiteMargin.getAccountPar(_constants.liquidAccount, _owedMarket),
                 owedMarketInfo.index
             ),
-            flipMarkets: false,
+            flipMarketsForExpiration: false,
             heldMarket: _heldMarket,
             owedMarket: _owedMarket,
             heldPrice: heldMarketInfo.price.value,
@@ -380,7 +380,7 @@ contract LiquidatorProxyBase {
             // The user wants to liquidate less than the max amount, and the held collateral is worth more than the debt
             _cache.owedWeiToLiquidate = desiredLiquidationOwedAmount;
             _cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
-                desiredLiquidationOwedAmount.value,
+                desiredLiquidationOwedAmount,
                 _cache.owedPriceAdj,
                 _cache.heldPrice
             );
