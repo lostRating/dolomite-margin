@@ -39,18 +39,18 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
     uint256 constant public ACTIONS_LENGTH = 1;
 
     IDolomiteMargin public DOLOMITE_MARGIN;
-    address public INPUT_TOKEN;
+    address public UNDERLYING_TOKEN;
 
     constructor(
         address _inputToken,
         address _dolomiteMargin
     ) public {
-        INPUT_TOKEN = _inputToken;
+        UNDERLYING_TOKEN = _inputToken;
         DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
     }
 
     function token() external view returns (address) {
-        return INPUT_TOKEN;
+        return UNDERLYING_TOKEN;
     }
 
     function actionsLength() external pure returns (uint256) {
@@ -70,7 +70,7 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
         uint256,
         address,
         address,
-        uint256,
+        uint256 _outputMarket,
         uint256 _inputMarket,
         uint256,
         uint256 _inputAmount
@@ -79,7 +79,7 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
     view
     returns (Actions.ActionArgs[] memory) {
         Require.that(
-            DOLOMITE_MARGIN.getMarketIdByTokenAddress(INPUT_TOKEN) == _inputMarket,
+            DOLOMITE_MARGIN.getMarketIdByTokenAddress(UNDERLYING_TOKEN) == _inputMarket,
             FILE,
             "Invalid input market",
             _inputMarket
@@ -93,7 +93,7 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
         actions[0] = AccountActionLib.encodeExternalSellAction(
             _primaryAccountId,
             _inputMarket,
-            OUTPUT_MARKET_ID,
+            _outputMarket,
             address(this),
             _inputAmount,
             amountOut,
@@ -106,17 +106,17 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
         address,
         address _receiver,
         address _makerToken,
-        address,
+        address _takerToken,
         uint256,
         bytes calldata _orderData
     )
     external
     returns (uint256) {
         Require.that(
-            _makerToken == OUTPUT_TOKEN,
+            _takerToken == UNDERLYING_TOKEN,
             FILE,
-            "Maker token must be OUTPUT_TOKEN",
-            _makerToken
+            "Taker token must be UNDERLYING_TOKEN",
+            _takerToken
         );
 
         (uint256 amountOut,) = abi.decode(_orderData, (uint256, bytes));
@@ -135,16 +135,10 @@ contract TestLiquidityTokenExchangeUnwrapper is ILiquidityTokenUnwrapperTrader {
     view
     returns (uint256) {
         Require.that(
-            _makerToken == INPUT_TOKEN,
+            _makerToken == UNDERLYING_TOKEN,
             FILE,
-            "Maker token must be INPUT_TOKEN",
+            "Maker token must be wrapper",
             _makerToken
-        );
-        Require.that(
-            _takerToken == OUTPUT_TOKEN,
-            FILE,
-            "Taker token must be OUTPUT_TOKEN",
-            _takerToken
         );
 
         uint256 makerMarketId = DOLOMITE_MARGIN.getMarketIdByTokenAddress(_makerToken);
