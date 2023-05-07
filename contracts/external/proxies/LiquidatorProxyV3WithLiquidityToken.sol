@@ -76,13 +76,25 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
 
     // ============ Internal Functions ============
 
+    function _validateSellActionsArrays(
+        uint256[] memory _marketIdsForSellActionsPath,
+        uint256[] memory _amountWeisForSellActionsPath
+    ) internal pure {
+        Require.that(
+            _marketIdsForSellActionsPath.length == _amountWeisForSellActionsPath.length
+                && _marketIdsForSellActionsPath.length >= 2,
+            FILE,
+            "Invalid action paths length",
+            _marketIdsForSellActionsPath.length,
+            _amountWeisForSellActionsPath.length
+        );
+    }
+
     function _constructActionsArray(
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _proxyCache,
         uint256 _solidAccountId,
-        uint256 _liquidAccountId,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
+        uint256 _liquidAccountId
     )
         internal
         view
@@ -91,6 +103,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         // This cache is created to prevent "stack too deep" errors
         LiquidatorProxyV3Cache memory v3Cache = LiquidatorProxyV3Cache({
             actionCursor: 0,
+            marketCursor: 0,
             solidAccountId: _solidAccountId,
             liquidAccountId: _liquidAccountId,
             tokenUnwrapper: LIQUIDATOR_ASSET_REGISTRY.getLiquidityTokenUnwrapperForAsset(_proxyCache.heldMarket),
@@ -98,39 +111,27 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
             actions: new Actions.ActionArgs[](0)
         });
 
-        _validateV3Cache(v3Cache, _constants, _marketIdsForSellActionsPath);
+        _validateV3Cache(v3Cache, _constants);
 
-        {
-            uint256 unwrapperActionsLength = address(v3Cache.tokenUnwrapper) != address(0)
-                ? v3Cache.tokenUnwrapper.actionsLength()
-                : 0;
-            uint256 wrapperActionsLength = address(v3Cache.tokenWrapper) != address(0)
-                ? v3Cache.tokenWrapper.actionsLength()
-                : 0;
-            uint256 sellActionLength = _constants.trader != address(0) ? 1 : 0;
-            v3Cache.actions = new Actions.ActionArgs[](
-                1 + unwrapperActionsLength + wrapperActionsLength + sellActionLength
-            ); // add 1 for the liquidation action
-        }
+        _initializeActionsArray(_constants, v3Cache);
 
         _encodeLiquidateAction(_proxyCache, _constants, v3Cache);
 
         assert(v3Cache.marketCursor == 0); // the liquidation action should not have moved the cursor
 
         _encodeUnwrapActions(
-            _proxyCache,
             _constants,
-            v3Cache,
-            _marketIdsForSellActionsPath,
-            _amountWeisForSellActionsPath
+            v3Cache
         );
 
         _encodeSellActions(
-            _proxyCache,
             _constants,
-            v3Cache,
-            _marketIdsForSellActionsPath,
-            _amountWeisForSellActionsPath
+            v3Cache
+        );
+
+        _encodeWrapActions(
+            _constants,
+            v3Cache
         );
 
         return v3Cache.actions;
@@ -138,8 +139,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
 
     function _validateV3Cache(
         LiquidatorProxyV3Cache memory _v3Cache,
-        LiquidatorProxyConstants memory _constants,
-        uint256[] memory _marketIdsForSellActionsPath
+        LiquidatorProxyConstants memory _constants
     ) internal pure {
         Require.that(
             address(_v3Cache.tokenUnwrapper) != address(0) || address(_v3Cache.tokenWrapper) != address(0),
@@ -152,12 +152,28 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         actionCounter += address(_v3Cache.tokenWrapper) != address(0) ? 1 : 0;
         actionCounter += _constants.trader != address(0) ? 1 : 0;
         Require.that(
-            _marketIdsForSellActionsPath.length == actionCounter,
+            _constants.marketIdsForSellActionsPath.length == actionCounter && actionCounter >= 2,
             FILE,
             "Invalid action path length",
-            _marketIdsForSellActionsPath.length,
+            _constants.marketIdsForSellActionsPath.length,
             actionCounter
         );
+    }
+
+    function _initializeActionsArray(
+        LiquidatorProxyConstants memory _constants,
+        LiquidatorProxyV3Cache memory _v3Cache
+    ) internal pure {
+        uint256 unwrapperActionsSize = address(_v3Cache.tokenUnwrapper) != address(0)
+            ? _v3Cache.tokenUnwrapper.actionsLength()
+            : 0;
+        uint256 wrapperActionsSize = address(_v3Cache.tokenWrapper) != address(0)
+            ? _v3Cache.tokenWrapper.actionsLength()
+            : 0;
+        uint256 sellActionSize = _constants.trader != address(0) ? 1 : 0;
+
+        // add 1 for the liquidation action
+        _v3Cache.actions = new Actions.ActionArgs[](1 + unwrapperActionsSize + wrapperActionsSize + sellActionSize);
     }
 
     function _encodeLiquidateAction(
@@ -193,11 +209,8 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     }
 
     function _encodeUnwrapActions(
-        LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
+        LiquidatorProxyV3Cache memory _v3Cache
     ) internal view {
         if (address(_v3Cache.tokenUnwrapper) != address(0)) {
             // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
@@ -207,10 +220,10 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _v3Cache.liquidAccountId,
                 _constants.solidAccount.owner,
                 _constants.liquidAccount.owner,
-                /* _outputMarket = */ _marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
-                /* _inputMarket = */ _marketIdsForSellActionsPath[_v3Cache.marketCursor],
-//                _proxyCache.owedWeiToLiquidate,
-//                _proxyCache.solidHeldUpdateWithReward
+                /* _outputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
+                /* _inputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor],
+                /* _minOutputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor + 1],
+                /* _inputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor]
             );
             _v3Cache.marketCursor += 1;
             for (uint256 i = 0; i < unwrapActions.length; i++) {
@@ -220,20 +233,17 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     }
 
     function _encodeSellActions(
-        LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
-    ) internal view {
+        LiquidatorProxyV3Cache memory _v3Cache
+    ) internal pure {
         if (_constants.trader != address(0)) {
             _v3Cache.actions[_v3Cache.actionCursor++] = AccountActionLib.encodeExternalSellAction(
                 _v3Cache.solidAccountId,
-                /* _primaryMarketId = */ _marketIdsForSellActionsPath[_v3Cache.marketCursor],
-                /* _secondaryMarketId = */ _marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
+                /* _primaryMarketId = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor],
+                /* _secondaryMarketId = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
                 _constants.trader,
-//                _proxyCache.solidHeldUpdateWithReward,
-//                _proxyCache.owedWeiToLiquidate,
+                /* _amountInWei = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor],
+                /* _amountOutMinWei = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor + 1],
                 _constants.orderData
             );
             _v3Cache.marketCursor += 1;
@@ -241,11 +251,8 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     }
 
     function _encodeWrapActions(
-        LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
+        LiquidatorProxyV3Cache memory _v3Cache
     ) internal view {
         if (address(_v3Cache.tokenWrapper) != address(0)) {
             // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
@@ -255,10 +262,10 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _v3Cache.liquidAccountId,
                 _constants.solidAccount.owner,
                 _constants.liquidAccount.owner,
-                /* _outputMarket = */ _marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
-                /* _inputMarket = */ _marketIdsForSellActionsPath[_v3Cache.marketCursor],
-//                _proxyCache.owedWeiToLiquidate,
-//                _proxyCache.solidHeldUpdateWithReward
+                /* _outputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
+                /* _inputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor],
+                /* _minOutputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor + 1],
+                /* _inputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor]
             );
             _v3Cache.marketCursor += 1;
             for (uint256 i = 0; i < unwrapActions.length; i++) {

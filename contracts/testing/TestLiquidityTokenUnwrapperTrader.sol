@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import {ILiquidityTokenUnwrapperTrader} from "../external/interfaces/ILiquidityTokenUnwrapperTrader.sol";
+import { ILiquidityTokenUnwrapperTrader } from "../external/interfaces/ILiquidityTokenUnwrapperTrader.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -107,7 +107,7 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTrader {
         Require.that(
             _takerToken == UNDERLYING_TOKEN,
             FILE,
-            "Taker token must be UNDERLYING_TOKEN",
+            "Taker token must be UNDERLYING",
             _takerToken
         );
 

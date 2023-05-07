@@ -192,7 +192,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
 
         address[] memory tokenPathInFrontOfStack = _tokenPath; // used to prevent "stack too deep" error
         (
-            Account.Info[] memory accounts,
+            Account.Info[] memory accountsForTrade,
             Actions.ActionArgs[] memory actions
         ) = ROUTER_PROXY.getParamsForSwapTokensForExactTokens(
             constants.solidAccount.owner,
@@ -224,7 +224,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
 
             // This value needs to be calculated before `actions` is overwritten below with the new swap parameters
             uint256 profit = actions[0].amount.value.sub(cache.solidHeldUpdateWithReward);
-            (accounts, actions) = ROUTER_PROXY.getParamsForSwapExactTokensForTokens(
+            (accountsForTrade, actions) = ROUTER_PROXY.getParamsForSwapExactTokensForTokens(
                 constants.solidAccount.owner,
                 constants.solidAccount.number,
                 totalSolidHeldWei, // inputWei
@@ -243,7 +243,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             );
         }
 
-        accounts = _constructAccountsArray(constants, accounts);
+        Account.Info[] memory accounts = _constructAccountsArray(constants, accountsForTrade);
 
         // execute the liquidations
         constants.dolomiteMargin.operate(

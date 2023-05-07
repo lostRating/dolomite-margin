@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2019 dYdX Trading Inc.
+    Copyright 2022 Dolomite.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -26,6 +26,7 @@ import { IExpiry } from "../interfaces/IExpiry.sol";
 import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
+import { Actions } from "../../protocol/lib/Actions.sol";
 import { Bits } from "../../protocol/lib/Bits.sol";
 import { Decimal } from "../../protocol/lib/Decimal.sol";
 import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
@@ -70,6 +71,8 @@ contract LiquidatorProxyBase {
         uint256[] liquidMarkets;
         IExpiry expiryProxy;
         uint32 expiry;
+        uint256[] marketIdsForSellActionsPath;
+        uint256[] amountWeisForSellActionsPath;
         address trader;
         bytes orderData;
     }
@@ -115,32 +118,31 @@ contract LiquidatorProxyBase {
     // ============ Internal Functions ============
 
     modifier requireIsAssetWhitelistedForLiquidation(uint256 _marketId) {
-        {
-            // changes the block scope for the stack to be within the braces
-            Require.that(
-                LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketId, address(this)),
-                FILE,
-                "Asset not whitelisted",
-                _marketId
-            );
-        }
+        // changes the block scope for the stack to be within the braces
+        Require.that(
+            LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketId, address(this)),
+            FILE,
+            "Asset not whitelisted",
+            _marketId
+        );
         _;
     }
 
     modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
+        // solium-disable indentation
         {
             // changes the block scope for the stack to be within the braces
             ILiquidatorAssetRegistry liquidatorAssetRegistry = LIQUIDATOR_ASSET_REGISTRY;
-            address self = address(this);
             for (uint256 i = 0; i < _marketIds.length; i++) {
                 Require.that(
-                    liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], self),
+                    liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
                     FILE,
                     "Asset not whitelisted",
                     _marketIds[i]
                 );
             }
         }
+        // solium-enable indentation
         _;
     }
 
@@ -260,37 +262,6 @@ contract LiquidatorProxyBase {
         );
     }
 
-    function _checkActionsPath(
-        uint256 _heldMarket,
-        uint256 _owedMarket,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
-    )
-        internal
-        pure
-    {
-        Require.that(
-            _marketIdsForSellActionsPath.length == _amountWeisForSellActionsPath.length
-                && _marketIdsForSellActionsPath.length >= 2,
-            FILE,
-            "Invalid action paths length",
-            _marketIdsForSellActionsPath.length,
-            _amountWeisForSellActionsPath.length
-        );
-
-        Require.that(
-            _marketIdsForSellActionsPath[0] == _heldMarket,
-            FILE,
-            "Invalid market in path[0]"
-        );
-
-        Require.that(
-            _marketIdsForSellActionsPath[_marketIdsForSellActionsPath.length - 1] == _owedMarket,
-            FILE,
-            "Invalid market in path[last]"
-        );
-    }
-
     /**
      * Make some basic checks before attempting to liquidate an account.
      *  - Require that the msg.sender has the permission to use the liquidator account
@@ -377,13 +348,21 @@ contract LiquidatorProxyBase {
             desiredLiquidationOwedAmount < _cache.owedWeiToLiquidate
             && desiredLiquidationOwedAmount.mul(_cache.owedPriceAdj) < _cache.heldPrice.mul(_cache.liquidHeldWei.value)
         ) {
-            // The user wants to liquidate less than the max amount, and the held collateral is worth more than the debt
+            // The user wants to liquidate less than the max amount, and the held collateral is worth more than the
+            // desired debt to liquidate
             _cache.owedWeiToLiquidate = desiredLiquidationOwedAmount;
             _cache.solidHeldUpdateWithReward = DolomiteMarginMath.getPartial(
                 desiredLiquidationOwedAmount,
                 _cache.owedPriceAdj,
                 _cache.heldPrice
             );
+        }
+
+        if (_amountWeisForSellActionsPath[_amountWeisForSellActionsPath.length - 1] == uint(-1)) {
+            // minOutputAmount is equal to the value at `length - 1` of the array. The amount being liquidated should
+            // always be covered by the sale of assets if the value was set to uint(-1). Setting the value to uint(-1)
+            // is analogous to saying "liquidated all"
+            _amountWeisForSellActionsPath[_amountWeisForSellActionsPath.length - 1] = _cache.owedWeiToLiquidate;
         }
     }
 
