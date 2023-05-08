@@ -6,7 +6,6 @@ import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { setGlobalOperator, setupMarkets } from '../helpers/DolomiteMarginHelpers';
 import { fastForward, mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
-import { toBytesNoPadding } from '../../src/lib/BytesHelper';
 
 enum FailureType {
   None,
@@ -103,22 +102,6 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
 
   beforeEach(async () => {
     await resetEVM(snapshotId);
-  });
-
-  describe('#getExchangeCost', () => {
-    it('should always fail', async () => {
-      await expectThrow(
-        dolomiteMargin.contracts.callConstantContractFunction(
-          dolomiteMargin.contracts.liquidatorProxyV2WithExternalLiquidity.methods.getExchangeCost(
-            ADDRESSES.ZERO,
-            ADDRESSES.ZERO,
-            par.toFixed(),
-            toBytesNoPadding('0x0'),
-          )
-        ),
-        'ParaswapTraderProxyWithBackup::getExchangeCost: not implemented',
-      );
-    });
   });
 
   describe('#liquidate', () => {
@@ -797,6 +780,7 @@ async function liquidate(
     owedAmount = rawOwedAmount.times(liquidationRewardAdditive);
     heldAmount = owedAmount.times(owedPrice).dividedToIntegerBy(heldPrice);
   }
+
   if (failureType === FailureType.WithMessage) {
     heldAmount = INTEGERS.MAX_UINT_128;
   } else if (failureType === FailureType.Silently) {
@@ -809,20 +793,24 @@ async function liquidate(
   // possible. This liquidation case doesn't work this way because we're testing the flow. The integration test in the
   // other repository will cover this flow better.
   // Add 10 bps to account for interest accrual
+  const paraswapTrader = dolomiteMargin.contracts.testParaswapTrader.options.address;
   const paraswapCallData = dolomiteMargin.contracts.testParaswapAugustusRouter.methods.call(
     heldToken,
     heldAmount.toFixed(0),
     owedToken,
     owedAmount.toFixed(0),
   ).encodeABI();
+  const marketIdsForSaleActionsPath = [heldMarket, owedMarket];
+  const amountWeisForSaleActionsPath = [heldAmount, owedAmount];
   const txResult = await dolomiteMargin.liquidatorProxyV2WithExternalLiquidity.liquidate(
     solidOwner,
     solidNumber,
     liquidOwner,
     liquidNumber,
-    owedMarket,
-    heldMarket,
+    marketIdsForSaleActionsPath,
+    amountWeisForSaleActionsPath,
     expiry,
+    paraswapTrader,
     paraswapCallData,
     { from: operator },
   );

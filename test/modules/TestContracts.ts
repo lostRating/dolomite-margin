@@ -63,7 +63,9 @@ import testUniswapV3MultiRouterJson from '../../build/testing_contracts/TestUnis
 import testChainlinkFlagsJson from '../../build/testing_contracts/TestChainlinkFlags.json';
 import testChainlinkPriceOracleJson from '../../build/testing_contracts/TestChainlinkPriceOracleV1.json';
 import testParaswapAugustusRouterJson from '../../build/testing_contracts/TestParaswapAugustusRouter.json';
-import testLiquidityTokenUnwrapperForLiquidationJson from '../../build/testing_contracts/TestLiquidityTokenUnwrapperForLiquidation.json';
+import testLiquidityTokenUnwrapperTraderJson from '../../build/testing_contracts/TestLiquidityTokenUnwrapperTrader.json';
+import testLiquidityTokenWrapperTraderJson from '../../build/testing_contracts/TestLiquidityTokenWrapperTrader.json';
+import testParaswapTraderJson from '../../build/testing_contracts/TestParaswapTrader.json';
 
 import { address, DolomiteMarginOptions } from '../../src';
 import { Contracts } from '../../src/lib/Contracts';
@@ -75,8 +77,12 @@ import { TestUniswapV3MultiRouter } from '../../build/testing_wrappers/TestUnisw
 import { TestChainlinkFlags } from '../../build/testing_wrappers/TestChainlinkFlags';
 import { ChainlinkPriceOracleV1 } from '../../build/wrappers/ChainlinkPriceOracleV1';
 import {
-  TestLiquidityTokenUnwrapperForLiquidation
-} from '../../build/testing_wrappers/TestLiquidityTokenUnwrapperForLiquidation';
+  TestLiquidityTokenUnwrapperTrader
+} from '../../build/testing_wrappers/TestLiquidityTokenUnwrapperTrader';
+import {
+  TestLiquidityTokenWrapperTrader
+} from '../../build/testing_wrappers/TestLiquidityTokenWrapperTrader';
+import { TestParaswapTrader } from '../../build/testing_wrappers/TestParaswapTrader';
 
 export class TestContracts extends Contracts {
   // Contract instances
@@ -109,7 +115,9 @@ export class TestContracts extends Contracts {
   public testUniswapV3MultiRouter: TestUniswapV3MultiRouter;
   public testChainlinkFlags: TestChainlinkFlags;
   public testParaswapAugustusRouter: TestParaswapAugustusRouter;
-  public testLiquidityTokenUnwrapperForLiquidation: TestLiquidityTokenUnwrapperForLiquidation;
+  public testLiquidityTokenUnwrapperTrader: TestLiquidityTokenUnwrapperTrader;
+  public testLiquidityTokenWrapperTrader: TestLiquidityTokenWrapperTrader;
+  public testParaswapTrader: TestParaswapTrader;
 
   constructor(
     provider: Provider,
@@ -180,9 +188,15 @@ export class TestContracts extends Contracts {
     this.testParaswapAugustusRouter = new this.web3.eth.Contract(
       testParaswapAugustusRouterJson.abi,
     ) as TestParaswapAugustusRouter;
-    this.testLiquidityTokenUnwrapperForLiquidation = new this.web3.eth.Contract(
-      testLiquidityTokenUnwrapperForLiquidationJson.abi,
-    ) as TestLiquidityTokenUnwrapperForLiquidation;
+    this.testLiquidityTokenUnwrapperTrader = new this.web3.eth.Contract(
+      testLiquidityTokenUnwrapperTraderJson.abi,
+    ) as TestLiquidityTokenUnwrapperTrader;
+    this.testLiquidityTokenWrapperTrader = new this.web3.eth.Contract(
+      testLiquidityTokenWrapperTraderJson.abi,
+    ) as TestLiquidityTokenWrapperTrader;
+    this.testParaswapTrader = new this.web3.eth.Contract(
+      testParaswapTraderJson.abi,
+    ) as TestParaswapTrader;
 
     this.setProvider(provider, networkId);
     this.setDefaultAccount(this.web3.eth.defaultAccount);
@@ -248,7 +262,9 @@ export class TestContracts extends Contracts {
       { contract: this.testChainlinkFlags, json: testChainlinkFlagsJson },
       { contract: this.chainlinkPriceOracleV1, json: testChainlinkPriceOracleJson },
       { contract: this.testParaswapAugustusRouter, json: testParaswapAugustusRouterJson },
-      { contract: this.testLiquidityTokenUnwrapperForLiquidation, json: testLiquidityTokenUnwrapperForLiquidationJson },
+      { contract: this.testLiquidityTokenUnwrapperTrader, json: testLiquidityTokenUnwrapperTraderJson },
+      { contract: this.testLiquidityTokenWrapperTrader, json: testLiquidityTokenWrapperTraderJson },
+      { contract: this.testParaswapTrader, json: testParaswapTraderJson },
     ];
 
     contracts.forEach(contract =>
@@ -296,7 +312,9 @@ export class TestContracts extends Contracts {
     this.testUniswapV3MultiRouter.options.from = account;
     this.testChainlinkFlags.options.from = account;
     this.testParaswapAugustusRouter.options.from = account;
-    this.testLiquidityTokenUnwrapperForLiquidation.options.from = account;
+    this.testLiquidityTokenUnwrapperTrader.options.from = account;
+    this.testLiquidityTokenWrapperTrader.options.from = account;
+    this.testParaswapTrader.options.from = account;
   }
 
   public getDefaultGasLimit(): string | number {

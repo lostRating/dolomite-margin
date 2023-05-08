@@ -1,5 +1,5 @@
 import { Contracts } from '../lib/Contracts';
-import { address, ContractCallOptions, ContractConstantCallOptions, Integer, } from '../types';
+import { address, ContractCallOptions, ContractConstantCallOptions, Integer, TxResult } from '../types';
 
 export class LiquidatorAssetRegistry {
   private contracts: Contracts;
@@ -42,6 +42,34 @@ export class LiquidatorAssetRegistry {
     );
   }
 
+  public async setLiquidityTokenUnwrapperForMarketId(
+    marketId: Integer,
+    tokenUnwrapper: address,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.ownerSetLiquidityTokenUnwrapper(
+        marketId.toFixed(0),
+        tokenUnwrapper,
+      ),
+      options,
+    );
+  }
+
+  public async setLiquidityTokenWrapperForMarketId(
+    marketId: Integer,
+    tokenWrapper: address,
+    options: ContractCallOptions = {},
+  ): Promise<TxResult> {
+    return this.contracts.callContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.ownerSetLiquidityTokenWrapper(
+        marketId.toFixed(0),
+        tokenWrapper,
+      ),
+      options,
+    );
+  }
+
   // ============ Getter Functions ============
 
   public async getLiquidatorsForAsset(
@@ -67,6 +95,18 @@ export class LiquidatorAssetRegistry {
         liquidatorProxy,
       ),
       options,
+    );
+  }
+
+  public async getTokenUnwrapperByMarketId(marketId: Integer): Promise<address> {
+    return this.contracts.callConstantContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.getLiquidityTokenUnwrapperForAsset(marketId.toFixed())
+    );
+  }
+
+  public async getTokenWrapperByMarketId(marketId: Integer): Promise<address> {
+    return this.contracts.callConstantContractFunction(
+      this.contracts.liquidatorAssetRegistry.methods.getLiquidityTokenWrapperForAsset(marketId.toFixed())
     );
   }
 }

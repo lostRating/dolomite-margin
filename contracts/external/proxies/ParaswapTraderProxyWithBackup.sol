@@ -168,5 +168,4 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyBas
             }
         }
     }
-
 }

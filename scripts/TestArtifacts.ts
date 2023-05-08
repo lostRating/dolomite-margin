@@ -32,7 +32,9 @@ import { default as TestUniswapV3MultiRouter } from '../build/contracts/TestUnis
 import { default as TestChainlinkFlags } from '../build/contracts/TestChainlinkFlags.json';
 import { default as TestChainlinkPriceOracleV1 } from '../build/contracts/TestChainlinkPriceOracleV1.json';
 import { default as TestParaswapAugustusRouter } from '../build/contracts/TestParaswapAugustusRouter.json';
-import { default as TestLiquidityTokenUnwrapperForLiquidation } from '../build/contracts/TestLiquidityTokenUnwrapperForLiquidation.json';
+import { default as TestLiquidityTokenUnwrapperTrader } from '../build/contracts/TestLiquidityTokenUnwrapperTrader.json';
+import { default as TestLiquidityTokenWrapperTrader } from '../build/contracts/TestLiquidityTokenWrapperTrader.json';
+import { default as TestParaswapTrader } from '../build/contracts/TestParaswapTrader.json';
 
 export default {
   CustomTestToken,
@@ -69,5 +71,7 @@ export default {
   TestChainlinkFlags,
   TestChainlinkPriceOracleV1,
   TestParaswapAugustusRouter,
-  TestLiquidityTokenUnwrapperForLiquidation,
+  TestLiquidityTokenUnwrapperTrader,
+  TestLiquidityTokenWrapperTrader,
+  TestParaswapTrader,
 };

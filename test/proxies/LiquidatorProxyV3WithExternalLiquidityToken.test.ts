@@ -9,10 +9,15 @@ import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { toBytesNoPadding } from '../../src/lib/BytesHelper';
 import { deployContract } from '../helpers/Deploy';
 import {
-  TestLiquidityTokenUnwrapperForLiquidation
-} from '../../build/testing_wrappers/TestLiquidityTokenUnwrapperForLiquidation';
+  TestLiquidityTokenUnwrapperTrader
+} from '../../build/testing_wrappers/TestLiquidityTokenUnwrapperTrader';
+import {
+  TestLiquidityTokenWrapperTrader
+} from '../../build/testing_wrappers/TestLiquidityTokenWrapperTrader';
 import * as testLiquidityTokenUnwrapperForLiquidationJson
-  from '../../build/contracts/TestLiquidityTokenUnwrapperForLiquidation.json';
+  from '../../build/contracts/TestLiquidityTokenUnwrapperTrader.json';
+import * as testLiquidityTokenWrapperForLiquidationJson
+  from '../../build/contracts/TestLiquidityTokenWrapperTrader.json';
 
 enum FailureType {
   None,
@@ -32,9 +37,12 @@ let token1: address;
 let token2: address;
 let token3: address;
 let token4: address;
-let testLiquidityUnwrapper: TestLiquidityTokenUnwrapperForLiquidation;
+let testLiquidityUnwrapper: TestLiquidityTokenUnwrapperTrader;
 let tokenForUnwrapper: address;
 let outputTokenForUnwrapper: address;
+let testLiquidityWrapper: TestLiquidityTokenWrapperTrader;
+let tokenForWrapper: address;
+let outputTokenForWrapper: address;
 
 const solidNumber = new BigNumber(111);
 const liquidNumber = new BigNumber(222);
@@ -107,20 +115,35 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
     marketIdToTokenMap[market3.toFixed()] = token3;
     marketIdToTokenMap[market4.toFixed()] = token4;
 
-    testLiquidityUnwrapper = await deployContract<TestLiquidityTokenUnwrapperForLiquidation>(
+    testLiquidityUnwrapper = await deployContract<TestLiquidityTokenUnwrapperTrader>(
       dolomiteMargin,
       testLiquidityTokenUnwrapperForLiquidationJson,
       [token1, token2, dolomiteMargin.address],
     );
-    await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.setMarketIdToTokenUnwrapperForLiquidationMap(
+    await dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenUnwrapperForMarketId(
       market1,
       testLiquidityUnwrapper.options.address,
       { from: admin },
     );
     tokenForUnwrapper = token1;
     outputTokenForUnwrapper = token2;
-    expect(await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.getTokenUnwrapperByMarketId(market1))
+    expect(await dolomiteMargin.liquidatorAssetRegistry.getTokenUnwrapperByMarketId(market1))
       .to.equal(testLiquidityUnwrapper.options.address);
+
+    testLiquidityWrapper = await deployContract<TestLiquidityTokenWrapperTrader>(
+      dolomiteMargin,
+      testLiquidityTokenWrapperForLiquidationJson,
+      [token3, token4, dolomiteMargin.address],
+    );
+    await dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenWrapperForMarketId(
+      market3,
+      testLiquidityWrapper.options.address,
+      { from: admin },
+    );
+    tokenForWrapper = token3;
+    outputTokenForWrapper = token4;
+    expect(await dolomiteMargin.liquidatorAssetRegistry.getTokenWrapperByMarketId(market3))
+      .to.equal(testLiquidityWrapper.options.address);
 
     await mineAvgBlock();
 
@@ -129,49 +152,6 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
 
   beforeEach(async () => {
     await resetEVM(snapshotId);
-  });
-
-  describe('#getExchangeCost', () => {
-    it('should always fail', async () => {
-      await expectThrow(
-        dolomiteMargin.contracts.callConstantContractFunction(
-          dolomiteMargin.contracts.liquidatorProxyV3WithLiquidityToken.methods.getExchangeCost(
-            ADDRESSES.ZERO,
-            ADDRESSES.ZERO,
-            par.toFixed(),
-            toBytesNoPadding('0x0'),
-          )
-        ),
-        'ParaswapTraderProxyWithBackup::getExchangeCost: not implemented',
-      );
-    });
-  });
-
-  describe('#setMarketIdToTokenUnwrapperForLiquidationMap', () => {
-    describe('Success cases', () => {
-      it('should work normally', async () => {
-        await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.setMarketIdToTokenUnwrapperForLiquidationMap(
-          market1,
-          ADDRESSES.ZERO,
-          { from: admin },
-        );
-        expect(await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.getTokenUnwrapperByMarketId(market1))
-          .to.equal(ADDRESSES.ZERO);
-      });
-    });
-
-    describe('Failure cases', () => {
-      it('should fail when admin is not the caller', async () => {
-        await expectThrow(
-          dolomiteMargin.liquidatorProxyV3WithLiquidityToken.setMarketIdToTokenUnwrapperForLiquidationMap(
-            market1,
-            testLiquidityUnwrapper.options.address,
-            { from: solidOwner },
-          ),
-          `LiquidatorProxyV3: Only owner can call <${solidOwner.toLowerCase()}>`,
-        );
-      });
-    });
   });
 
   describe('#liquidate', () => {
@@ -919,10 +899,12 @@ async function liquidate(
   // possible. This liquidation case doesn't work this way because we're testing the flow. The integration test in the
   // other repository will cover this flow better.
   // Add 10 bps to account for interest accrual
+  let paraswapTrader = ADDRESSES.ZERO;
   let paraswapCallData;
   if (isUsingUnwrapper && owedMarket.eq(outputMarketForUnwrapper)) {
     paraswapCallData = '0x';
   } else {
+    paraswapTrader = dolomiteMargin.contracts.testParaswapTrader.options.address;
     paraswapCallData = dolomiteMargin.contracts.testParaswapAugustusRouter.methods.call(
       paraswapInputToken,
       paraswapInputAmount.toFixed(0),
@@ -930,14 +912,19 @@ async function liquidate(
       paraswapOutputAmount.toFixed(0),
     ).encodeABI();
   }
+
+  const marketIdsForSellActionsPath = [];
+  const amountsForSellActionsPath = [];
+
   const txResult = await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.liquidate(
     solidOwner,
     solidNumber,
     liquidOwner,
     liquidNumber,
-    owedMarket,
-    heldMarket,
+    marketIdsForSellActionsPath,
+    amountsForSellActionsPath,
     expiry,
+    paraswapTrader,
     paraswapCallData,
     { from: operator },
   );
