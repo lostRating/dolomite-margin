@@ -27,9 +27,14 @@ import { IExchangeWrapper } from "../../protocol/interfaces/IExchangeWrapper.sol
 contract ILiquidityTokenUnwrapperTrader is IExchangeWrapper {
 
     /**
-     * @return The liquidity token that this contract can unwrap
+     * @return The liquidity token that this contract can unwrap (the input token).
      */
     function token() external view returns (address);
+
+    /**
+     * @return True if the `_outputToken` is a valid output token for this contract, to be unwrapped by `token()`.
+     */
+    function isValidOutputToken(address _outputToken) external view returns (bool);
 
     /**
      * @return  The number of Actions used to unwrap the liquidity token.

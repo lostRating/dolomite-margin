@@ -60,4 +60,14 @@ contract OnlyDolomiteMargin {
         );
         _;
     }
+
+    modifier onlyGlobalOperator(address _from) {
+        Require.that(
+            DOLOMITE_MARGIN.getIsGlobalOperator(_from),
+            FILE,
+            "Only global operator can call",
+            _from
+        );
+        _;
+    }
 }

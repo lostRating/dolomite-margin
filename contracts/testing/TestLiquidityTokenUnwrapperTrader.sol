@@ -40,17 +40,24 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTrader {
 
     IDolomiteMargin public DOLOMITE_MARGIN;
     address public UNDERLYING_TOKEN;
+    address public OUTPUT_TOKEN;
 
     constructor(
         address _inputToken,
+        address _outputToken,
         address _dolomiteMargin
     ) public {
         UNDERLYING_TOKEN = _inputToken;
+        OUTPUT_TOKEN = _outputToken;
         DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
     }
 
     function token() external view returns (address) {
         return UNDERLYING_TOKEN;
+    }
+
+    function isValidOutputToken(address _outputToken) external view returns (bool) {
+        return _outputToken == OUTPUT_TOKEN;
     }
 
     function actionsLength() external pure returns (uint256) {

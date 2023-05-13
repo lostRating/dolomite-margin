@@ -32,6 +32,11 @@ contract ILiquidityTokenWrapperTrader is IExchangeWrapper {
     function token() external view returns (address);
 
     /**
+     * @return True if the `_inputToken` is a valid input token for this contract, to be wrapped into `token()`
+     */
+    function isValidInputToken(address _inputToken) external view returns (bool);
+
+    /**
      * @return  The number of Actions used to wrap the LP token into `outputMarketId`. If `owedMarketId` equals
      *          `outputMarketId`, there is no need to chain additional actions on, since the debt will be paid off.
      */

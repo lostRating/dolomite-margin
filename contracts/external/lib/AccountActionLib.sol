@@ -293,7 +293,7 @@ library AccountActionLib {
         uint256 _secondaryMarketId,
         address _traderAddress,
         uint256 _amountInWei,
-        uint256 _amountOutWei
+        uint256 _amountOutMinWei
     ) internal pure returns (Actions.ActionArgs memory) {
         return Actions.ActionArgs({
             actionType : Actions.ActionType.Trade,
@@ -304,7 +304,7 @@ library AccountActionLib {
             secondaryMarketId : _secondaryMarketId,
             otherAddress : _traderAddress,
             otherAccountId : _toAccountId,
-            data : abi.encode(_amountOutWei)
+            data : abi.encode(_amountOutMinWei)
         });
     }
 

@@ -38,19 +38,26 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
 
     uint256 constant public ACTIONS_LENGTH = 1;
 
-    IDolomiteMargin public DOLOMITE_MARGIN;
+    address public INPUT_TOKEN;
     address public OUTPUT_TOKEN;
+    IDolomiteMargin public DOLOMITE_MARGIN;
 
     constructor(
+        address _inputToken,
         address _outputToken,
         address _dolomiteMargin
     ) public {
+        INPUT_TOKEN = _inputToken;
         OUTPUT_TOKEN = _outputToken;
         DOLOMITE_MARGIN = IDolomiteMargin(_dolomiteMargin);
     }
 
     function token() external view returns (address) {
         return OUTPUT_TOKEN;
+    }
+
+    function isValidInputToken(address _inputToken) external view returns (bool) {
+        return _inputToken == INPUT_TOKEN;
     }
 
     function actionsLength() external pure returns (uint256) {
