@@ -24,6 +24,12 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { IExchangeWrapper } from "../../protocol/interfaces/IExchangeWrapper.sol";
 
 
+/**
+ * @title   ILiquidityTokenUnwrapperTrader
+ * @author  Dolomite
+ *
+ * Interface for a contract that can convert an LP token into an underlying token.
+ */
 contract ILiquidityTokenUnwrapperTrader is IExchangeWrapper {
 
     /**

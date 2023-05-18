@@ -40,6 +40,7 @@ import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 import { LiquidatorProxyV2WithExternalLiquidity } from "./LiquidatorProxyV2WithExternalLiquidity.sol";
 
+
 /**
  * @title LiquidatorProxyV4WithExternalLiquidityToken
  * @author Dolomite
@@ -91,19 +92,26 @@ contract LiquidatorProxyV4WithLiquidityToken is
     )
         public
         nonReentrant
+        requireIsAssetWhitelistedForLiquidation(_marketIdPath[0])
+        requireIsAssetWhitelistedForLiquidation(_marketIdPath[_marketIdPath.length - 1])
     {
         GenericTraderProxyCache memory genericCache = GenericTraderProxyCache({
             dolomiteMargin: DOLOMITE_MARGIN,
-            isMarginDeposit: false, // unused
-            otherAccountNumber: 0, // unused
+            // unused for this function
+            isMarginDeposit: false,
+            // unused for this function
+            otherAccountNumber: 0,
             traderAccountsLength: 0,
             // traders go right after the liquid account ("other account")
             traderAccountStartIndex: 2,
             actionsCursor: 0,
             traderAccountCursor: 2,
-            inputBalanceWeiBeforeOperate: Types.zeroWei(), // unused
-            outputBalanceWeiBeforeOperate: Types.zeroWei(), // unused
-            transferBalanceWeiBeforeOperate: Types.zeroWei() // unused
+            // unused for this function
+            inputBalanceWeiBeforeOperate: Types.zeroWei(),
+            // unused for this function
+            outputBalanceWeiBeforeOperate: Types.zeroWei(),
+            // unused for this function
+            transferBalanceWeiBeforeOperate: Types.zeroWei()
         });
         _validateMarketIdPath(_marketIdPath);
         _validateAmountWeisPath(_marketIdPath, _amountWeisPath);
@@ -117,7 +125,7 @@ contract LiquidatorProxyV4WithLiquidityToken is
         constants.heldMarket = _marketIdPath[0];
         constants.owedMarket = _marketIdPath[_marketIdPath.length - 1];
 
-        _checkConstants(constants, _liquidAccount, _expiry);
+        _checkConstants(constants, _expiry);
 
         constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(constants.liquidAccount);
         constants.markets = _getMarketInfos(
@@ -152,6 +160,7 @@ contract LiquidatorProxyV4WithLiquidityToken is
         uint256 traderActionsLength = _getActionsLengthForTraderParams(_tradersPath);
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](liquidationActionsLength + traderActionsLength);
         _appendLiquidationAction(
+            actions,
             constants,
             liquidatorCache,
             genericCache
@@ -171,6 +180,7 @@ contract LiquidatorProxyV4WithLiquidityToken is
     // ============ Internal Functions ============
 
     function _appendLiquidationAction(
+        Actions.ActionArgs[] memory _actions,
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _liquidatorCache,
         GenericTraderProxyCache memory _genericCache
@@ -178,11 +188,11 @@ contract LiquidatorProxyV4WithLiquidityToken is
         internal
         pure
     {
+        // solidAccountId is always at index 0, liquidAccountId is always at index 1
         if (_constants.expiry > 0) {
-            // accountId is solidAccount; otherAccountId is liquidAccount
-            _genericCache.actions[_genericCache.actionCursor++] = AccountActionLib.encodeExpiryLiquidateAction(
-                _genericCache.solidAccountId,
-                _genericCache.liquidAccountId,
+            _actions[_genericCache.actionsCursor++] = AccountActionLib.encodeExpiryLiquidateAction(
+                /* _solidAccountId = */ 0,
+                /* _liquidAccountId = */ 1,
                 _constants.owedMarket,
                 _constants.heldMarket,
                 address(_constants.expiryProxy),
@@ -191,10 +201,9 @@ contract LiquidatorProxyV4WithLiquidityToken is
                 _liquidatorCache.flipMarketsForExpiration
             );
         } else {
-            // accountId is solidAccount; otherAccountId is liquidAccount
-            _genericCache.actions[_genericCache.actionCursor++] = AccountActionLib.encodeLiquidateAction(
-                _genericCache.solidAccountId,
-                _genericCache.liquidAccountId,
+            _actions[_genericCache.actionsCursor++] = AccountActionLib.encodeLiquidateAction(
+                /* _solidAccountId = */ 0,
+                /* _liquidAccountId = */ 1,
                 _constants.owedMarket,
                 _constants.heldMarket,
                 _liquidatorCache.owedWeiToLiquidate

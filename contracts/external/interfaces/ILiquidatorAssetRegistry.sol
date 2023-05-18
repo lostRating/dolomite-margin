@@ -18,13 +18,11 @@
 
 pragma solidity ^0.5.7;
 
-import { ILiquidityTokenUnwrapperTrader } from "./ILiquidityTokenUnwrapperTrader.sol";
-import { ILiquidityTokenWrapperTrader } from "./ILiquidityTokenWrapperTrader.sol";
-
 
 /**
  * @title   ILiquidatorAssetRegistry
  * @author  Dolomite
+ *
  * @notice  Interface for a registry that tracks which assets can be liquidated and by each contract
  */
 interface ILiquidatorAssetRegistry {
@@ -41,12 +39,22 @@ interface ILiquidatorAssetRegistry {
         address indexed liquidator
     );
 
-    event TokenUnwrapperForLiquidationSet(
+    event TokenUnwrapperAddedToWhitelist(
         uint256 indexed _marketId,
         address _liquidityTokenUnwrapper
     );
 
-    event TokenWrapperForLiquidationSet(
+    event TokenWrapperAddedToWhitelist(
+        uint256 indexed _marketId,
+        address _liquidityTokenWrapper
+    );
+
+    event TokenUnwrapperRemovedFromWhitelist(
+        uint256 indexed _marketId,
+        address _liquidityTokenUnwrapper
+    );
+
+    event TokenWrapperRemovedFromWhitelist(
         uint256 indexed _marketId,
         address _liquidityTokenWrapper
     );
@@ -79,7 +87,7 @@ interface ILiquidatorAssetRegistry {
      */
     function ownerAddLiquidityTokenUnwrapper(
         uint256 _marketId,
-        ILiquidityTokenUnwrapperTrader _unwrapper
+        address _unwrapper
     ) external;
 
     /**
@@ -88,7 +96,7 @@ interface ILiquidatorAssetRegistry {
      */
     function ownerAddLiquidityTokenWrapper(
         uint256 _marketId,
-        ILiquidityTokenWrapperTrader _wrapper
+        address _wrapper
     ) external;
 
     /**
@@ -97,7 +105,7 @@ interface ILiquidatorAssetRegistry {
      */
     function ownerRemoveLiquidityTokenUnwrapper(
         uint256 _marketId,
-        ILiquidityTokenUnwrapperTrader _unwrapper
+        address _unwrapper
     ) external;
 
     /**
@@ -106,7 +114,7 @@ interface ILiquidatorAssetRegistry {
      */
     function ownerRemoveLiquidityTokenWrapper(
         uint256 _marketId,
-        ILiquidityTokenWrapperTrader _wrapper
+        address _wrapper
     ) external;
 
     /**
@@ -132,7 +140,8 @@ interface ILiquidatorAssetRegistry {
     external view returns (bool);
 
     /**
-     * @param _marketId The market ID of the asset whose unwrapper trader should be retrieved
+     * @param _marketId         The market ID of the asset whose unwrapper trader should be checked if it's added
+     * @param _unwrapperTrader  The unwrapper trader for the given market ID to check
      * @return          The unwrapper trader for the asset
      */
     function isLiquidityTokenUnwrapperForAsset(
@@ -142,7 +151,31 @@ interface ILiquidatorAssetRegistry {
     external view returns (bool);
 
     /**
+     * @notice          Reverts if the `_index` inputted is `>=` `getLiquidityTokenUnwrapperForAssetLength(_marketId)`
+     *
+     * @param _marketId The market ID of the asset whose unwrapper trader should be retrieved
+     * @param _index    The index of the unwrapper trader in the EnumerableSet to retrieve
+     * @return          The unwrapper trader for the asset at the given index
+     */
+    function getLiquidityTokenUnwrapperForAssetAtIndex(
+        uint256 _marketId,
+        uint256 _index
+    )
+    external view returns (address);
+
+    /**
+     * @param _marketId The market ID of the asset whose unwrapper trader should be retrieved
+     * @return          The number of unwrapper traders that are enabled for the given asset
+     */
+    function getLiquidityTokenUnwrapperForAssetLength(
+        uint256 _marketId
+    )
+    external view returns (uint256);
+
+
+    /**
      * @param _marketId The market ID of the asset whose wrapper trader should be retrieved
+     * @param _wrapperTrader  The wrapper trader for the given market ID to check
      * @return          The wrapper trader for the asset
      */
     function isLiquidityTokenWrapperForAsset(
@@ -150,4 +183,26 @@ interface ILiquidatorAssetRegistry {
         address _wrapperTrader
     )
     external view returns (bool);
+
+    /**
+     * @notice          Reverts if the `_index` inputted is `>=` `getLiquidityTokenWrapperForAssetLength(_marketId)`
+     *
+     * @param _marketId The market ID of the asset whose wrapper trader should be retrieved
+     * @param _index    The index of the wrapper trader in the EnumerableSet to retrieve
+     * @return          The wrapper trader for the asset at the given index
+     */
+    function getLiquidityTokenWrapperForAssetAtIndex(
+        uint256 _marketId,
+        uint256 _index
+    )
+    external view returns (address);
+
+    /**
+     * @param _marketId The market ID of the asset whose wrapper trader should be retrieved
+     * @return          The number of wrapper traders that are enabled for the given asset
+     */
+    function getLiquidityTokenWrapperForAssetLength(
+        uint256 _marketId
+    )
+    external view returns (uint256);
 }

@@ -101,34 +101,37 @@ contract LiquidatorProxyBase is HasLiquidatorRegistry {
     // ============ Internal Functions ============
 
     modifier requireIsAssetWhitelistedForLiquidation(uint256 _marketId) {
+        _validateAssetForLiquidation(_marketId);
+        _;
+    }
+
+    modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
+        _validateAssetsForLiquidation(_marketIds);
+        _;
+    }
+
+    // ============ Internal Functions ============
+
+    function _validateAssetForLiquidation(uint256 _marketId) internal view {
         Require.that(
             LIQUIDATOR_ASSET_REGISTRY.isAssetWhitelistedForLiquidation(_marketId, address(this)),
             FILE,
             "Asset not whitelisted",
             _marketId
         );
-        _;
     }
 
-    modifier requireIsAssetsWhitelistedForLiquidation(uint256[] memory _marketIds) {
-        // solium-disable indentation
-        {
-            // changes the block scope for the stack to be within the braces
-            ILiquidatorAssetRegistry liquidatorAssetRegistry = LIQUIDATOR_ASSET_REGISTRY;
-            for (uint256 i = 0; i < _marketIds.length; i++) {
-                Require.that(
-                    liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
-                    FILE,
-                    "Asset not whitelisted",
-                    _marketIds[i]
-                );
-            }
+    function _validateAssetsForLiquidation(uint256[] memory _marketIds) internal view {
+        ILiquidatorAssetRegistry liquidatorAssetRegistry = LIQUIDATOR_ASSET_REGISTRY;
+        for (uint256 i = 0; i < _marketIds.length; i++) {
+            Require.that(
+                liquidatorAssetRegistry.isAssetWhitelistedForLiquidation(_marketIds[i], address(this)),
+                FILE,
+                "Asset not whitelisted",
+                _marketIds[i]
+            );
         }
-        // solium-enable indentation
-        _;
     }
-
-    // ============ Internal Functions ============
 
     /**
      * Pre-populates cache values for some pair of markets.

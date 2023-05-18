@@ -36,22 +36,21 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { LiquidatorProxyBase } from "../helpers/LiquidatorProxyBase.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 import { ERC20Lib } from "../lib/ERC20Lib.sol";
 
 
 /**
- * @title ParaswapTraderProxyWithBackup
+ * @title ParaswapTrader
  * @author Dolomite
  *
- * Contract for performing an external trade with Paraswap with a backup to other venues if the trade fails.
+ * Contract for performing an external trade with Paraswap.
  */
-contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyBase, IExchangeWrapper {
+contract ParaswapTrader is OnlyDolomiteMargin, IExchangeWrapper {
 
     // ============ Constants ============
 
-    bytes32 private constant FILE = "ParaswapTraderProxyWithBackup";
+    bytes32 private constant FILE = "ParaswapTrader";
 
     // ============ Events ============
 
@@ -85,12 +84,10 @@ contract ParaswapTraderProxyWithBackup is OnlyDolomiteMargin, LiquidatorProxyBas
     constructor(
         address _paraswapAugustusRouter,
         address _paraswapTransferProxy,
-        address _dolomiteMargin,
-        address _liquidatorAssetRegistry
+        address _dolomiteMargin
     )
         public
         OnlyDolomiteMargin(_dolomiteMargin)
-        LiquidatorProxyBase(_liquidatorAssetRegistry)
     {
         PARASWAP_AUGUSTUS_ROUTER = _paraswapAugustusRouter;
         PARASWAP_TRANSFER_PROXY = _paraswapTransferProxy;

@@ -81,7 +81,7 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
         uint256[] calldata _amountWeisPath,
         IGenericTraderProxyBase.TraderParam[] calldata _tradersPath
     )
-    external;
+        external;
 
     /**
      * @dev     The same function as `swapExactInputForOutput`, but allows the caller transfer collateral and modify
@@ -110,5 +110,5 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
         TransferCollateralParams calldata _transferCollateralParams,
         ExpiryParams calldata _expiryParams
     )
-    external;
+        external;
 }

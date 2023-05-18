@@ -93,15 +93,20 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
     {
         GenericTraderProxyCache memory cache = GenericTraderProxyCache({
             dolomiteMargin: DOLOMITE_MARGIN,
+            // unused for this function
             isMarginDeposit: false,
+            // unused for this function
             otherAccountNumber: 0,
             traderAccountsLength: 0,
             // traders go right after the trade account
             traderAccountStartIndex: 1,
             actionsCursor: 0,
             traderAccountCursor: 1,
+            // unused for this function
             inputBalanceWeiBeforeOperate: Types.zeroWei(),
+            // unused for this function
             outputBalanceWeiBeforeOperate: Types.zeroWei(),
+            // unused for this function
             transferBalanceWeiBeforeOperate: Types.zeroWei()
         });
         _validateMarketIdPath(_marketIdPath);
@@ -111,7 +116,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         Account.Info[] memory accounts = _getAccounts(
             cache,
             _tradersPath,
-            /* _tradeAccountOwner = */ msg.sender,
+            /* _tradeAccountOwner = */ msg.sender, // solium-disable-line indentation
             _tradeAccountNumber
         );
 
@@ -163,10 +168,10 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         Account.Info[] memory accounts = _getAccounts(
             cache,
             _tradersPath,
-            /* _tradeAccountOwner = */ msg.sender,
+            /* _tradeAccountOwner = */ msg.sender, // solium-disable-line indentation
             _tradeAccountNumber
         );
-        // the call to _getAccounts leaves accounts[1] null because it fills in the traders starting at the
+        // the call to `_getAccounts` leaves accounts[1]equal to null, because it fills in the traders starting at the
         // `traderAccountCursor` index
         accounts[1] = Account.Info({
             owner: msg.sender,
@@ -226,8 +231,8 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         TransferCollateralParams memory _transferCollateralParams,
         uint256 _tradeAccountNumber
     )
-    private
-    pure
+        internal
+        pure
     {
         Require.that(
             _transferCollateralParams.transferAmounts.length > 0,

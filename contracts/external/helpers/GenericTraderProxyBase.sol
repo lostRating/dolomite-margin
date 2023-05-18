@@ -108,7 +108,12 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
         );
 
         for (uint256 i = 0; i < _traderParamsPath.length; i++) {
-            _validateTraderParam(_cache, _marketIdPath, _traderParamsPath[i], /* _index */ i);
+            _validateTraderParam(
+                _cache,
+                _marketIdPath,
+                _traderParamsPath[i],
+                /* _index = */ i // solium-disable-line indentation
+            );
         }
     }
 
@@ -146,6 +151,14 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 _index + 1,
                 nextMarketId
             );
+
+            Require.that(
+                LIQUIDATOR_ASSET_REGISTRY.isLiquidityTokenUnwrapperForAsset(marketId, _traderParam.trader),
+                FILE,
+                "Unwrapper trader not whitelisted",
+                _traderParam.trader,
+                _marketIdPath[_index]
+            );
         } else if (TraderType.LiquidityTokenWrapper == _traderParam.traderType) {
             ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_traderParam.trader);
             Require.that(
@@ -162,26 +175,13 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 _index + 1,
                 nextMarketId
             );
-        }
 
-        if (
-            TraderType.LiquidityTokenUnwrapper == _traderParam.traderType
-                || TraderType.LiquidityTokenWrapper == _traderParam.traderType
-        ) {
-            ILiquidatorAssetRegistry registry = LIQUIDATOR_ASSET_REGISTRY;
             Require.that(
-                registry.isAssetWhitelistedForLiquidation(_marketIdPath[_index], _traderParam.trader),
+                LIQUIDATOR_ASSET_REGISTRY.isLiquidityTokenWrapperForAsset(nextMarketId, _traderParam.trader),
                 FILE,
-                "Market not whitelisted for trader",
+                "Wrapper trader not whitelisted",
                 _traderParam.trader,
                 _marketIdPath[_index]
-            );
-            Require.that(
-                registry.isAssetWhitelistedForLiquidation(_marketIdPath[_index + 1], _traderParam.trader),
-                FILE,
-                "Market not whitelisted",
-                _traderParam.trader,
-                _marketIdPath[_index + 1]
             );
         }
 
@@ -229,7 +229,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
         uint256 _tradeAccountNumber
     )
         internal
-        view
+        pure
         returns (Account.Info[] memory)
     {
         Account.Info[] memory accounts = new Account.Info[](

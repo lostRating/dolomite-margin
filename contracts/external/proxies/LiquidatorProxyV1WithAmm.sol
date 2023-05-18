@@ -34,8 +34,11 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { Time } from "../../protocol/lib/Time.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { HasLiquidatorRegistry } from "../helpers/LiquidatorProxyBase.sol";
 import { LiquidatorProxyBase } from "../helpers/LiquidatorProxyBase.sol";
+
 import { IExpiry } from "../interfaces/IExpiry.sol";
+
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 import { DolomiteAmmRouterProxy } from "./DolomiteAmmRouterProxy.sol";
@@ -97,7 +100,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
         address _liquidatorAssetRegistry
     )
         public
-        LiquidatorProxyBase(_liquidatorAssetRegistry)
+        HasLiquidatorRegistry(_liquidatorAssetRegistry)
     {
         DOLOMITE_MARGIN = IDolomiteMargin(dolomiteMargin);
         ROUTER_PROXY = DolomiteAmmRouterProxy(dolomiteAmmRouterProxy);
@@ -198,10 +201,10 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             emit LogLiquidateWithAmm(
                 constants.solidAccount.owner,
                 constants.solidAccount.number,
-                cache.heldMarket,
+                constants.heldMarket,
                 cache.solidHeldUpdateWithReward,
                 Types.Wei(true, profit),
-                cache.owedMarket,
+                constants.owedMarket,
                 cache.owedWeiToLiquidate
             );
         } else {
@@ -226,10 +229,10 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             emit LogLiquidateWithAmm(
                 constants.solidAccount.owner,
                 constants.solidAccount.number,
-                cache.heldMarket,
+                constants.heldMarket,
                 cache.solidHeldUpdateWithReward,
                 Types.Wei(false, profit),
-                cache.owedMarket,
+                constants.owedMarket,
                 cache.owedWeiToLiquidate
             );
         }
@@ -278,7 +281,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             _tokenPath[_tokenPath.length - 1]
         );
 
-        _checkBasicRequirements(_constants, _owedMarket);
+        _checkBasicRequirements(_constants);
     }
 
     function _constructAccountsArray(
@@ -321,8 +324,8 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             actions[0] = AccountActionLib.encodeExpiryLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
-                _cache.owedMarket,
-                _cache.heldMarket,
+                _constants.owedMarket,
+                _constants.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
                 _cache.owedWeiToLiquidate,
@@ -334,8 +337,8 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
             actions[0] = AccountActionLib.encodeLiquidateAction(
                 _solidAccountId,
                 _liquidAccountId,
-                _cache.owedMarket,
-                _cache.heldMarket,
+                _constants.owedMarket,
+                _constants.heldMarket,
                 _cache.owedWeiToLiquidate
             );
         }
