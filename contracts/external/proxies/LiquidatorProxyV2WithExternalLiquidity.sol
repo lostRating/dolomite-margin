@@ -73,7 +73,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
 
     // ============ Modifiers ============
 
-    modifier validateSellActionsArrays(
+    modifier requireSellActionsArraysIsValid(
         uint256[] memory _marketIdsForSellActionsPath,
         uint256[] memory _amountWeisForSellActionsPath
     ) {
@@ -110,7 +110,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
     )
         public
         nonReentrant
-        validateSellActionsArrays(_marketIdsForSellActionsPath, _amountWeisForSellActionsPath)
+        requireSellActionsArraysIsValid(_marketIdsForSellActionsPath, _amountWeisForSellActionsPath)
         requireIsAssetWhitelistedForLiquidation(_marketIdsForSellActionsPath[0])
         requireIsAssetWhitelistedForLiquidation(_marketIdsForSellActionsPath[_marketIdsForSellActionsPath.length - 1])
     {

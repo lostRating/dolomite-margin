@@ -25,7 +25,9 @@ import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
+import { Events } from "../../protocol/lib/Events.sol";
 import { Require } from "../../protocol/lib/Require.sol";
+import { Types } from "../../protocol/lib/Types.sol";
 
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
@@ -45,6 +47,7 @@ import { AccountActionLib } from "../lib/AccountActionLib.sol";
  * @dev Proxy contract for trading assets from msg.sender
  */
 contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, ReentrancyGuard {
+    using Types for Types.Wei;
 
     // ============ Constants ============
 
@@ -80,14 +83,18 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         public
         nonReentrant
     {
-        GenericTradeProxyCache memory cache = GenericTradeProxyCache({
+        GenericTraderProxyCache memory cache = GenericTraderProxyCache({
             dolomiteMargin: DOLOMITE_MARGIN,
+            isMarginDeposit: false,
             otherAccountNumber: 0,
             traderAccountsLength: 0,
             // traders go right after the trade account
             traderAccountStartIndex: 1,
             actionsCursor: 0,
-            traderAccountCursor: 1
+            traderAccountCursor: 1,
+            inputBalanceWeiBeforeOperate: Types.zeroWei(),
+            outputBalanceWeiBeforeOperate: Types.zeroWei(),
+            transferBalanceWeiBeforeOperate: Types.zeroWei()
         });
         _validateMarketIdPath(_marketIdPath);
         _validateAmountWeisPath(_marketIdPath, _amountWeisPath);
@@ -120,8 +127,9 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         public
         nonReentrant
     {
-        GenericTradeProxyCache memory cache = GenericTradeProxyCache({
+        GenericTraderProxyCache memory cache = GenericTraderProxyCache({
             dolomiteMargin: DOLOMITE_MARGIN,
+            isMarginDeposit: false,
             otherAccountNumber: _tradeAccountNumber == _transferCollateralParams.toAccountNumber
                 ? _transferCollateralParams.fromAccountNumber
                 : _transferCollateralParams.toAccountNumber,
@@ -129,7 +137,10 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
             // traders go right after the transfer account ("other account")
             traderAccountStartIndex: 2,
             actionsCursor: 0,
-            traderAccountCursor: 2
+            traderAccountCursor: 2,
+            inputBalanceWeiBeforeOperate: Types.zeroWei(),
+            outputBalanceWeiBeforeOperate: Types.zeroWei(),
+            transferBalanceWeiBeforeOperate: Types.zeroWei()
         });
         _validateMarketIdPath(_marketIdPath);
         _validateAmountWeisPath(_marketIdPath, _amountWeisPath);
@@ -171,12 +182,27 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
             /* _tradeAccount = */ accounts[0] // solium-disable-line indentation
         );
 
+        // snapshot the balances before so they can be logged in `_logEvents`
+        _snapshotBalancesInCache(
+            cache,
+            /* _tradeAccount = */ accounts[0], // solium-disable-line indentation
+            _marketIdPath,
+            _transferCollateralParams
+        );
+
         cache.dolomiteMargin.operate(accounts, actions);
+
+        _logEvents(
+            cache,
+            /* _tradeAccount = */ accounts[0], // solium-disable-line indentation
+            _marketIdPath,
+            _transferCollateralParams
+        );
     }
 
     // ============ Private Functions ============
 
-    function _validateMarketIdPath(uint256[] memory _marketIdPath) private pure {
+    function _validateMarketIdPath(uint256[] memory _marketIdPath) internal pure {
         Require.that(
             _marketIdPath.length >= 2,
             FILE,
@@ -194,7 +220,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         uint256[] memory _marketIdPath,
         uint256[] memory _amountWeisPath
     )
-        private
+        internal
         pure
     {
         Require.that(
@@ -214,11 +240,11 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     }
 
     function _validateTraderParams(
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         uint256[] memory _marketIdPath,
         TraderParams[] memory _tradersPath
     )
-        private
+        internal
         view
     {
         Require.that(
@@ -272,15 +298,33 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
                     nextMarketId
                 );
             }
+
+            if (TraderType.InternalLiquidity == _tradersPath[i].traderType) {
+                // The makerAccountOwner should be set if the traderType is InternalLiquidity
+                Require.that(
+                    _tradersPath[i].makerAccountOwner != address(0),
+                    FILE,
+                    "Invalid maker account owner",
+                    i
+                );
+            } else {
+                // The makerAccountOwner and makerAccountNumber is not used if the traderType is not InternalLiquidity
+                Require.that(
+                    _tradersPath[i].makerAccountOwner == address(0) && _tradersPath[i].makerAccountNumber == 0,
+                    FILE,
+                    "Invalid maker account owner",
+                    i
+                );
+            }
         }
     }
 
     function _validateTransferParams(
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         TransferCollateralParams memory _transferCollateralParams,
         uint256 _tradeAccountNumber
     )
-        private
+        internal
         pure
     {
         Require.that(
@@ -292,8 +336,10 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
             _tradeAccountNumber == _transferCollateralParams.fromAccountNumber
                 || _tradeAccountNumber == _transferCollateralParams.toAccountNumber,
             FILE,
-            "Invalid trade account number"
+            "Invalid transfer account number"
         );
+        // We are making a margin deposit if the user is depositing to where the trade is occurring.
+        _cache.isMarginDeposit = _tradeAccountNumber == _transferCollateralParams.toAccountNumber;
         _cache.otherAccountNumber = _tradeAccountNumber == _transferCollateralParams.toAccountNumber
             ? _transferCollateralParams.fromAccountNumber
             : _transferCollateralParams.toAccountNumber;
@@ -309,10 +355,10 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     }
 
     function _getAccountsLengthForTraderParams(
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         TraderParams[] memory _tradersPath
     )
-        private
+        internal
         pure
         returns (uint256)
     {
@@ -327,11 +373,11 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     }
 
     function _getAccounts(
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         TraderParams[] memory _tradersPath,
         uint256 _tradeAccountNumber
     )
-        private
+        internal
         view
         returns (Account.Info[] memory)
     {
@@ -347,11 +393,11 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     }
 
     function _appendTradersToAccounts(
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         TraderParams[] memory _tradersPath,
         Account.Info[] memory _accounts
     )
-        private
+        internal
         pure
     {
         if (_cache.traderAccountsLength == 0) {
@@ -362,8 +408,8 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         for (uint256 i = 0; i < _tradersPath.length; i++) {
             if (TraderType.InternalLiquidity == _tradersPath[i].traderType) {
                 _accounts[_cache.traderAccountCursor++] = Account.Info({
-                    owner: _tradersPath[i].accountOwner,
-                    number: _tradersPath[i].accountNumber
+                    owner: _tradersPath[i].makerAccountOwner,
+                    number: _tradersPath[i].makerAccountNumber
                 });
             }
         }
@@ -375,7 +421,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     function _getActionsLengthForTraderParams(
         TraderParams[] memory _tradersPath
     )
-        private
+        internal
         pure
         returns (uint256)
     {
@@ -395,7 +441,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     function _getActionsLengthForTransferCollateralParams(
         TransferCollateralParams memory _transferCollateralParams
     )
-        private
+        internal
         pure
         returns (uint256)
     {
@@ -405,7 +451,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     function _getActionsLengthForExpiryParams(
         ExpiryParams memory _expiryParams
     )
-        private
+        internal
         pure
         returns (uint256)
     {
@@ -418,13 +464,13 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
 
     function _appendTraderActions(
         Actions.ActionArgs[] memory _actions,
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         uint256[] memory _marketIdPath,
         uint256[] memory _amountWeisPath,
         TraderParams[] memory _tradersPath,
         uint256 _traderActionsLength
     )
-        private
+        internal
         view
     {
         for (uint256 i = 0; i < _traderActionsLength; i++) {
@@ -485,12 +531,12 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
 
     function _appendTransferActions(
         Actions.ActionArgs[] memory _actions,
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         TransferCollateralParams memory _transferCollateralParams,
         uint256 _traderAccountNumber,
         uint256 _transferActionsLength
     )
-        private
+        internal
         pure
     {
         // the `_traderAccountNumber` is always `accountId=0`
@@ -512,11 +558,11 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
 
     function _appendExpiryActions(
         Actions.ActionArgs[] memory _actions,
-        GenericTradeProxyCache memory _cache,
+        GenericTraderProxyCache memory _cache,
         ExpiryParams memory _expiryParams,
         Account.Info memory _tradeAccount
     )
-        private
+        internal
         view
     {
         if (_expiryParams.expiryTimeDelta == 0) {
@@ -531,5 +577,101 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
             address(EXPIRY),
             _expiryParams.expiryTimeDelta
         );
+    }
+
+    function _snapshotBalancesInCache(
+        GenericTraderProxyCache memory _cache,
+        Account.Info memory _tradeAccount,
+        uint256[] memory _marketIdPath,
+        TransferCollateralParams memory _transferCollateralParams
+    ) internal view {
+        _cache.inputBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
+            _tradeAccount,
+            _marketIdPath[0]
+        );
+        _cache.outputBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
+            _tradeAccount,
+            _marketIdPath[_marketIdPath.length - 1]
+        );
+        _cache.transferBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
+            _tradeAccount,
+            _transferCollateralParams.transferAmounts[0].marketId
+        );
+    }
+
+    function _logEvents(
+        GenericTraderProxyCache memory _cache,
+        Account.Info memory _tradeAccount,
+        uint256[] memory _marketIdPath,
+        TransferCollateralParams memory _transferCollateralParams
+    ) internal {
+        Events.BalanceUpdate memory inputBalanceUpdate;
+        // solium-disable indentation
+        {
+            Types.Wei memory inputBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
+                _tradeAccount,
+                /* _inputToken = */ _marketIdPath[0]
+            );
+            inputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei: inputBalanceWeiAfter.sub(_cache.inputBalanceWeiBeforeOperate),
+                newPar: _cache.dolomiteMargin.getAccountPar(_tradeAccount, _marketIdPath[0])
+            });
+        }
+        // solium-enable indentation
+
+        Events.BalanceUpdate memory outputBalanceUpdate;
+        // solium-disable indentation
+        {
+            Types.Wei memory outputBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
+                _tradeAccount,
+                /* _outputToken = */ _marketIdPath[_marketIdPath.length - 1]
+            );
+            outputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei: outputBalanceWeiAfter.sub(_cache.outputBalanceWeiBeforeOperate),
+                newPar: _cache.dolomiteMargin.getAccountPar(_tradeAccount, _marketIdPath[_marketIdPath.length - 1])
+            });
+        }
+        // solium-enable indentation
+
+        Events.BalanceUpdate memory marginBalanceUpdate;
+        // solium-disable indentation
+        {
+            Types.Wei memory marginBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
+                _tradeAccount,
+                /* _transferToken = */_transferCollateralParams.transferAmounts[0].marketId
+            );
+            marginBalanceUpdate = Events.BalanceUpdate({
+                deltaWei: marginBalanceWeiAfter.sub(_cache.transferBalanceWeiBeforeOperate),
+                newPar: _cache.dolomiteMargin.getAccountPar(
+                    _tradeAccount,
+                    _transferCollateralParams.transferAmounts[0].marketId
+                )
+            });
+        }
+        // solium-enable indentation
+
+        if (_cache.isMarginDeposit) {
+            MARGIN_POSITION_REGISTRY.emitMarginPositionOpen(
+                _tradeAccount.owner,
+                _tradeAccount.number,
+                /* _inputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdPath[0]),
+                /* _outputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdPath[_marketIdPath.length - 1]),
+                /* _depositToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_transferCollateralParams.transferAmounts[0].marketId),
+                inputBalanceUpdate,
+                outputBalanceUpdate,
+                marginBalanceUpdate
+            );
+        } else {
+            MARGIN_POSITION_REGISTRY.emitMarginPositionClose(
+                _tradeAccount.owner,
+                _tradeAccount.number,
+                /* _inputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdPath[0]),
+                /* _outputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdPath[_marketIdPath.length - 1]),
+                /* _withdrawalToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_transferCollateralParams.transferAmounts[0].marketId),
+                inputBalanceUpdate,
+                outputBalanceUpdate,
+                marginBalanceUpdate
+            );
+        }
     }
 }
