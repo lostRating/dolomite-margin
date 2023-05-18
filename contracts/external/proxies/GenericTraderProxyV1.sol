@@ -29,6 +29,8 @@ import { Events } from "../../protocol/lib/Events.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { GenericTraderProxyBase } from "../helpers/GenericTraderProxyBase.sol";
+import { HasLiquidatorRegistry } from "../helpers/HasLiquidatorRegistry.sol";
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { IExpiry } from "../interfaces/IExpiry.sol";
@@ -46,12 +48,12 @@ import { AccountActionLib } from "../lib/AccountActionLib.sol";
  *
  * @dev Proxy contract for trading assets from msg.sender
  */
-contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, ReentrancyGuard {
+contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, OnlyDolomiteMargin, ReentrancyGuard {
     using Types for Types.Wei;
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "GenericTraderProxyV1";
+    bytes32 private constant FILE = "GenericTraderProxyV1";
 
     // ============ Storage ============
 
@@ -63,10 +65,16 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
     constructor (
         address _expiry,
         address _marginPositionRegistry,
-        address _dolomiteMargin
+        address _dolomiteMargin,
+        address _liquidatorAssetRegistry
     )
     public
-    OnlyDolomiteMargin(_dolomiteMargin)
+    OnlyDolomiteMargin(
+        _dolomiteMargin
+    )
+    HasLiquidatorRegistry(
+        _liquidatorAssetRegistry
+    )
     {
         EXPIRY = IExpiry(_expiry);
         MARGIN_POSITION_REGISTRY = IMarginPositionRegistry(_marginPositionRegistry);
@@ -78,7 +86,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         uint256 _tradeAccountNumber,
         uint256[] memory _marketIdPath,
         uint256[] memory _amountWeisPath,
-        TraderParams[] memory _tradersPath
+        TraderParam[] memory _tradersPath
     )
         public
         nonReentrant
@@ -100,7 +108,12 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         _validateAmountWeisPath(_marketIdPath, _amountWeisPath);
         _validateTraderParams(cache, _marketIdPath, _tradersPath);
 
-        Account.Info[] memory accounts = _getAccounts(cache, _tradersPath, _tradeAccountNumber);
+        Account.Info[] memory accounts = _getAccounts(
+            cache,
+            _tradersPath,
+            /* _tradeAccountOwner = */ msg.sender,
+            _tradeAccountNumber
+        );
 
         uint256 traderActionsLength = _getActionsLengthForTraderParams(_tradersPath);
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](traderActionsLength);
@@ -120,7 +133,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         uint256 _tradeAccountNumber,
         uint256[] memory _marketIdPath,
         uint256[] memory _amountWeisPath,
-        TraderParams[] memory _tradersPath,
+        TraderParam[] memory _tradersPath,
         TransferCollateralParams memory _transferCollateralParams,
         ExpiryParams memory _expiryParams
     )
@@ -147,8 +160,14 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         _validateTraderParams(cache, _marketIdPath, _tradersPath);
         _validateTransferParams(cache, _transferCollateralParams, _tradeAccountNumber);
 
-        Account.Info[] memory accounts = _getAccounts(cache, _tradersPath, _tradeAccountNumber);
-        // the call to _getAccounts leaves accounts[1] blank because it fills in the traders at `traderAccountCursor`
+        Account.Info[] memory accounts = _getAccounts(
+            cache,
+            _tradersPath,
+            /* _tradeAccountOwner = */ msg.sender,
+            _tradeAccountNumber
+        );
+        // the call to _getAccounts leaves accounts[1] null because it fills in the traders starting at the
+        // `traderAccountCursor` index
         accounts[1] = Account.Info({
             owner: msg.sender,
             number: cache.otherAccountNumber
@@ -200,132 +219,15 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         );
     }
 
-    // ============ Private Functions ============
-
-    function _validateMarketIdPath(uint256[] memory _marketIdPath) internal pure {
-        Require.that(
-            _marketIdPath.length >= 2,
-            FILE,
-            "Invalid market path length"
-        );
-
-        Require.that(
-            _marketIdPath[0] != _marketIdPath[_marketIdPath.length - 1],
-            FILE,
-            "Duplicate markets in path"
-        );
-    }
-
-    function _validateAmountWeisPath(
-        uint256[] memory _marketIdPath,
-        uint256[] memory _amountWeisPath
-    )
-        internal
-        pure
-    {
-        Require.that(
-            _marketIdPath.length == _amountWeisPath.length,
-            FILE,
-            "Invalid amounts path length"
-        );
-
-        for (uint256 i = 0; i < _amountWeisPath.length; i++) {
-            Require.that(
-                _amountWeisPath[i] > 0,
-                FILE,
-                "Invalid amount at index",
-                i
-            );
-        }
-    }
-
-    function _validateTraderParams(
-        GenericTraderProxyCache memory _cache,
-        uint256[] memory _marketIdPath,
-        TraderParams[] memory _tradersPath
-    )
-        internal
-        view
-    {
-        Require.that(
-            _marketIdPath.length == _tradersPath.length + 1,
-            FILE,
-            "Invalid traders path length"
-        );
-
-        for (uint256 i = 0; i < _tradersPath.length; i++) {
-            IDolomiteMargin dolomiteMargin = _cache.dolomiteMargin;
-            address trader = _tradersPath[i].trader;
-            Require.that(
-                trader != address(0),
-                FILE,
-                "Invalid trader at index",
-                i
-            );
-
-            uint256 marketId = _marketIdPath[i];
-            uint256 nextMarketId = _marketIdPath[i];
-            if (TraderType.LiquidityTokenUnwrapper == _tradersPath[i].traderType) {
-                ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(trader);
-                Require.that(
-                    unwrapperTrader.token() == dolomiteMargin.getMarketTokenAddress(marketId),
-                    FILE,
-                    "Invalid input for unwrapper",
-                    i,
-                    marketId
-                );
-                Require.that(
-                    unwrapperTrader.isValidOutputToken(dolomiteMargin.getMarketTokenAddress(nextMarketId)),
-                    FILE,
-                    "Invalid output for unwrapper",
-                    i + 1,
-                    nextMarketId
-                );
-            } else if (TraderType.LiquidityTokenWrapper == _tradersPath[i].traderType) {
-                ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(trader);
-                Require.that(
-                    wrapperTrader.isValidInputToken(dolomiteMargin.getMarketTokenAddress(marketId)),
-                    FILE,
-                    "Invalid input for wrapper",
-                    i,
-                    marketId
-                );
-                Require.that(
-                    wrapperTrader.token() == dolomiteMargin.getMarketTokenAddress(nextMarketId),
-                    FILE,
-                    "Invalid output for wrapper",
-                    i + 1,
-                    nextMarketId
-                );
-            }
-
-            if (TraderType.InternalLiquidity == _tradersPath[i].traderType) {
-                // The makerAccountOwner should be set if the traderType is InternalLiquidity
-                Require.that(
-                    _tradersPath[i].makerAccountOwner != address(0),
-                    FILE,
-                    "Invalid maker account owner",
-                    i
-                );
-            } else {
-                // The makerAccountOwner and makerAccountNumber is not used if the traderType is not InternalLiquidity
-                Require.that(
-                    _tradersPath[i].makerAccountOwner == address(0) && _tradersPath[i].makerAccountNumber == 0,
-                    FILE,
-                    "Invalid maker account owner",
-                    i
-                );
-            }
-        }
-    }
+    // ============ Internal Functions ============
 
     function _validateTransferParams(
         GenericTraderProxyCache memory _cache,
         TransferCollateralParams memory _transferCollateralParams,
         uint256 _tradeAccountNumber
     )
-        internal
-        pure
+    private
+    pure
     {
         Require.that(
             _transferCollateralParams.transferAmounts.length > 0,
@@ -334,12 +236,10 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
         );
         Require.that(
             _tradeAccountNumber == _transferCollateralParams.fromAccountNumber
-                || _tradeAccountNumber == _transferCollateralParams.toAccountNumber,
+            || _tradeAccountNumber == _transferCollateralParams.toAccountNumber,
             FILE,
-            "Invalid transfer account number"
+            "Invalid trade account number"
         );
-        // We are making a margin deposit if the user is depositing to where the trade is occurring.
-        _cache.isMarginDeposit = _tradeAccountNumber == _transferCollateralParams.toAccountNumber;
         _cache.otherAccountNumber = _tradeAccountNumber == _transferCollateralParams.toAccountNumber
             ? _transferCollateralParams.fromAccountNumber
             : _transferCollateralParams.toAccountNumber;
@@ -352,90 +252,6 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
                 i
             );
         }
-    }
-
-    function _getAccountsLengthForTraderParams(
-        GenericTraderProxyCache memory _cache,
-        TraderParams[] memory _tradersPath
-    )
-        internal
-        pure
-        returns (uint256)
-    {
-        uint256 accountsLength = 0;
-        for (uint256 i = 0; i < _tradersPath.length; i++) {
-            if (TraderType.InternalLiquidity == _tradersPath[i].traderType) {
-                accountsLength += 1;
-            }
-        }
-        _cache.traderAccountsLength = accountsLength;
-        return accountsLength;
-    }
-
-    function _getAccounts(
-        GenericTraderProxyCache memory _cache,
-        TraderParams[] memory _tradersPath,
-        uint256 _tradeAccountNumber
-    )
-        internal
-        view
-        returns (Account.Info[] memory)
-    {
-        Account.Info[] memory accounts = new Account.Info[](
-            1 + _getAccountsLengthForTraderParams(_cache, _tradersPath)
-        );
-        accounts[0] = Account.Info({
-            owner: msg.sender,
-            number: _tradeAccountNumber
-        });
-        _appendTradersToAccounts(_cache, _tradersPath, accounts);
-        return accounts;
-    }
-
-    function _appendTradersToAccounts(
-        GenericTraderProxyCache memory _cache,
-        TraderParams[] memory _tradersPath,
-        Account.Info[] memory _accounts
-    )
-        internal
-        pure
-    {
-        if (_cache.traderAccountsLength == 0) {
-            // save computation by not iterating over the traders if there's no trader accounts
-            return;
-        }
-
-        for (uint256 i = 0; i < _tradersPath.length; i++) {
-            if (TraderType.InternalLiquidity == _tradersPath[i].traderType) {
-                _accounts[_cache.traderAccountCursor++] = Account.Info({
-                    owner: _tradersPath[i].makerAccountOwner,
-                    number: _tradersPath[i].makerAccountNumber
-                });
-            }
-        }
-
-        // reset the trader account cursor for the actions iteration
-        _cache.traderAccountCursor = _cache.traderAccountStartIndex;
-    }
-
-    function _getActionsLengthForTraderParams(
-        TraderParams[] memory _tradersPath
-    )
-        internal
-        pure
-        returns (uint256)
-    {
-        uint256 actionsLength = 0;
-        for (uint256 i = 0; i < _tradersPath.length; i++) {
-            if (TraderType.LiquidityTokenUnwrapper == _tradersPath[i].traderType) {
-                actionsLength += ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader).actionsLength();
-            } else if (TraderType.LiquidityTokenWrapper == _tradersPath[i].traderType) {
-                actionsLength += ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader).actionsLength();
-            } else {
-                actionsLength += 1;
-            }
-        }
-        return actionsLength;
     }
 
     function _getActionsLengthForTransferCollateralParams(
@@ -459,73 +275,6 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, OnlyDolomiteMargin, Reen
             return 0;
         } else {
             return 1;
-        }
-    }
-
-    function _appendTraderActions(
-        Actions.ActionArgs[] memory _actions,
-        GenericTraderProxyCache memory _cache,
-        uint256[] memory _marketIdPath,
-        uint256[] memory _amountWeisPath,
-        TraderParams[] memory _tradersPath,
-        uint256 _traderActionsLength
-    )
-        internal
-        view
-    {
-        for (uint256 i = 0; i < _traderActionsLength; i++) {
-            if (_tradersPath[i].traderType == TraderType.ExternalLiquidity) {
-                _actions[_cache.actionsCursor++] = AccountActionLib.encodeExternalSellAction(
-                    /* _fromAccountId = */ 0, // _tradeAccountNumber solium-disable-line indentation
-                    _marketIdPath[i],
-                    _marketIdPath[i + 1],
-                    _tradersPath[i].trader,
-                    _amountWeisPath[i],
-                    _amountWeisPath[i + 1],
-                    _tradersPath[i].tradeData
-                );
-            } else if (_tradersPath[i].traderType == TraderType.InternalLiquidity) {
-                _actions[_cache.actionsCursor++] = AccountActionLib.encodeInternalTradeAction(
-                    /* _fromAccountId = */ 0, // _tradeAccountNumber solium-disable-line indentation
-                    _cache.traderAccountCursor++,
-                    _marketIdPath[i],
-                    _marketIdPath[i + 1],
-                    _tradersPath[i].trader,
-                    _amountWeisPath[i],
-                    _amountWeisPath[i + 1]
-                );
-            } else if (_tradersPath[i].traderType == TraderType.LiquidityTokenUnwrapper) {
-                ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader);
-                Actions.ActionArgs[] memory unwrapperActions = unwrapperTrader.createActionsForUnwrapping(
-                    /* _primaryAccountId = */ 0,
-                    /* _otherAccountId = */ 0,
-                    /* _primaryAccountOwner = */ msg.sender,
-                    /* _otherAccountOwner = */ msg.sender,
-                    _marketIdPath[i + 1],
-                    _marketIdPath[i],
-                    _amountWeisPath[i + 1],
-                    _amountWeisPath[i]
-                );
-                for (uint256 j = 0; j < unwrapperActions.length; j++) {
-                    _actions[_cache.actionsCursor++] = unwrapperActions[j];
-                }
-            } else {
-                assert(_tradersPath[i].traderType == TraderType.LiquidityTokenWrapper);
-                ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_tradersPath[i].trader);
-                Actions.ActionArgs[] memory wrapperActions = wrapperTrader.createActionsForWrapping(
-                    /* _primaryAccountId = */ 0,
-                    /* _otherAccountId = */ 0,
-                    /* _primaryAccountOwner = */ msg.sender,
-                    /* _otherAccountOwner = */ msg.sender,
-                    _marketIdPath[i + 1],
-                    _marketIdPath[i],
-                    _amountWeisPath[i + 1],
-                    _amountWeisPath[i]
-                );
-                for (uint256 j = 0; j < wrapperActions.length; j++) {
-                    _actions[_cache.actionsCursor++] = wrapperActions[j];
-                }
-            }
         }
     }
 

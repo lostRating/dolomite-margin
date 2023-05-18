@@ -28,22 +28,20 @@ import { Actions } from "../../protocol/lib/Actions.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
-import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
-import { LiquidatorProxyV2Base } from "../helpers/LiquidatorProxyV2Base.sol";
-
 import { IExpiry } from "../interfaces/IExpiry.sol";
-
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
+
+import { ParaswapTraderProxyWithBackup } from "./ParaswapTraderProxyWithBackup.sol";
 
 
 /**
  * @title LiquidatorProxyV2WithExternalLiquidity
  * @author Dolomite
  *
- * Contract for liquidating other accounts in DolomiteMargin and atomically selling off collateral via an external
- * trader contract
+ * Contract for liquidating other accounts in DolomiteMargin and atomically selling off collateral via Paraswap
+ * liquidity aggregation
  */
-contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomiteMargin, LiquidatorProxyV2Base {
+contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTraderProxyWithBackup {
 
     // ============ Constants ============
 
@@ -57,28 +55,20 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
 
     constructor (
         address _expiryProxy,
+        address _paraswapAugustusRouter,
+        address _paraswapTransferProxy,
         address _dolomiteMargin,
         address _liquidatorAssetRegistry
     )
         public
-        OnlyDolomiteMargin(
-            _dolomiteMargin
-        )
-        LiquidatorProxyV2Base(
+        ParaswapTraderProxyWithBackup(
+            _paraswapAugustusRouter,
+            _paraswapTransferProxy,
+            _dolomiteMargin,
             _liquidatorAssetRegistry
         )
     {
         EXPIRY_PROXY = IExpiry(_expiryProxy);
-    }
-
-    // ============ Modifiers ============
-
-    modifier requireSellActionsArraysIsValid(
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
-    ) {
-        _validateSellActionsArrays(_marketIdsForSellActionsPath, _amountWeisForSellActionsPath);
-        _;
     }
 
     // ============ Public Functions ============
@@ -89,107 +79,75 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
      *
      * @param _solidAccount                 The account that will do the liquidating
      * @param _liquidAccount                The account that will be liquidated
-     * @param _marketIdsForSellActionsPath  The market IDs to use for selling held market into owed market path. The
-     *                                      owedMarket should be at `_marketIdsForSellActionsPath[length - 1]` and
-     *                                      the heldMarket should be at `_marketIdsForSellActionsPath[0]`.
-     * @param _amountWeisForSellActionsPath The amounts (in wei) to use for the sell actions. Use uint(-1) for selling
-     *                                      all which sets `AssetAmount.Target=0`.
+     * @param _owedMarket                   The owed market whose borrowed value will be added to `owedWeiToLiquidate`
+     * @param _heldMarket                   The held market whose collateral will be recovered to take on the debt of
+     *                                      `owedMarket`
      * @param _expiry                       The time at which the position expires, if this liquidation is for closing
      *                                      an expired position. Else, 0.
-     * @param _trader                       The address of the trader contract to use for selling the held market
-     * @param _traderCallData               The calldata to be passed along to the `_trader`'s IExchangeWrapper.
+     * @param _paraswapCallData             The calldata to be passed along to Paraswap's router for liquidation
      */
     function liquidate(
         Account.Info memory _solidAccount,
         Account.Info memory _liquidAccount,
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath,
+        uint256 _owedMarket,
+        uint256 _heldMarket,
         uint256 _expiry,
-        address _trader,
-        bytes memory _traderCallData
+        bytes memory _paraswapCallData
     )
         public
         nonReentrant
-        requireSellActionsArraysIsValid(_marketIdsForSellActionsPath, _amountWeisForSellActionsPath)
-        requireIsAssetWhitelistedForLiquidation(_marketIdsForSellActionsPath[0])
-        requireIsAssetWhitelistedForLiquidation(_marketIdsForSellActionsPath[_marketIdsForSellActionsPath.length - 1])
+        requireIsAssetWhitelistedForLiquidation(_heldMarket)
     {
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
-        constants.marketIdsForSellActionsPath = _marketIdsForSellActionsPath;
-        constants.amountWeisForSellActionsPath = _amountWeisForSellActionsPath;
-        constants.trader = _trader;
-        constants.orderData = _traderCallData;
-
-        _checkConstants(
-            constants,
-            _liquidAccount,
-            /* _owedMarket = */ _marketIdsForSellActionsPath[_marketIdsForSellActionsPath.length - 1], // solium-disable-line indentation
-            /* _heldMarket = */ _marketIdsForSellActionsPath[0], // solium-disable-line indentation
-            _expiry
-        );
-
         constants.solidAccount = _solidAccount;
         constants.liquidAccount = _liquidAccount;
+        constants.heldMarket = _heldMarket;
+        constants.owedMarket = _owedMarket;
+
+        _checkConstants(constants, _expiry);
+
         constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(_liquidAccount);
         constants.markets = _getMarketInfos(
             constants.dolomiteMargin,
             constants.dolomiteMargin.getAccountMarketsWithBalances(_solidAccount),
             constants.liquidMarkets
         );
-        constants.expiryProxy = _expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0));
+        constants.expiryProxy = _expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0)); // don't read EXPIRY; it's not needed
         constants.expiry = uint32(_expiry);
 
-        LiquidatorProxyCache memory cache = _initializeCache(
-            constants,
-            /* _heldMarket = */ constants.marketIdsForSellActionsPath[0], // solium-disable-line indentation
-            /* _owedMarket = */ constants.marketIdsForSellActionsPath[constants.marketIdsForSellActionsPath.length - 1] // solium-disable-line indentation
-        );
+        LiquidatorProxyCache memory cache = _initializeCache(constants);
 
         // validate the msg.sender and that the liquidAccount can be liquidated
-        _checkBasicRequirements(constants, cache.owedMarket);
+        _checkBasicRequirements(constants);
 
-        // set the max liquidation amount
+        // get the max liquidation amount
         _calculateAndSetMaxLiquidationAmount(cache);
 
-        // set the actual liquidation amount
-        _calculateAndSetActualLiquidationAmount(constants.amountWeisForSellActionsPath, cache);
+        Account.Info[] memory accounts = _constructAccountsArray(constants);
 
         // execute the liquidations
         constants.dolomiteMargin.operate(
-            _constructAccountsArray(constants),
+            accounts,
             _constructActionsArray(
                 constants,
                 cache,
                 /* _solidAccountId = */ 0, // solium-disable-line indentation
-                /* _liquidAccount = */ 1 // solium-disable-line indentation
+                /* _liquidAccount = */ 1, // solium-disable-line indentation
+                _paraswapCallData
             )
         );
     }
 
     // ============ Internal Functions ============
 
-    function _validateSellActionsArrays(
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
-    ) internal pure {
-        Require.that(
-            _marketIdsForSellActionsPath.length == _amountWeisForSellActionsPath.length
-                && _marketIdsForSellActionsPath.length == 2,
-            FILE,
-            "Invalid action paths length",
-            _marketIdsForSellActionsPath.length,
-            _amountWeisForSellActionsPath.length
-        );
-    }
-
     function _constructAccountsArray(
         LiquidatorProxyConstants memory _constants
     )
-        internal
-        pure
-        returns (Account.Info[] memory)
+    internal
+    pure
+    returns (Account.Info[] memory)
     {
         Account.Info[] memory accounts = new Account.Info[](2);
         accounts[0] = _constants.solidAccount;
@@ -201,11 +159,12 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _cache,
         uint256 _solidAccountId,
-        uint256 _liquidAccountId
+        uint256 _liquidAccountId,
+        bytes memory _paraswapCallData
     )
-        internal
-        view
-        returns (Actions.ActionArgs[] memory)
+    internal
+    view
+    returns (Actions.ActionArgs[] memory)
     {
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](2);
 
@@ -219,8 +178,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
                 _cache.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
-                _cache.owedWeiToLiquidate,
-                _cache.flipMarketsForExpiration
+                _cache.flipMarkets
             );
         } else {
             // First action is a liquidation
@@ -238,10 +196,10 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, OnlyDolomite
             _solidAccountId,
             _cache.heldMarket,
             _cache.owedMarket,
-            _constants.trader,
-            _constants.amountWeisForSellActionsPath[0],
-            _constants.amountWeisForSellActionsPath[1],
-            _constants.orderData
+            /* _trader = */ address(this), // solium-disable-line indentation
+            _cache.solidHeldUpdateWithReward,
+            _cache.owedWeiToLiquidate,
+            _paraswapCallData
         );
 
         return actions;

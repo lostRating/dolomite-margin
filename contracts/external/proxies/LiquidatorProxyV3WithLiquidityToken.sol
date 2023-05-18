@@ -27,8 +27,6 @@ import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
 import { ILiquidityTokenUnwrapperTrader } from "../interfaces/ILiquidityTokenUnwrapperTrader.sol";
-import { ILiquidityTokenWrapperTrader } from "../interfaces/ILiquidityTokenWrapperTrader.sol";
-
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
 import { LiquidatorProxyV2WithExternalLiquidity } from "./LiquidatorProxyV2WithExternalLiquidity.sol";
@@ -45,13 +43,16 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
 
     // ============ Events ============
 
+    event TokenUnwrapperTraderSet(uint256 _marketId, address _liquidityTokenUnwrapper);
+
+    // ============ Events ============
+
     struct LiquidatorProxyV3Cache {
         uint256 actionCursor;
-        uint256 marketCursor;
         uint256 solidAccountId;
         uint256 liquidAccountId;
+        uint256 initialOutputMarket;
         ILiquidityTokenUnwrapperTrader tokenUnwrapper;
-        ILiquidityTokenWrapperTrader tokenWrapper;
         Actions.ActionArgs[] actions;
     }
 
@@ -59,131 +60,96 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
 
     bytes32 private constant FILE = "LiquidatorProxyV3";
 
+    // ============ Storage ============
+
+    mapping(uint256 => ILiquidityTokenUnwrapperTrader) public marketIdToTokenUnwrapperMap;
+
     // ============ Constructor ============
 
     constructor (
         address _expiryProxy,
+        address _paraswapAugustusRouter,
+        address _paraswapTransferProxy,
         address _dolomiteMargin,
         address _liquidatorAssetRegistry
     )
     public
     LiquidatorProxyV2WithExternalLiquidity(
         _expiryProxy,
+        _paraswapAugustusRouter,
+        _paraswapTransferProxy,
         _dolomiteMargin,
         _liquidatorAssetRegistry
     )
     {}
 
-    // ============ Internal Functions ============
-
-    function _validateSellActionsArrays(
-        uint256[] memory _marketIdsForSellActionsPath,
-        uint256[] memory _amountWeisForSellActionsPath
-    ) internal pure {
+    function setMarketIdToTokenUnwrapperTraderMap(
+        uint256 _marketId,
+        address _tokenUnwrapper
+    ) external {
         Require.that(
-            _marketIdsForSellActionsPath.length == _amountWeisForSellActionsPath.length
-                && _marketIdsForSellActionsPath.length >= 2,
+            msg.sender == DOLOMITE_MARGIN.owner(),
             FILE,
-            "Invalid action paths length",
-            _marketIdsForSellActionsPath.length,
-            _amountWeisForSellActionsPath.length
+            "Only owner can call",
+            msg.sender
         );
+        marketIdToTokenUnwrapperMap[_marketId] = ILiquidityTokenUnwrapperTrader(_tokenUnwrapper);
+        emit TokenUnwrapperTraderSet(_marketId, _tokenUnwrapper);
     }
+
+    // ============ Internal Functions ============
 
     function _constructActionsArray(
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyCache memory _proxyCache,
         uint256 _solidAccountId,
-        uint256 _liquidAccountId
+        uint256 _liquidAccountId,
+        bytes memory _paraswapCallData
     )
-        internal
-        view
-        returns (Actions.ActionArgs[] memory)
+    internal
+    view
+    returns (Actions.ActionArgs[] memory)
     {
+        // TODO:    if the LP token is used as the `_owedMarket`, create a `wrapper` that wraps `initialOutputMarket`
+        // TODO:    into the `_owedMarket`
+
         // This cache is created to prevent "stack too deep" errors
         LiquidatorProxyV3Cache memory v3Cache = LiquidatorProxyV3Cache({
             actionCursor: 0,
-            marketCursor: 0,
             solidAccountId: _solidAccountId,
             liquidAccountId: _liquidAccountId,
-            tokenUnwrapper: LIQUIDATOR_ASSET_REGISTRY.getLiquidityTokenUnwrapperForAsset(_proxyCache.heldMarket),
-            tokenWrapper: LIQUIDATOR_ASSET_REGISTRY.getLiquidityTokenWrapperForAsset(_proxyCache.owedMarket),
+            initialOutputMarket: uint(-1),
+            tokenUnwrapper: marketIdToTokenUnwrapperMap[_proxyCache.heldMarket],
             actions: new Actions.ActionArgs[](0)
         });
 
-        _validateV3Cache(v3Cache, _constants);
-
-        _initializeActionsArray(_constants, v3Cache);
+        if (address(v3Cache.tokenUnwrapper) != address(0)) {
+            v3Cache.initialOutputMarket = v3Cache.tokenUnwrapper.outputMarketId();
+            v3Cache.actions = new Actions.ActionArgs[](
+                v3Cache.tokenUnwrapper.actionsLength() + (v3Cache.initialOutputMarket == _proxyCache.owedMarket ? 1 : 2)
+            );
+        } else {
+            v3Cache.initialOutputMarket = _proxyCache.owedMarket;
+            v3Cache.actions = new Actions.ActionArgs[](2);
+        }
 
         _encodeLiquidateAction(_proxyCache, _constants, v3Cache);
 
-        assert(v3Cache.marketCursor == 0); // the liquidation action should not have moved the cursor
-
-        _encodeUnwrapActions(
+        _encodeUnwrapAndSellActions(
+            _proxyCache,
             _constants,
-            v3Cache
-        );
-
-        _encodeSellActions(
-            _constants,
-            v3Cache
-        );
-
-        _encodeWrapActions(
-            _constants,
-            v3Cache
+            v3Cache,
+            _paraswapCallData
         );
 
         return v3Cache.actions;
-    }
-
-    function _validateV3Cache(
-        LiquidatorProxyV3Cache memory _v3Cache,
-        LiquidatorProxyConstants memory _constants
-    ) internal pure {
-        Require.that(
-            address(_v3Cache.tokenUnwrapper) != address(0) || address(_v3Cache.tokenWrapper) != address(0),
-            FILE,
-            "No token converter found"
-        );
-
-        uint256 actionCounter = 1;
-        actionCounter += address(_v3Cache.tokenUnwrapper) != address(0) ? 1 : 0;
-        actionCounter += address(_v3Cache.tokenWrapper) != address(0) ? 1 : 0;
-        actionCounter += _constants.trader != address(0) ? 1 : 0;
-        Require.that(
-            _constants.marketIdsForSellActionsPath.length == actionCounter && actionCounter >= 2,
-            FILE,
-            "Invalid action path length",
-            _constants.marketIdsForSellActionsPath.length,
-            actionCounter
-        );
-    }
-
-    function _initializeActionsArray(
-        LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache
-    ) internal pure {
-        uint256 unwrapperActionsSize = address(_v3Cache.tokenUnwrapper) != address(0)
-            ? _v3Cache.tokenUnwrapper.actionsLength()
-            : 0;
-        uint256 wrapperActionsSize = address(_v3Cache.tokenWrapper) != address(0)
-            ? _v3Cache.tokenWrapper.actionsLength()
-            : 0;
-        uint256 sellActionSize = _constants.trader != address(0) ? 1 : 0;
-
-        // add 1 for the liquidation action
-        _v3Cache.actions = new Actions.ActionArgs[](1 + unwrapperActionsSize + wrapperActionsSize + sellActionSize);
     }
 
     function _encodeLiquidateAction(
         LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
         LiquidatorProxyV3Cache memory _v3Cache
-    )
-        internal
-        pure
-    {
+    ) internal pure {
         if (_constants.expiry > 0) {
             // accountId is solidAccount; otherAccountId is liquidAccount
             _v3Cache.actions[_v3Cache.actionCursor++] = AccountActionLib.encodeExpiryLiquidateAction(
@@ -193,8 +159,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _proxyCache.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
-                _proxyCache.owedWeiToLiquidate,
-                _proxyCache.flipMarketsForExpiration
+                _proxyCache.flipMarkets
             );
         } else {
             // accountId is solidAccount; otherAccountId is liquidAccount
@@ -208,69 +173,58 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
         }
     }
 
-    function _encodeUnwrapActions(
+    function _encodeUnwrapAndSellActions(
+        LiquidatorProxyCache memory _proxyCache,
         LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache
+        LiquidatorProxyV3Cache memory _v3Cache,
+        bytes memory _paraswapCallData
     ) internal view {
         if (address(_v3Cache.tokenUnwrapper) != address(0)) {
             // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
             ILiquidityTokenUnwrapperTrader tokenUnwrapper = _v3Cache.tokenUnwrapper;
-            Actions.ActionArgs[] memory unwrapActions = tokenUnwrapper.createActionsForUnwrapping(
+            Actions.ActionArgs[] memory unwrapActions = tokenUnwrapper.createActionsForUnwrappingTrader(
                 _v3Cache.solidAccountId,
                 _v3Cache.liquidAccountId,
                 _constants.solidAccount.owner,
                 _constants.liquidAccount.owner,
-                /* _outputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
-                /* _inputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor],
-                /* _minOutputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor + 1],
-                /* _inputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor]
+                _proxyCache.owedMarket,
+                _proxyCache.heldMarket,
+                _proxyCache.owedWeiToLiquidate,
+                _proxyCache.solidHeldUpdateWithReward
             );
-            _v3Cache.marketCursor += 1;
             for (uint256 i = 0; i < unwrapActions.length; i++) {
                 _v3Cache.actions[_v3Cache.actionCursor++] = unwrapActions[i];
             }
-        }
-    }
 
-    function _encodeSellActions(
-        LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache
-    ) internal pure {
-        if (_constants.trader != address(0)) {
+            // If the `outputMarket` is different from the `_cache.owedMarket`, sell the `outputMarket` into it.
+            if (_proxyCache.owedMarket != _v3Cache.initialOutputMarket) {
+                uint256 outputAmountFromPreviousStep = _v3Cache.tokenUnwrapper.getExchangeCost(
+                    DOLOMITE_MARGIN.getMarketTokenAddress(_proxyCache.heldMarket),
+                    DOLOMITE_MARGIN.getMarketTokenAddress(_v3Cache.initialOutputMarket),
+                    _proxyCache.solidHeldUpdateWithReward,
+                    bytes("")
+                );
+                _v3Cache.actions[_v3Cache.actionCursor++] = AccountActionLib.encodeExternalSellAction(
+                    _v3Cache.solidAccountId,
+                    _v3Cache.initialOutputMarket,
+                    _proxyCache.owedMarket,
+                    /* _trader = */ address(this), // solium-disable-line indentation
+                    outputAmountFromPreviousStep, // liquidate whatever we get from the intermediate step
+                    /* _amountOutMinWei = */ _proxyCache.owedWeiToLiquidate, // solium-disable-line indentation
+                    _paraswapCallData
+                );
+            }
+        } else {
             _v3Cache.actions[_v3Cache.actionCursor++] = AccountActionLib.encodeExternalSellAction(
                 _v3Cache.solidAccountId,
-                /* _primaryMarketId = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor],
-                /* _secondaryMarketId = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
-                _constants.trader,
-                /* _amountInWei = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor],
-                /* _amountOutMinWei = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor + 1],
-                _constants.orderData
+                _proxyCache.heldMarket,
+                _proxyCache.owedMarket,
+                /* _trader = */ address(this), // solium-disable-line indentation
+                _proxyCache.solidHeldUpdateWithReward,
+                _proxyCache.owedWeiToLiquidate,
+                _paraswapCallData
             );
-            _v3Cache.marketCursor += 1;
         }
     }
 
-    function _encodeWrapActions(
-        LiquidatorProxyConstants memory _constants,
-        LiquidatorProxyV3Cache memory _v3Cache
-    ) internal view {
-        if (address(_v3Cache.tokenWrapper) != address(0)) {
-            // Get the actions for selling the `_cache.heldMarket` into `outputMarket`
-            ILiquidityTokenWrapperTrader tokenWrapper = _v3Cache.tokenWrapper;
-            Actions.ActionArgs[] memory unwrapActions = tokenWrapper.createActionsForWrapping(
-                _v3Cache.solidAccountId,
-                _v3Cache.liquidAccountId,
-                _constants.solidAccount.owner,
-                _constants.liquidAccount.owner,
-                /* _outputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor + 1],
-                /* _inputMarket = */ _constants.marketIdsForSellActionsPath[_v3Cache.marketCursor],
-                /* _minOutputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor + 1],
-                /* _inputAmount = */ _constants.amountWeisForSellActionsPath[_v3Cache.marketCursor]
-            );
-            _v3Cache.marketCursor += 1;
-            for (uint256 i = 0; i < unwrapActions.length; i++) {
-                _v3Cache.actions[_v3Cache.actionCursor++] = unwrapActions[i];
-            }
-        }
-    }
 }

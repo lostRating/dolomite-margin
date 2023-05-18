@@ -23,6 +23,8 @@ import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Types } from "../../protocol/lib/Types.sol";
 
+import { IGenericTraderProxyBase } from "./IGenericTraderProxyBase.sol";
+
 
 /**
  * @title IGenericTraderProxyV1
@@ -30,33 +32,9 @@ import { Types } from "../../protocol/lib/Types.sol";
  *
  * Trader proxy interface for trading assets using any trader from msg.sender
  */
-interface IGenericTraderProxyV1 {
-
-    // ============ Enums ============
-
-    enum TraderType {
-        ExternalLiquidity,
-        InternalLiquidity,
-        LiquidityTokenUnwrapper,
-        LiquidityTokenWrapper
-    }
+contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
 
     // ============ Structs ============
-
-    struct TraderParams {
-        /// @dev The type of trade to conduct
-        TraderType traderType;
-        /// @dev The address that is underwriting the trade. Only used when `InternalLiquidity` is set as the
-        ///      `traderType`. Otherwise, this value must be set to `address(0)`.
-        address makerAccountOwner;
-        /// @dev The account number that is underwriting the trade. Only used when `InternalLiquidity` is set as the
-        ///      `traderType`. Otherwise, this value must be set to `0`.
-        uint256 makerAccountNumber;
-        /// @dev The address of IAutoTrader or IExchangeWrapper that will be used to conduct the trade.
-        address trader;
-        /// @dev The data that will be passed through to the trader contract.
-        bytes tradeData;
-    }
 
     struct TransferAmount {
         /// @dev The market ID to transfer
@@ -81,29 +59,6 @@ interface IGenericTraderProxyV1 {
         uint32 expiryTimeDelta;
     }
 
-    struct GenericTraderProxyCache {
-        IDolomiteMargin dolomiteMargin;
-        /// @dev    True if the user is making a margin deposit, false if they are withdrawing. False if the variable is
-        ///         unused too.
-        bool isMarginDeposit;
-        /// @dev    The other account number that is not `_traderAccountNumber`. Only used for TransferCollateralParams.
-        uint256 otherAccountNumber;
-        /// @dev    The number of Account.Info structs in the Accounts array that are traders.
-        uint256 traderAccountsLength;
-        /// @dev    The index into the account array at which traders start.
-        uint256 traderAccountStartIndex;
-        /// @dev    The cursor for the looping through the operation's actions.
-        uint256 actionsCursor;
-        /// @dev    The cursor for the looping through the trader accounts. Starts at `traderAccountStartIndex`
-        uint256 traderAccountCursor;
-        /// @dev    The balance of `inputMarket` that the trader has before the call to `dolomiteMargin.operate`
-        Types.Wei inputBalanceWeiBeforeOperate;
-        /// @dev    The balance of `outputMarket` that the trader has before the call to `dolomiteMargin.operate`
-        Types.Wei outputBalanceWeiBeforeOperate;
-        /// @dev    The balance of `transferMarket` that the trader has before the call to `dolomiteMargin.operate`
-        Types.Wei transferBalanceWeiBeforeOperate;
-    }
-
     // ============ Functions ============
 
     /**
@@ -124,7 +79,7 @@ interface IGenericTraderProxyV1 {
         uint256 _tradeAccountNumber,
         uint256[] calldata _marketIdPath,
         uint256[] calldata _amountWeisPath,
-        TraderParams[] calldata _tradersPath
+        IGenericTraderProxyBase.TraderParam[] calldata _tradersPath
     )
     external;
 
@@ -151,7 +106,7 @@ interface IGenericTraderProxyV1 {
         uint256 _tradeAccountNumber,
         uint256[] calldata _marketIdPath,
         uint256[] calldata _amountWeisPath,
-        TraderParams[] calldata _tradersPath,
+        IGenericTraderProxyBase.TraderParam[] calldata _tradersPath,
         TransferCollateralParams calldata _transferCollateralParams,
         ExpiryParams calldata _expiryParams
     )

@@ -145,30 +145,21 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = DOLOMITE_MARGIN;
-        _checkConstants(
-            constants,
-            _liquidAccount,
-            _owedMarket,
-            _heldMarket,
-            _expiry
-        );
-
         constants.solidAccount = _solidAccount;
         constants.liquidAccount = _liquidAccount;
-        constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(_liquidAccount);
+
+        _checkConstants(constants, _expiry);
+
+        constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(constants.liquidAccount);
         constants.markets = _getMarketInfos(
             constants.dolomiteMargin,
             constants.dolomiteMargin.getAccountMarketsWithBalances(_solidAccount),
             constants.liquidMarkets
         );
-        constants.expiryProxy = _expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0));
+        constants.expiryProxy = _expiry > 0 ? EXPIRY_PROXY: IExpiry(address(0)); // don't read EXPIRY; it's not needed
         constants.expiry = uint32(_expiry);
 
-        LiquidatorProxyCache memory cache = _initializeCache(
-            constants,
-            _heldMarket,
-            _owedMarket
-        );
+        LiquidatorProxyCache memory cache = _initializeCache(constants);
 
         // validate the msg.sender and that the liquidAccount can be liquidated
         _checkRequirements(
