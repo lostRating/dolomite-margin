@@ -36,6 +36,7 @@ import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry
 import { ILiquidityTokenUnwrapperTrader } from "../interfaces/ILiquidityTokenUnwrapperTrader.sol";
 import { ILiquidityTokenWrapperTrader } from "../interfaces/ILiquidityTokenWrapperTrader.sol";
 import { IMarginPositionRegistry } from "../interfaces/IMarginPositionRegistry.sol";
+import { IIsolationModeToken } from "../interfaces/IIsolationModeToken.sol";
 
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
 
@@ -135,10 +136,11 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
 
         uint256 marketId = _marketIdPath[_index];
         uint256 nextMarketId = _marketIdPath[_index];
-        if (TraderType.LiquidityTokenUnwrapper == _traderParam.traderType) {
+        if (TraderType.IsolationModeUnwrapper == _traderParam.traderType) {
             ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(_traderParam.trader);
+            address isolationModeToken = _cache.dolomiteMargin.getMarketTokenAddress(marketId);
             Require.that(
-                unwrapperTrader.token() == _cache.dolomiteMargin.getMarketTokenAddress(marketId),
+                unwrapperTrader.token() == isolationModeToken,
                 FILE,
                 "Invalid input for unwrapper",
                 _index,
@@ -153,14 +155,15 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
             );
 
             Require.that(
-                LIQUIDATOR_ASSET_REGISTRY.isLiquidityTokenUnwrapperForAsset(marketId, _traderParam.trader),
+                IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                 FILE,
-                "Unwrapper trader not whitelisted",
+                "Unwrapper converter not enabled",
                 _traderParam.trader,
-                _marketIdPath[_index]
+                marketId
             );
-        } else if (TraderType.LiquidityTokenWrapper == _traderParam.traderType) {
+        } else if (TraderType.IsolationModeWrapper == _traderParam.traderType) {
             ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_traderParam.trader);
+            address isolationModeToken = _cache.dolomiteMargin.getMarketTokenAddress(nextMarketId);
             Require.that(
                 wrapperTrader.isValidInputToken(_cache.dolomiteMargin.getMarketTokenAddress(marketId)),
                 FILE,
@@ -169,7 +172,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 marketId
             );
             Require.that(
-                wrapperTrader.token() == _cache.dolomiteMargin.getMarketTokenAddress(nextMarketId),
+                wrapperTrader.token() == isolationModeToken,
                 FILE,
                 "Invalid output for wrapper",
                 _index + 1,
@@ -177,11 +180,11 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
             );
 
             Require.that(
-                LIQUIDATOR_ASSET_REGISTRY.isLiquidityTokenWrapperForAsset(nextMarketId, _traderParam.trader),
+                IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                 FILE,
-                "Wrapper trader not whitelisted",
+                "Wrapper converter not enabled",
                 _traderParam.trader,
-                _marketIdPath[_index]
+                nextMarketId
             );
         }
 
@@ -278,9 +281,9 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
     {
         uint256 actionsLength = 0;
         for (uint256 i = 0; i < _tradersPath.length; i++) {
-            if (TraderType.LiquidityTokenUnwrapper == _tradersPath[i].traderType) {
+            if (TraderType.IsolationModeUnwrapper == _tradersPath[i].traderType) {
                 actionsLength += ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader).actionsLength();
-            } else if (TraderType.LiquidityTokenWrapper == _tradersPath[i].traderType) {
+            } else if (TraderType.IsolationModeWrapper == _tradersPath[i].traderType) {
                 actionsLength += ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader).actionsLength();
             } else {
                 actionsLength += 1;
@@ -321,7 +324,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                     _amountWeisPath[i],
                     _amountWeisPath[i + 1]
                 );
-            } else if (_tradersPath[i].traderType == TraderType.LiquidityTokenUnwrapper) {
+            } else if (_tradersPath[i].traderType == TraderType.IsolationModeUnwrapper) {
                 ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory unwrapperActions = unwrapperTrader.createActionsForUnwrapping(
                     /* _primaryAccountId = */ 0,
@@ -337,7 +340,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                     _actions[_cache.actionsCursor++] = unwrapperActions[j];
                 }
             } else {
-                assert(_tradersPath[i].traderType == TraderType.LiquidityTokenWrapper);
+                assert(_tradersPath[i].traderType == TraderType.IsolationModeWrapper);
                 ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory wrapperActions = wrapperTrader.createActionsForWrapping(
                     /* _primaryAccountId = */ 0,

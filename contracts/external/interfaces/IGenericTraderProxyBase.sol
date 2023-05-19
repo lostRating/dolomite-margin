@@ -41,11 +41,13 @@ interface IGenericTraderProxyBase {
         /// @dev    The trade will be conducted using internal liquidity, using an `ActionType.Trade` action.
         InternalLiquidity,
         /// @dev    The trade will be conducted using external liquidity using an `ActionType.Sell` or `ActionType.Buy`
-        ///         action. If this TradeType is used, the trader must be validated against the LiquidatorAssetRegistry.
-        LiquidityTokenUnwrapper,
+        ///         action. If this TradeType is used, the trader must be validated using
+        ///         the `IIsolationModeToken#isTokenConverterTrusted` function on the IsolationMode token.
+        IsolationModeUnwrapper,
         /// @dev    The trade will be conducted using external liquidity using an `ActionType.Sell` or `ActionType.Buy`
-        ///         action. If this TradeType is used, the trader must be validated against the LiquidatorAssetRegistry.
-        LiquidityTokenWrapper
+        ///         action. If this TradeType is used, the trader must be validated using
+        ///         the `IIsolationModeToken#isTokenConverterTrusted` function on the IsolationMode token.
+        IsolationModeWrapper
     }
 
     // ============ Structs ============

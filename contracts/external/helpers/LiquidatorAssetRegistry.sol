@@ -90,70 +90,6 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
         emit LiquidatorRemovedFromWhitelist(_marketId, _liquidator);
     }
 
-    function ownerAddLiquidityTokenUnwrapper(
-        uint256 _marketId,
-        address _unwrapper
-    )
-    external
-    onlyDolomiteMarginOwner(msg.sender) {
-        Require.that(
-            _unwrapper != address(0),
-            FILE,
-            "Invalid wrapper address"
-        );
-
-        _marketIdToUnwrapperMap[_marketId].add(_unwrapper);
-        emit TokenUnwrapperAddedToWhitelist(_marketId, _unwrapper);
-    }
-
-    function ownerAddLiquidityTokenWrapper(
-        uint256 _marketId,
-        address _wrapper
-    )
-    external
-    onlyDolomiteMarginOwner(msg.sender) {
-        Require.that(
-            _wrapper != address(0),
-            FILE,
-            "Invalid wrapper address"
-        );
-
-        _marketIdToWrapperMap[_marketId].add(_wrapper);
-        emit TokenWrapperAddedToWhitelist(_marketId, _wrapper);
-    }
-
-    function ownerRemoveLiquidityTokenUnwrapper(
-        uint256 _marketId,
-        address _unwrapper
-    )
-    external
-    onlyDolomiteMarginOwner(msg.sender) {
-        Require.that(
-            _unwrapper != address(0),
-            FILE,
-            "Invalid unwrapper address"
-        );
-
-        _marketIdToUnwrapperMap[_marketId].remove(_unwrapper);
-        emit TokenUnwrapperRemovedFromWhitelist(_marketId, _unwrapper);
-    }
-
-    function ownerRemoveLiquidityTokenWrapper(
-        uint256 _marketId,
-        address _wrapper
-    )
-    external
-    onlyDolomiteMarginOwner(msg.sender) {
-        Require.that(
-            _wrapper != address(0),
-            FILE,
-            "Invalid wrapper address"
-        );
-
-        _marketIdToWrapperMap[_marketId].remove(_wrapper);
-        emit TokenWrapperRemovedFromWhitelist(_marketId, _wrapper);
-    }
-
     // ============ Getter Functions ============
 
     function getLiquidatorsForAsset(
@@ -169,49 +105,5 @@ contract LiquidatorAssetRegistry is ILiquidatorAssetRegistry, OnlyDolomiteMargin
     ) external view returns (bool) {
         OpenZeppelinEnumerableSet.AddressSet storage whitelist = _marketIdToLiquidatorWhitelistMap[_marketId];
         return whitelist.length() == 0 || whitelist.contains(_liquidator);
-    }
-
-    function isLiquidityTokenUnwrapperForAsset(
-        uint256 _marketId,
-        address _unwrapper
-    ) external view returns (bool) {
-        return _marketIdToUnwrapperMap[_marketId].contains(_unwrapper);
-    }
-
-    function getLiquidityTokenUnwrapperForAssetAtIndex(
-        uint256 _marketId,
-        uint256 _index
-    )
-    external view returns (address) {
-        return _marketIdToUnwrapperMap[_marketId].get(_index);
-    }
-
-    function getLiquidityTokenUnwrapperForAssetLength(
-        uint256 _marketId
-    )
-    external view returns (uint256) {
-        return _marketIdToUnwrapperMap[_marketId].length();
-    }
-
-    function isLiquidityTokenWrapperForAsset(
-        uint256 _marketId,
-        address _wrapper
-    ) external view returns (bool) {
-        return _marketIdToWrapperMap[_marketId].contains(_wrapper);
-    }
-
-    function getLiquidityTokenWrapperForAssetAtIndex(
-        uint256 _marketId,
-        uint256 _index
-    )
-    external view returns (address) {
-        return _marketIdToWrapperMap[_marketId].get(_index);
-    }
-
-    function getLiquidityTokenWrapperForAssetLength(
-        uint256 _marketId
-    )
-    external view returns (uint256) {
-        return _marketIdToWrapperMap[_marketId].length();
     }
 }
