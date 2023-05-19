@@ -284,7 +284,7 @@ contract LiquidatorProxyBase is HasLiquidatorRegistry {
         uint256 liquidHeldValue = _cache.heldPrice.mul(_cache.liquidHeldWei.value);
         uint256 liquidOwedValue = _cache.owedPriceAdj.mul(_cache.liquidOwedWei.value);
         if (liquidHeldValue < liquidOwedValue) {
-            // The held collateral is worth less than the debt
+            // The held collateral is worth less than the adjusted debt
             _cache.solidHeldUpdateWithReward = _cache.liquidHeldWei.value;
             _cache.owedWeiToLiquidate = DolomiteMarginMath.getPartialRoundUp(
                 _cache.liquidHeldWei.value,

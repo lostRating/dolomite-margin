@@ -603,7 +603,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         // Market2 (if held) cannot be liquidated by any contract
         await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
           market2,
-          ADDRESSES.ZERO,
+          ADDRESSES.ONE,
           { from: admin },
         );
         await setUpBasicBalances(isOverCollateralized);
@@ -1149,7 +1149,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         // Market2 (if held) cannot be liquidated by any contract
         await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
           market2,
-          ADDRESSES.ZERO,
+          ADDRESSES.ONE,
           { from: admin },
         );
         await setUpBasicBalances(isOverCollateralized);

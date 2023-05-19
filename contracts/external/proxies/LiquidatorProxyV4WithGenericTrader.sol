@@ -197,6 +197,7 @@ contract LiquidatorProxyV4WithLiquidityToken is
                 _constants.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
+                _liquidatorCache.solidHeldUpdateWithReward,
                 _liquidatorCache.owedWeiToLiquidate,
                 _liquidatorCache.flipMarketsForExpiration
             );

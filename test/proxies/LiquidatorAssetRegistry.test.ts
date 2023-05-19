@@ -1,4 +1,4 @@
-import { address, ADDRESSES, Integer, INTEGERS } from '../../src';
+import { address, Integer, INTEGERS } from '../../src';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
@@ -52,7 +52,7 @@ describe('LiquidatorAssetRegistry', () => {
         dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(market1, liquidatorProxyV1, {
           from: user,
         }),
-        `LiquidatorAssetRegistry: Only Dolomite owner can call <${user.toLowerCase()}>`,
+        `OnlyDolomiteMargin: Only Dolomite owner can call <${user.toLowerCase()}>`,
       );
     });
   });
@@ -103,64 +103,8 @@ describe('LiquidatorAssetRegistry', () => {
         dolomiteMargin.liquidatorAssetRegistry.removeLiquidatorFromAssetWhitelist(market1, liquidatorProxyV1, {
           from: user,
         }),
-        `LiquidatorAssetRegistry: Only Dolomite owner can call <${user.toLowerCase()}>`,
+        `OnlyDolomiteMargin: Only Dolomite owner can call <${user.toLowerCase()}>`,
       );
-    });
-  });
-
-  describe('#ownerSetLiquidityTokenUnwrapperForMarketId', () => {
-    const UNWRAPPER = ADDRESSES.TEST_UNISWAP;
-    describe('Success cases', () => {
-      it('should work normally', async () => {
-        await dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenUnwrapperForMarketId(
-          market1,
-          UNWRAPPER,
-          { from: admin },
-        );
-        expect(await dolomiteMargin.liquidatorAssetRegistry.getTokenUnwrapperByMarketId(market1))
-          .to.equal(UNWRAPPER);
-      });
-    });
-
-    describe('Failure cases', () => {
-      it('should fail when admin is not the caller', async () => {
-        await expectThrow(
-          dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenUnwrapperForMarketId(
-            market1,
-            UNWRAPPER,
-            { from: user },
-          ),
-          `LiquidatorAssetRegistry: Only Dolomite owner can call <${user.toLowerCase()}>`,
-        );
-      });
-    });
-  });
-
-  describe('#ownerSetLiquidityTokenWrapperForMarketId', () => {
-    const WRAPPER = ADDRESSES.TEST_UNISWAP;
-    describe('Success cases', () => {
-      it('should work normally', async () => {
-        await dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenWrapperForMarketId(
-          market1,
-          WRAPPER,
-          { from: admin },
-        );
-        expect(await dolomiteMargin.liquidatorAssetRegistry.getTokenWrapperByMarketId(market1))
-          .to.equal(WRAPPER);
-      });
-    });
-
-    describe('Failure cases', () => {
-      it('should fail when admin is not the caller', async () => {
-        await expectThrow(
-          dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenWrapperForMarketId(
-            market1,
-            WRAPPER,
-            { from: user },
-          ),
-          `LiquidatorAssetRegistry: Only Dolomite owner can call <${user.toLowerCase()}>`,
-        );
-      });
     });
   });
 });

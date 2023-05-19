@@ -18,7 +18,7 @@ export class LiquidatorAssetRegistry {
     marketId: Integer,
     liquidatorProxy: address,
     options?: ContractCallOptions,
-  ) {
+  ): Promise<TxResult> {
     return this.contracts.callContractFunction(
       this.contracts.liquidatorAssetRegistry.methods.ownerAddLiquidatorToAssetWhitelist(
         marketId.toFixed(0),
@@ -32,39 +32,11 @@ export class LiquidatorAssetRegistry {
     marketId: Integer,
     liquidatorProxy: address,
     options?: ContractCallOptions,
-  ) {
+  ): Promise<TxResult> {
     return this.contracts.callContractFunction(
       this.contracts.liquidatorAssetRegistry.methods.ownerRemoveLiquidatorFromAssetWhitelist(
         marketId.toFixed(0),
         liquidatorProxy,
-      ),
-      options,
-    );
-  }
-
-  public async setLiquidityTokenUnwrapperForMarketId(
-    marketId: Integer,
-    tokenUnwrapper: address,
-    options: ContractCallOptions = {},
-  ): Promise<TxResult> {
-    return this.contracts.callContractFunction(
-      this.contracts.liquidatorAssetRegistry.methods.ownerSetLiquidityTokenUnwrapper(
-        marketId.toFixed(0),
-        tokenUnwrapper,
-      ),
-      options,
-    );
-  }
-
-  public async setLiquidityTokenWrapperForMarketId(
-    marketId: Integer,
-    tokenWrapper: address,
-    options: ContractCallOptions = {},
-  ): Promise<TxResult> {
-    return this.contracts.callContractFunction(
-      this.contracts.liquidatorAssetRegistry.methods.ownerSetLiquidityTokenWrapper(
-        marketId.toFixed(0),
-        tokenWrapper,
       ),
       options,
     );
@@ -75,7 +47,7 @@ export class LiquidatorAssetRegistry {
   public async getLiquidatorsForAsset(
     marketId: Integer,
     options?: ContractConstantCallOptions,
-  ) {
+  ): Promise<string[]> {
     return this.contracts.callConstantContractFunction(
       this.contracts.liquidatorAssetRegistry.methods.getLiquidatorsForAsset(
         marketId.toFixed(0),
@@ -88,25 +60,13 @@ export class LiquidatorAssetRegistry {
     marketId: Integer,
     liquidatorProxy: address,
     options?: ContractConstantCallOptions,
-  ) {
+  ): Promise<boolean> {
     return this.contracts.callConstantContractFunction(
       this.contracts.liquidatorAssetRegistry.methods.isAssetWhitelistedForLiquidation(
         marketId.toFixed(0),
         liquidatorProxy,
       ),
       options,
-    );
-  }
-
-  public async getTokenUnwrapperByMarketId(marketId: Integer): Promise<address> {
-    return this.contracts.callConstantContractFunction(
-      this.contracts.liquidatorAssetRegistry.methods.getLiquidityTokenUnwrapperForAsset(marketId.toFixed())
-    );
-  }
-
-  public async getTokenWrapperByMarketId(marketId: Integer): Promise<address> {
-    return this.contracts.callConstantContractFunction(
-      this.contracts.liquidatorAssetRegistry.methods.getLiquidityTokenWrapperForAsset(marketId.toFixed())
     );
   }
 }

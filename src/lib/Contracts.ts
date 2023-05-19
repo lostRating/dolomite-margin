@@ -35,64 +35,69 @@ import dolomiteAmmPairJson from '../../build/published_contracts/DolomiteAmmPair
 import dolomiteAmmRouterProxyJson from '../../build/published_contracts/DolomiteAmmRouterProxy.json';
 
 // JSON
-import dolomiteMarginJson from '../../build/published_contracts/DolomiteMargin.json';
-import doubleExponentInterestSetterJson from '../../build/published_contracts/DoubleExponentInterestSetter.json';
 import aaveCopyCatAltCoinInterestSetterJson from '../../build/published_contracts/AAVECopyCatAltCoinInterestSetter.json';
 import aaveCopyCatStableCoinInterestSetterJson from '../../build/published_contracts/AAVECopyCatStableCoinInterestSetter.json';
+import arbitrumMultiCallJson from '../../build/published_contracts/ArbitrumMultiCall.json';
+import borrowPositionProxyV1Json from '../../build/published_contracts/BorrowPositionProxyV1.json';
+import borrowPositionProxyV2Json from '../../build/published_contracts/BorrowPositionProxyV2.json';
+import depositProxyJson from '../../build/published_contracts/DepositWithdrawalProxy.json';
+import dolomiteMarginJson from '../../build/published_contracts/DolomiteMargin.json';
+import doubleExponentInterestSetterJson from '../../build/published_contracts/DoubleExponentInterestSetter.json';
 import expiryJson from '../../build/published_contracts/Expiry.json';
 import erc20Json from '../../build/published_contracts/IERC20.json';
 import interestSetterJson from '../../build/published_contracts/IInterestSetter.json';
-import priceOracleJson from '../../build/published_contracts/IPriceOracle.json';
 import liquidatorAssetRegistryJson from '../../build/published_contracts/LiquidatorAssetRegistry.json';
 import liquidatorProxyV1Json from '../../build/published_contracts/LiquidatorProxyV1.json';
 import liquidatorProxyV1WithAmmJson from '../../build/published_contracts/LiquidatorProxyV1WithAmm.json';
 import liquidatorProxyV2WithExternalLiquidityJson from '../../build/published_contracts/LiquidatorProxyV2WithExternalLiquidity.json';
 import liquidatorProxyV3WithLiquidityTokenJson from '../../build/published_contracts/LiquidatorProxyV3WithLiquidityToken.json';
+import liquidityTokenUnwrapperJson from '../../build/published_contracts/ILiquidityTokenUnwrapperTrader.json';
+import multiCallJson from '../../build/published_contracts/MultiCall.json';
 import payableProxyJson from '../../build/published_contracts/PayableProxy.json';
 import polynomialInterestSetterJson from '../../build/published_contracts/PolynomialInterestSetter.json';
+import priceOracleJson from '../../build/published_contracts/IPriceOracle.json';
 import recyclableTokenProxyJson from '../../build/published_contracts/RecyclableTokenProxy.json';
 import signedOperationProxyJson from '../../build/published_contracts/SignedOperationProxy.json';
 import simpleFeeOwnerJson from '../../build/published_contracts/SimpleFeeOwner.json';
-import transferProxyJson from '../../build/published_contracts/TransferProxy.json';
-import borrowPositionProxyV1Json from '../../build/published_contracts/BorrowPositionProxyV1.json';
-import borrowPositionProxyV2Json from '../../build/published_contracts/BorrowPositionProxyV2.json';
-import depositProxyJson from '../../build/published_contracts/DepositWithdrawalProxy.json';
-import multiCallJson from '../../build/published_contracts/MultiCall.json';
-import arbitrumMultiCallJson from '../../build/published_contracts/ArbitrumMultiCall.json';
-import wethJson from '../../build/published_contracts/Weth.json';
 import testUniswapAmmRebalancerJson from '../../build/published_contracts/TestUniswapAmmRebalancerProxy.json';
-import liquidityTokenUnwrapperJson
-  from '../../build/published_contracts/ILiquidityTokenUnwrapperTrader.json';
+import transferProxyJson from '../../build/published_contracts/TransferProxy.json';
+import wethJson from '../../build/published_contracts/WETH.json';
 
 // Contracts
 import { AmmRebalancerProxyV1 } from '../../build/wrappers/AmmRebalancerProxyV1';
+import { AmmRebalancerProxyV2 } from '../../build/wrappers/AmmRebalancerProxyV2';
+import { AAVECopyCatAltCoinInterestSetter } from '../../build/wrappers/AAVECopyCatAltCoinInterestSetter';
+import { AAVECopyCatStableCoinInterestSetter } from '../../build/wrappers/AAVECopyCatStableCoinInterestSetter';
+import { ArbitrumMultiCall } from '../../build/wrappers/ArbitrumMultiCall';
+import { BorrowPositionProxyV1 } from '../../build/wrappers/BorrowPositionProxyV1';
+import { BorrowPositionProxyV2 } from '../../build/wrappers/BorrowPositionProxyV2';
 import { ChainlinkPriceOracleV1 } from '../../build/wrappers/ChainlinkPriceOracleV1';
+import { DepositWithdrawalProxy } from '../../build/wrappers/DepositWithdrawalProxy';
 import { DolomiteAmmFactory } from '../../build/wrappers/DolomiteAmmFactory';
 import { DolomiteAmmPair } from '../../build/wrappers/DolomiteAmmPair';
 import { DolomiteAmmRouterProxy } from '../../build/wrappers/DolomiteAmmRouterProxy';
 import { DolomiteMargin } from '../../build/wrappers/DolomiteMargin';
 import { DoubleExponentInterestSetter } from '../../build/wrappers/DoubleExponentInterestSetter';
 import { Expiry } from '../../build/wrappers/Expiry';
+import { IArbitrumGasInfo } from '../../build/wrappers/IArbitrumGasInfo';
 import { IERC20 as ERC20 } from '../../build/wrappers/IERC20';
+import { ILiquidityTokenUnwrapperTrader } from '../../build/wrappers/ILiquidityTokenUnwrapperTrader';
 import { IInterestSetter as InterestSetter } from '../../build/wrappers/IInterestSetter';
 import { IPriceOracle as PriceOracle } from '../../build/wrappers/IPriceOracle';
+import { LiquidatorAssetRegistry } from '../../build/wrappers/LiquidatorAssetRegistry';
 import { LiquidatorProxyV1 } from '../../build/wrappers/LiquidatorProxyV1';
 import { LiquidatorProxyV1WithAmm } from '../../build/wrappers/LiquidatorProxyV1WithAmm';
 import { LiquidatorProxyV2WithExternalLiquidity } from '../../build/wrappers/LiquidatorProxyV2WithExternalLiquidity';
 import { LiquidatorProxyV3WithLiquidityToken } from '../../build/wrappers/LiquidatorProxyV3WithLiquidityToken';
 import { MultiCall } from '../../build/wrappers/MultiCall';
-import { ArbitrumMultiCall } from '../../build/wrappers/ArbitrumMultiCall';
 import { PayableProxy as PayableProxy } from '../../build/wrappers/PayableProxy';
 import { PolynomialInterestSetter } from '../../build/wrappers/PolynomialInterestSetter';
+import { RecyclableTokenProxy } from '../../build/wrappers/RecyclableTokenProxy';
 import { SignedOperationProxy } from '../../build/wrappers/SignedOperationProxy';
 import { SimpleFeeOwner } from '../../build/wrappers/SimpleFeeOwner';
-import { DepositWithdrawalProxy } from '../../build/wrappers/DepositWithdrawalProxy';
-import { RecyclableTokenProxy } from '../../build/wrappers/RecyclableTokenProxy';
-import { TransferProxy } from '../../build/wrappers/TransferProxy';
-import { BorrowPositionProxyV1 } from '../../build/wrappers/BorrowPositionProxyV1';
-import { BorrowPositionProxyV2 } from '../../build/wrappers/BorrowPositionProxyV2';
-import { Weth } from '../../build/wrappers/Weth';
 import { TestUniswapAmmRebalancerProxy } from '../../build/wrappers/TestUniswapAmmRebalancerProxy';
+import { TransferProxy } from '../../build/wrappers/TransferProxy';
+import { Weth } from '../../build/wrappers/Weth';
 import {
   address,
   ConfirmationType,
@@ -105,12 +110,6 @@ import {
 import {
   SUBTRACT_GAS_LIMIT,
 } from './Constants';
-import { AmmRebalancerProxyV2 } from '../../build/wrappers/AmmRebalancerProxyV2';
-import { IArbitrumGasInfo } from '../../build/wrappers/IArbitrumGasInfo';
-import { AAVECopyCatAltCoinInterestSetter } from '../../build/wrappers/AAVECopyCatAltCoinInterestSetter';
-import { AAVECopyCatStableCoinInterestSetter } from '../../build/wrappers/AAVECopyCatStableCoinInterestSetter';
-import { LiquidatorAssetRegistry } from '../../build/wrappers/LiquidatorAssetRegistry';
-import { ILiquidityTokenUnwrapperTrader } from '../../build/wrappers/ILiquidityTokenUnwrapperTrader';
 
 interface CallableTransactionObject<T> {
   call(tx?: Tx, blockNumber?: number): Promise<T>;
@@ -118,37 +117,39 @@ interface CallableTransactionObject<T> {
 
 export class Contracts {
   // Contract instances
+  public aaveCopyCatAltCoinInterestSetter: AAVECopyCatAltCoinInterestSetter;
+  public aaveCopyCatStableCoinInterestSetter: AAVECopyCatStableCoinInterestSetter;
+  public ammRebalancerProxyV1: AmmRebalancerProxyV1;
+  public ammRebalancerProxyV2: AmmRebalancerProxyV2;
+  public arbitrumGasInfo: IArbitrumGasInfo;
+  public arbitrumMultiCall: ArbitrumMultiCall;
+  public borrowPositionProxyV1: BorrowPositionProxyV1;
+  public borrowPositionProxyV2: BorrowPositionProxyV2;
+  public depositProxy: DepositWithdrawalProxy;
+  public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
+  public dolomiteAmmFactory: DolomiteAmmFactory;
+  public chainlinkPriceOracleV1: ChainlinkPriceOracleV1;
   public dolomiteMargin: DolomiteMargin;
+  public doubleExponentInterestSetter: DoubleExponentInterestSetter;
   public erc20: ERC20;
-  public interestSetter: InterestSetter;
-  public priceOracle: PriceOracle;
   public expiry: Expiry;
-  public payableProxy: PayableProxy;
-  public signedOperationProxy: SignedOperationProxy;
+  public interestSetter: InterestSetter;
   public liquidatorAssetRegistry: LiquidatorAssetRegistry;
   public liquidatorProxyV1: LiquidatorProxyV1;
   public liquidatorProxyV1WithAmm: LiquidatorProxyV1WithAmm;
   public liquidatorProxyV2WithExternalLiquidity: LiquidatorProxyV2WithExternalLiquidity;
   public liquidatorProxyV3WithLiquidityToken: LiquidatorProxyV3WithLiquidityToken;
-  public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
-  public ammRebalancerProxyV1: AmmRebalancerProxyV1;
-  public ammRebalancerProxyV2: AmmRebalancerProxyV2;
-  public arbitrumGasInfo: IArbitrumGasInfo;
-  public polynomialInterestSetter: PolynomialInterestSetter;
-  public doubleExponentInterestSetter: DoubleExponentInterestSetter;
-  public aaveCopyCatAltCoinInterestSetter: AAVECopyCatAltCoinInterestSetter;
-  public aaveCopyCatStableCoinInterestSetter: AAVECopyCatStableCoinInterestSetter;
-  public chainlinkPriceOracleV1: ChainlinkPriceOracleV1;
-  public dolomiteAmmFactory: DolomiteAmmFactory;
-  public simpleFeeOwner: SimpleFeeOwner;
-  public transferProxy: TransferProxy;
-  public borrowPositionProxyV1: BorrowPositionProxyV1;
-  public borrowPositionProxyV2: BorrowPositionProxyV2;
-  public depositProxy: DepositWithdrawalProxy;
   public multiCall: MultiCall;
-  public arbitrumMultiCall: ArbitrumMultiCall;
-  public weth: Weth;
+  public payableProxy: PayableProxy;
+  public polynomialInterestSetter: PolynomialInterestSetter;
+  public priceOracle: PriceOracle;
+  public signedOperationProxy: SignedOperationProxy;
+  public simpleFeeOwner: SimpleFeeOwner;
   public testUniswapAmmRebalancer: TestUniswapAmmRebalancerProxy;
+  public transferProxy: TransferProxy;
+  public weth: Weth;
+
+  // protected field variables
   protected provider: Provider;
   protected web3: Web3;
   protected blockGasLimit: number;
@@ -174,41 +175,12 @@ export class Contracts {
     this.blockGasLimit = options.blockGasLimit;
 
     // Contracts
-    this.dolomiteMargin = new this.web3.eth.Contract(
-      dolomiteMarginJson.abi,
-    ) as DolomiteMargin;
-    this.erc20 = new this.web3.eth.Contract(erc20Json.abi) as ERC20;
-    this.interestSetter = new this.web3.eth.Contract(
-      interestSetterJson.abi,
-    ) as InterestSetter;
-    this.priceOracle = new this.web3.eth.Contract(
-      priceOracleJson.abi,
-    ) as PriceOracle;
-    this.expiry = new this.web3.eth.Contract(expiryJson.abi) as Expiry;
-    this.payableProxy = new this.web3.eth.Contract(
-      payableProxyJson.abi,
-    ) as PayableProxy;
-    this.signedOperationProxy = new this.web3.eth.Contract(
-      signedOperationProxyJson.abi,
-    ) as SignedOperationProxy;
-    this.liquidatorProxyV1 = new this.web3.eth.Contract(
-      liquidatorProxyV1Json.abi,
-    ) as LiquidatorProxyV1;
-    this.liquidatorAssetRegistry = new this.web3.eth.Contract(
-      liquidatorAssetRegistryJson.abi,
-    ) as LiquidatorAssetRegistry;
-    this.liquidatorProxyV1WithAmm = new this.web3.eth.Contract(
-      liquidatorProxyV1WithAmmJson.abi,
-    ) as LiquidatorProxyV1WithAmm;
-    this.liquidatorProxyV2WithExternalLiquidity = new this.web3.eth.Contract(
-      liquidatorProxyV2WithExternalLiquidityJson.abi,
-    ) as LiquidatorProxyV2WithExternalLiquidity;
-    this.liquidatorProxyV3WithLiquidityToken = new this.web3.eth.Contract(
-      liquidatorProxyV3WithLiquidityTokenJson.abi,
-    ) as LiquidatorProxyV3WithLiquidityToken;
-    this.dolomiteAmmRouterProxy = new this.web3.eth.Contract(
-      dolomiteAmmRouterProxyJson.abi,
-    ) as DolomiteAmmRouterProxy;
+    this.aaveCopyCatAltCoinInterestSetter = new this.web3.eth.Contract(
+      aaveCopyCatAltCoinInterestSetterJson.abi,
+    ) as AAVECopyCatAltCoinInterestSetter;
+    this.aaveCopyCatStableCoinInterestSetter = new this.web3.eth.Contract(
+      aaveCopyCatStableCoinInterestSetterJson.abi,
+    ) as AAVECopyCatStableCoinInterestSetter;
     this.ammRebalancerProxyV1 = new this.web3.eth.Contract(
       ammRebalancerProxyV1Json.abi,
     ) as AmmRebalancerProxyV1;
@@ -218,37 +190,66 @@ export class Contracts {
     this.arbitrumGasInfo = new this.web3.eth.Contract(
       arbitrumGasInfoJson.abi,
     ) as IArbitrumGasInfo;
-    this.polynomialInterestSetter = new this.web3.eth.Contract(
-      polynomialInterestSetterJson.abi,
-    ) as PolynomialInterestSetter;
-    this.doubleExponentInterestSetter = new this.web3.eth.Contract(
-      doubleExponentInterestSetterJson.abi,
-    ) as DoubleExponentInterestSetter;
-    this.aaveCopyCatAltCoinInterestSetter = new this.web3.eth.Contract(
-      aaveCopyCatAltCoinInterestSetterJson.abi,
-    ) as AAVECopyCatAltCoinInterestSetter;
-    this.aaveCopyCatStableCoinInterestSetter = new this.web3.eth.Contract(
-      aaveCopyCatStableCoinInterestSetterJson.abi,
-    ) as AAVECopyCatStableCoinInterestSetter;
+    this.arbitrumMultiCall = new this.web3.eth.Contract(arbitrumMultiCallJson.abi) as ArbitrumMultiCall;
+    this.borrowPositionProxyV1 = new this.web3.eth.Contract(borrowPositionProxyV1Json.abi) as BorrowPositionProxyV1;
+    this.borrowPositionProxyV2 = new this.web3.eth.Contract(borrowPositionProxyV2Json.abi) as BorrowPositionProxyV2;
     this.chainlinkPriceOracleV1 = new this.web3.eth.Contract(
       chainlinkPriceOracleV1Json.abi,
     ) as ChainlinkPriceOracleV1;
+    this.depositProxy = new this.web3.eth.Contract(depositProxyJson.abi) as DepositWithdrawalProxy;
     this.dolomiteAmmFactory = new this.web3.eth.Contract(
       dolomiteAmmFactoryJson.abi,
     ) as DolomiteAmmFactory;
+    this.dolomiteAmmRouterProxy = new this.web3.eth.Contract(
+      dolomiteAmmRouterProxyJson.abi,
+    ) as DolomiteAmmRouterProxy;
+    this.dolomiteMargin = new this.web3.eth.Contract(
+      dolomiteMarginJson.abi,
+    ) as DolomiteMargin;
+    this.doubleExponentInterestSetter = new this.web3.eth.Contract(
+      doubleExponentInterestSetterJson.abi,
+    ) as DoubleExponentInterestSetter;
+    this.erc20 = new this.web3.eth.Contract(erc20Json.abi) as ERC20;
+    this.expiry = new this.web3.eth.Contract(expiryJson.abi) as Expiry;
+    this.interestSetter = new this.web3.eth.Contract(
+      interestSetterJson.abi,
+    ) as InterestSetter;
+    this.liquidatorAssetRegistry = new this.web3.eth.Contract(
+      liquidatorAssetRegistryJson.abi,
+    ) as LiquidatorAssetRegistry;
+    this.liquidatorProxyV1 = new this.web3.eth.Contract(
+      liquidatorProxyV1Json.abi,
+    ) as LiquidatorProxyV1;
+    this.liquidatorProxyV1WithAmm = new this.web3.eth.Contract(
+      liquidatorProxyV1WithAmmJson.abi,
+    ) as LiquidatorProxyV1WithAmm;
+    this.liquidatorProxyV2WithExternalLiquidity = new this.web3.eth.Contract(
+      liquidatorProxyV2WithExternalLiquidityJson.abi,
+    ) as LiquidatorProxyV2WithExternalLiquidity;
+    this.liquidatorProxyV3WithLiquidityToken = new this.web3.eth.Contract(
+      liquidatorProxyV3WithLiquidityTokenJson.abi,
+    ) as LiquidatorProxyV3WithLiquidityToken;
+    this.multiCall = new this.web3.eth.Contract(multiCallJson.abi) as MultiCall;
+    this.payableProxy = new this.web3.eth.Contract(
+      payableProxyJson.abi,
+    ) as PayableProxy;
+    this.polynomialInterestSetter = new this.web3.eth.Contract(
+      polynomialInterestSetterJson.abi,
+    ) as PolynomialInterestSetter;
+    this.priceOracle = new this.web3.eth.Contract(
+      priceOracleJson.abi,
+    ) as PriceOracle;
+    this.signedOperationProxy = new this.web3.eth.Contract(
+      signedOperationProxyJson.abi,
+    ) as SignedOperationProxy;
     this.simpleFeeOwner = new this.web3.eth.Contract(
       simpleFeeOwnerJson.abi,
     ) as SimpleFeeOwner;
-    this.transferProxy = new this.web3.eth.Contract(transferProxyJson.abi) as TransferProxy;
-    this.borrowPositionProxyV1 = new this.web3.eth.Contract(borrowPositionProxyV1Json.abi) as BorrowPositionProxyV1;
-    this.borrowPositionProxyV2 = new this.web3.eth.Contract(borrowPositionProxyV2Json.abi) as BorrowPositionProxyV2;
-    this.depositProxy = new this.web3.eth.Contract(depositProxyJson.abi) as DepositWithdrawalProxy;
-    this.multiCall = new this.web3.eth.Contract(multiCallJson.abi) as MultiCall;
-    this.arbitrumMultiCall = new this.web3.eth.Contract(arbitrumMultiCallJson.abi) as ArbitrumMultiCall;
-    this.weth = new this.web3.eth.Contract(wethJson.abi) as Weth;
     this.testUniswapAmmRebalancer = new this.web3.eth.Contract(
       testUniswapAmmRebalancerJson.abi,
     ) as TestUniswapAmmRebalancerProxy;
+    this.transferProxy = new this.web3.eth.Contract(transferProxyJson.abi) as TransferProxy;
+    this.weth = new this.web3.eth.Contract(wethJson.abi) as Weth;
 
     this.setProvider(provider, networkId);
     this.setDefaultAccount(this.web3.eth.defaultAccount);
@@ -306,37 +307,37 @@ export class Contracts {
 
     const contracts = [
       // contracts
+      { contract: this.aaveCopyCatAltCoinInterestSetter, json: aaveCopyCatAltCoinInterestSetterJson },
+      { contract: this.aaveCopyCatStableCoinInterestSetter, json: aaveCopyCatStableCoinInterestSetterJson },
+      { contract: this.ammRebalancerProxyV1, json: ammRebalancerProxyV1Json },
+      { contract: this.ammRebalancerProxyV2, json: ammRebalancerProxyV2Json },
+      { contract: this.arbitrumGasInfo, json: arbitrumGasInfoJson },
+      { contract: this.arbitrumMultiCall, json: arbitrumMultiCallJson },
+      { contract: this.borrowPositionProxyV1, json: borrowPositionProxyV1Json },
+      { contract: this.borrowPositionProxyV2, json: borrowPositionProxyV2Json },
+      { contract: this.chainlinkPriceOracleV1, json: chainlinkPriceOracleV1Json },
+      { contract: this.depositProxy, json: depositProxyJson },
+      { contract: this.dolomiteAmmFactory, json: dolomiteAmmFactoryJson },
+      { contract: this.dolomiteAmmRouterProxy, json: dolomiteAmmRouterProxyJson },
       { contract: this.dolomiteMargin, json: dolomiteMarginJson },
+      { contract: this.doubleExponentInterestSetter, json: doubleExponentInterestSetterJson },
       { contract: this.erc20, json: erc20Json },
-      { contract: this.interestSetter, json: interestSetterJson },
-      { contract: this.priceOracle, json: priceOracleJson },
       { contract: this.expiry, json: expiryJson },
-      { contract: this.payableProxy, json: payableProxyJson },
-      { contract: this.signedOperationProxy, json: signedOperationProxyJson },
+      { contract: this.interestSetter, json: interestSetterJson },
       { contract: this.liquidatorAssetRegistry, json: liquidatorAssetRegistryJson },
       { contract: this.liquidatorProxyV1, json: liquidatorProxyV1Json },
       { contract: this.liquidatorProxyV1WithAmm, json: liquidatorProxyV1WithAmmJson },
       { contract: this.liquidatorProxyV2WithExternalLiquidity, json: liquidatorProxyV2WithExternalLiquidityJson },
       { contract: this.liquidatorProxyV3WithLiquidityToken, json: liquidatorProxyV3WithLiquidityTokenJson },
-      { contract: this.dolomiteAmmRouterProxy, json: dolomiteAmmRouterProxyJson },
-      { contract: this.ammRebalancerProxyV1, json: ammRebalancerProxyV1Json },
-      { contract: this.ammRebalancerProxyV2, json: ammRebalancerProxyV2Json },
-      { contract: this.arbitrumGasInfo, json: arbitrumGasInfoJson },
-      { contract: this.polynomialInterestSetter, json: polynomialInterestSetterJson },
-      { contract: this.doubleExponentInterestSetter, json: doubleExponentInterestSetterJson },
-      { contract: this.aaveCopyCatAltCoinInterestSetter, json: aaveCopyCatAltCoinInterestSetterJson },
-      { contract: this.aaveCopyCatStableCoinInterestSetter, json: aaveCopyCatStableCoinInterestSetterJson },
-      { contract: this.dolomiteAmmFactory, json: dolomiteAmmFactoryJson },
-      { contract: this.simpleFeeOwner, json: simpleFeeOwnerJson },
-      { contract: this.chainlinkPriceOracleV1, json: chainlinkPriceOracleV1Json },
-      { contract: this.transferProxy, json: transferProxyJson },
-      { contract: this.borrowPositionProxyV1, json: borrowPositionProxyV1Json },
-      { contract: this.borrowPositionProxyV2, json: borrowPositionProxyV2Json },
-      { contract: this.depositProxy, json: depositProxyJson },
       { contract: this.multiCall, json: multiCallJson },
-      { contract: this.arbitrumMultiCall, json: arbitrumMultiCallJson },
-      { contract: this.weth, json: wethJson },
+      { contract: this.payableProxy, json: payableProxyJson },
+      { contract: this.polynomialInterestSetter, json: polynomialInterestSetterJson },
+      { contract: this.priceOracle, json: priceOracleJson },
+      { contract: this.signedOperationProxy, json: signedOperationProxyJson },
+      { contract: this.simpleFeeOwner, json: simpleFeeOwnerJson },
       { contract: this.testUniswapAmmRebalancer, json: testUniswapAmmRebalancerJson },
+      { contract: this.transferProxy, json: transferProxyJson },
+      { contract: this.weth, json: wethJson },
     ];
 
     contracts.forEach(contract =>
@@ -352,37 +353,37 @@ export class Contracts {
 
   public setDefaultAccount(account: address): void {
     // Contracts
+    this.aaveCopyCatAltCoinInterestSetter.options.from = account;
+    this.aaveCopyCatStableCoinInterestSetter.options.from = account;
+    this.ammRebalancerProxyV1.options.from = account;
+    this.ammRebalancerProxyV2.options.from = account;
+    this.arbitrumGasInfo.options.from = account;
+    this.arbitrumMultiCall.options.from = account;
+    this.borrowPositionProxyV1.options.from = account;
+    this.borrowPositionProxyV2.options.from = account;
+    this.chainlinkPriceOracleV1.options.from = account;
+    this.depositProxy.options.from = account;
+    this.dolomiteAmmFactory.options.from = account;
+    this.dolomiteAmmRouterProxy.options.from = account;
     this.dolomiteMargin.options.from = account;
+    this.doubleExponentInterestSetter.options.from = account;
     this.erc20.options.from = account;
-    this.interestSetter.options.from = account;
-    this.priceOracle.options.from = account;
     this.expiry.options.from = account;
-    this.payableProxy.options.from = account;
-    this.signedOperationProxy.options.from = account;
+    this.interestSetter.options.from = account;
     this.liquidatorAssetRegistry.options.from = account;
     this.liquidatorProxyV1.options.from = account;
     this.liquidatorProxyV1WithAmm.options.from = account;
     this.liquidatorProxyV2WithExternalLiquidity.options.from = account;
     this.liquidatorProxyV3WithLiquidityToken.options.from = account;
-    this.dolomiteAmmRouterProxy.options.from = account;
-    this.ammRebalancerProxyV1.options.from = account;
-    this.ammRebalancerProxyV2.options.from = account;
-    this.arbitrumGasInfo.options.from = account;
-    this.polynomialInterestSetter.options.from = account;
-    this.doubleExponentInterestSetter.options.from = account;
-    this.aaveCopyCatAltCoinInterestSetter.options.from = account;
-    this.aaveCopyCatStableCoinInterestSetter.options.from = account;
-    this.chainlinkPriceOracleV1.options.from = account;
-    this.dolomiteAmmFactory.options.from = account;
-    this.simpleFeeOwner.options.from = account;
-    this.transferProxy.options.from = account;
-    this.borrowPositionProxyV1.options.from = account;
-    this.borrowPositionProxyV2.options.from = account;
-    this.depositProxy.options.from = account;
     this.multiCall.options.from = account;
-    this.arbitrumMultiCall.options.from = account;
-    this.weth.options.from = account;
+    this.payableProxy.options.from = account;
+    this.polynomialInterestSetter.options.from = account;
+    this.priceOracle.options.from = account;
+    this.signedOperationProxy.options.from = account;
+    this.simpleFeeOwner.options.from = account;
     this.testUniswapAmmRebalancer.options.from = account;
+    this.transferProxy.options.from = account;
+    this.weth.options.from = account;
   }
 
   public async callContractFunction<T>(

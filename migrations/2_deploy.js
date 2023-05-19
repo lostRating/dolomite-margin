@@ -530,11 +530,12 @@ async function deploySecondLayer(deployer, network, accounts) {
     if (isDevNetwork(network)) {
       await deployer.deploy(TestParaswapTransferProxy);
       await deployer.deploy(TestParaswapAugustusRouter, TestParaswapTransferProxy.address);
-      await deployer.deploy(TestParaswapTrader, [
+      await deployer.deploy(
+        TestParaswapTrader,
         TestParaswapAugustusRouter.address,
         TestParaswapTransferProxy.address,
         dolomiteMargin.address,
-      ]);
+      );
     }
 
     await deployer.deploy(

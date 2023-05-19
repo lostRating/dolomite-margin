@@ -185,6 +185,7 @@ contract LiquidatorProxyV2WithExternalLiquidity is ReentrancyGuard, ParaswapTrad
                 _constants.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
+                _cache.solidHeldUpdateWithReward,
                 _cache.owedWeiToLiquidate,
                 _cache.flipMarketsForExpiration
             );

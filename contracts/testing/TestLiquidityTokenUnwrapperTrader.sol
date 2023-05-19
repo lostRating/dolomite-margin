@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { ILiquidityTokenUnwrapperTrader } from "../external/interfaces/ILiquidityTokenUnwrapperTrader.sol";
+import { ILiquidityTokenUnwrapperTraderOld } from "../external/interfaces/ILiquidityTokenUnwrapperTraderOld.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -32,7 +32,7 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTrader {
+contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld {
 
     bytes32 constant FILE = "TestLiquidityTokenUnwrapper";
 
@@ -54,6 +54,10 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTrader {
 
     function token() external view returns (address) {
         return UNDERLYING_TOKEN;
+    }
+
+    function outputMarketId() external view returns (uint256) {
+        return DOLOMITE_MARGIN.getMarketIdByTokenAddress(OUTPUT_TOKEN);
     }
 
     function isValidOutputToken(address _outputToken) external view returns (bool) {

@@ -55,37 +55,38 @@ import { LiquidityTokenUnwrapper } from './modules/LiquidityTokenUnwrapper';
 
 export class DolomiteMargin {
   public networkId: number;
-  public contracts: Contracts;
-  public api: SubgraphAPI;
-  public interest: Interest;
-  public token: Token;
-  public expiry: Expiry;
-  public chainlinkPriceOracle: ChainlinkPriceOracleV1;
-  public weth: Weth;
   public web3: Web3;
+  // Contract Wrappers
+  public arbitrumGasInfo: ArbitrumGasInfo;
   public admin: Admin;
+  public borrowPositionProxyV1: BorrowPositionProxyV1;
+  public borrowPositionProxyV2: BorrowPositionProxyV2;
+  public ammRebalancerProxyV1: AmmRebalancerProxyV1;
+  public ammRebalancerProxyV2: AmmRebalancerProxyV2;
+  public api: SubgraphAPI;
+  public chainlinkPriceOracle: ChainlinkPriceOracleV1;
+  public contracts: Contracts;
+  public depositWithdrawalProxy: DepositProxy;
+  public dolomiteAmmFactory: DolomiteAmmFactory;
+  public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
+  public expiry: Expiry;
   public getters: Getters;
-  public signedOperations: SignedOperations;
+  public interest: Interest;
   public liquidatorAssetRegistry: LiquidatorAssetRegistry;
   public liquidatorProxyV1: LiquidatorProxyV1;
   public liquidatorProxyV1WithAmm: LiquidatorProxyV1WithAmm;
   public liquidatorProxyV2WithExternalLiquidity: LiquidatorProxyV2WithExternalLiquidity;
   public liquidatorProxyV3WithLiquidityToken: LiquidatorProxyV3WithLiquidityToken;
-  public dolomiteAmmFactory: DolomiteAmmFactory;
-  public dolomiteAmmRouterProxy: DolomiteAmmRouterProxy;
-  public ammRebalancerProxyV1: AmmRebalancerProxyV1;
-  public ammRebalancerProxyV2: AmmRebalancerProxyV2;
-  public depositWithdrawalProxy: DepositProxy;
-  public transferProxy: TransferProxy;
-  public borrowPositionProxyV1: BorrowPositionProxyV1;
-  public borrowPositionProxyV2: BorrowPositionProxyV2;
-  public multiCall: MultiCall;
-  public arbitrumGasInfo: ArbitrumGasInfo;
-  public permissions: Permissions;
   public logs: Logs;
+  public multiCall: MultiCall;
   public operation: Operation;
+  public permissions: Permissions;
+  public signedOperations: SignedOperations;
   public standardActions: StandardActions;
+  public token: Token;
+  public transferProxy: TransferProxy;
   public walletLogin: WalletLogin;
+  public weth: Weth;
 
   constructor(
     provider: Provider | string,

@@ -83,7 +83,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
     )
     {}
 
-    function setMarketIdToTokenUnwrapperTraderMap(
+    function setMarketIdToTokenUnwrapperForLiquidationMap(
         uint256 _marketId,
         address _tokenUnwrapper
     ) external {
@@ -159,6 +159,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _constants.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
+                _proxyCache.solidHeldUpdateWithReward,
                 _proxyCache.owedWeiToLiquidate,
                 _proxyCache.flipMarketsForExpiration
             );

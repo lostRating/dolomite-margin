@@ -24,7 +24,7 @@ import { TestToken } from "./TestToken.sol";
 
 contract TestParaswapAugustusRouter {
 
-    TestParaswapTransferProxy TRANSFER_PROXY;
+    TestParaswapTransferProxy public TRANSFER_PROXY;
 
     constructor(address _transferProxy) public {
         TRANSFER_PROXY = TestParaswapTransferProxy(_transferProxy);

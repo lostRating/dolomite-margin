@@ -11,13 +11,8 @@ import { deployContract } from '../helpers/Deploy';
 import {
   TestLiquidityTokenUnwrapperTrader
 } from '../../build/testing_wrappers/TestLiquidityTokenUnwrapperTrader';
-import {
-  TestLiquidityTokenWrapperTrader
-} from '../../build/testing_wrappers/TestLiquidityTokenWrapperTrader';
-import * as testLiquidityTokenUnwrapperForLiquidationJson
+import * as testLiquidityTokenUnwrapperTraderJson
   from '../../build/contracts/TestLiquidityTokenUnwrapperTrader.json';
-import * as testLiquidityTokenWrapperForLiquidationJson
-  from '../../build/contracts/TestLiquidityTokenWrapperTrader.json';
 
 enum FailureType {
   None,
@@ -40,9 +35,6 @@ let token4: address;
 let testLiquidityUnwrapper: TestLiquidityTokenUnwrapperTrader;
 let tokenForUnwrapper: address;
 let outputTokenForUnwrapper: address;
-let testLiquidityWrapper: TestLiquidityTokenWrapperTrader;
-let tokenForWrapper: address;
-let outputTokenForWrapper: address;
 
 const solidNumber = new BigNumber(111);
 const liquidNumber = new BigNumber(222);
@@ -117,33 +109,18 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
 
     testLiquidityUnwrapper = await deployContract<TestLiquidityTokenUnwrapperTrader>(
       dolomiteMargin,
-      testLiquidityTokenUnwrapperForLiquidationJson,
+      testLiquidityTokenUnwrapperTraderJson,
       [token1, token2, dolomiteMargin.address],
     );
-    await dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenUnwrapperForMarketId(
+    await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.setLiquidityTokenUnwrapperForMarketId(
       market1,
       testLiquidityUnwrapper.options.address,
       { from: admin },
     );
     tokenForUnwrapper = token1;
     outputTokenForUnwrapper = token2;
-    expect(await dolomiteMargin.liquidatorAssetRegistry.getTokenUnwrapperByMarketId(market1))
+    expect(await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.getTokenUnwrapperByMarketId(market1))
       .to.equal(testLiquidityUnwrapper.options.address);
-
-    testLiquidityWrapper = await deployContract<TestLiquidityTokenWrapperTrader>(
-      dolomiteMargin,
-      testLiquidityTokenWrapperForLiquidationJson,
-      [token3, token4, dolomiteMargin.address],
-    );
-    await dolomiteMargin.liquidatorAssetRegistry.setLiquidityTokenWrapperForMarketId(
-      market3,
-      testLiquidityWrapper.options.address,
-      { from: admin },
-    );
-    tokenForWrapper = token3;
-    outputTokenForWrapper = token4;
-    expect(await dolomiteMargin.liquidatorAssetRegistry.getTokenWrapperByMarketId(market3))
-      .to.equal(testLiquidityWrapper.options.address);
 
     await mineAvgBlock();
 
@@ -152,6 +129,49 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
 
   beforeEach(async () => {
     await resetEVM(snapshotId);
+  });
+
+  describe('#getExchangeCost', () => {
+    it('should always fail', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callConstantContractFunction(
+          dolomiteMargin.contracts.liquidatorProxyV3WithLiquidityToken.methods.getExchangeCost(
+            ADDRESSES.ZERO,
+            ADDRESSES.ZERO,
+            par.toFixed(),
+            toBytesNoPadding('0x0'),
+          )
+        ),
+        'ParaswapTrader::getExchangeCost: not implemented',
+      );
+    });
+  });
+
+  describe('#setLiquidityTokenWrapperForMarketId', () => {
+    describe('Success cases', () => {
+      it('should work normally', async () => {
+        await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.setLiquidityTokenUnwrapperForMarketId(
+          market1,
+          ADDRESSES.ZERO,
+          { from: admin },
+        );
+        expect(await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.getTokenUnwrapperByMarketId(market1))
+          .to.equal(ADDRESSES.ZERO);
+      });
+    });
+
+    describe('Failure cases', () => {
+      it('should fail when admin is not the caller', async () => {
+        await expectThrow(
+          dolomiteMargin.liquidatorProxyV3WithLiquidityToken.setLiquidityTokenUnwrapperForMarketId(
+            market1,
+            testLiquidityUnwrapper.options.address,
+            { from: solidOwner },
+          ),
+          `LiquidatorProxyV3: Only owner can call <${solidOwner.toLowerCase()}>`,
+        );
+      });
+    });
   });
 
   describe('#liquidate', () => {
@@ -471,7 +491,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market2, null, FailureType.WithMessage),
-          'ParaswapTraderProxyWithBackup: TestParaswapTransferProxy: insufficient balance',
+          'ParaswapTrader: TestParaswapTransferProxy: insufficient balance',
         );
       });
 
@@ -479,7 +499,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market2, null, FailureType.Silently),
-          'ParaswapTraderProxyWithBackup: revert',
+          'ParaswapTrader: revert',
         );
       });
 
@@ -491,7 +511,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
 
         await expectThrow(
           liquidate(owedMarket, heldMarket, null, FailureType.TooLittleOutput),
-          `ParaswapTraderProxyWithBackup: insufficient output amount <1, ${owedAmount.toFixed()}>`,
+          `ParaswapTrader: insufficient output amount <1, ${owedAmount.toFixed()}>`,
         );
       });
 
@@ -499,7 +519,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         // Market2 (if held) cannot be liquidated by any contract
         await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
           market2,
-          ADDRESSES.ZERO,
+          ADDRESSES.ONE,
           { from: admin },
         );
         await setUpBasicBalances(isOverCollateralized);
@@ -782,7 +802,7 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
         // Market2 (if held) cannot be liquidated by any contract
         await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
           market2,
-          ADDRESSES.ZERO,
+          ADDRESSES.ONE,
           { from: admin },
         );
         await setUpBasicBalances(isOverCollateralized);
@@ -852,6 +872,7 @@ async function liquidate(
   let paraswapInputMarket = heldMarket;
   let isUsingUnwrapper = false;
   if (heldMarket.eq(marketForUnwrapper) && !owedMarket.eq(outputMarketForUnwrapper) && !heldMarket.eq(owedMarket)) {
+    console.log('using unwrapper!');
     isUsingUnwrapper = true;
     paraswapInputToken = outputTokenForUnwrapper;
     paraswapInputMarket = outputMarketForUnwrapper;
@@ -899,12 +920,10 @@ async function liquidate(
   // possible. This liquidation case doesn't work this way because we're testing the flow. The integration test in the
   // other repository will cover this flow better.
   // Add 10 bps to account for interest accrual
-  let paraswapTrader = ADDRESSES.ZERO;
   let paraswapCallData;
   if (isUsingUnwrapper && owedMarket.eq(outputMarketForUnwrapper)) {
     paraswapCallData = '0x';
   } else {
-    paraswapTrader = dolomiteMargin.contracts.testParaswapTrader.options.address;
     paraswapCallData = dolomiteMargin.contracts.testParaswapAugustusRouter.methods.call(
       paraswapInputToken,
       paraswapInputAmount.toFixed(0),
@@ -912,19 +931,14 @@ async function liquidate(
       paraswapOutputAmount.toFixed(0),
     ).encodeABI();
   }
-
-  const marketIdsForSellActionsPath = [];
-  const amountsForSellActionsPath = [];
-
   const txResult = await dolomiteMargin.liquidatorProxyV3WithLiquidityToken.liquidate(
     solidOwner,
     solidNumber,
     liquidOwner,
     liquidNumber,
-    marketIdsForSellActionsPath,
-    amountsForSellActionsPath,
+    owedMarket,
+    heldMarket,
     expiry,
-    paraswapTrader,
     paraswapCallData,
     { from: operator },
   );
@@ -954,9 +968,14 @@ async function expectBalances(solidBalances: (number | BigNumber)[], liquidBalan
     dolomiteMargin.getters.getAccountPar(liquidOwner, liquidNumber, market3),
     dolomiteMargin.getters.getAccountPar(liquidOwner, liquidNumber, market4),
   ]);
+  const markets = [market1, market2, market3, market4];
 
   for (let i = 0; i < solidBalances.length; i += 1) {
-    expect(bal1[i]).to.eql(solidBalances[i]);
+    try {
+      expect(bal1[i]).to.eql(solidBalances[i]);
+    } catch (e) {
+      throw new Error(`Solid balance ${markets[i]} is ${bal1[i].toFixed()} but expected ${solidBalances[i].toFixed()}`);
+    }
   }
   for (let i = 0; i < liquidBalances.length; i += 1) {
     expect(bal2[i]).to.eql(liquidBalances[i]);

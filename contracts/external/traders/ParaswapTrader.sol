@@ -52,28 +52,6 @@ contract ParaswapTrader is OnlyDolomiteMargin, IExchangeWrapper {
 
     bytes32 private constant FILE = "ParaswapTrader";
 
-    // ============ Events ============
-
-    /**
-     * @param solidAccountOwner         The liquidator's address
-     * @param heldToken                 The held token (collateral) that will be received by the liquidator
-     * @param heldDeltaWeiWithReward    The amount of `heldToken` the liquidator will receive, including the reward
-     *                                  (positive number)
-     * @param profitHeldWei             The amount of profit the liquidator will realize by performing the liquidation
-     *                                  and atomically selling off the collateral. Can be negative or positive.
-     * @param owedToken                 The debt token that will be received by the liquidator
-     * @param owedDeltaWei              The amount of `owedToken` that will be received by the liquidator (previously a
-     *                                  negative number, from taking the debt of the liquidated account)
-     */
-    event LogLiquidateWithParaswap(
-        address indexed solidAccountOwner,
-        address heldToken,
-        uint256 heldDeltaWeiWithReward,
-        Types.Wei profitHeldWei, // calculated as `heldWeiWithReward - soldHeldWeiToBreakEven`
-        address owedToken,
-        uint256 owedDeltaWei
-    );
-
     // ============ Storage ============
 
     address public PARASWAP_AUGUSTUS_ROUTER;
@@ -96,7 +74,7 @@ contract ParaswapTrader is OnlyDolomiteMargin, IExchangeWrapper {
     // ============ Public Functions ============
 
     function exchange(
-        address _tradeOriginator,
+        address /* _tradeOriginator */,
         address _receiver,
         address _makerToken,
         address _takerToken,
@@ -120,15 +98,6 @@ contract ParaswapTrader is OnlyDolomiteMargin, IExchangeWrapper {
             "insufficient output amount",
             amount,
             minAmountOutWei
-        );
-
-        emit LogLiquidateWithParaswap(
-            _tradeOriginator,
-            _takerToken,
-            _requestedFillAmount,
-            Types.Wei(true, amount - minAmountOutWei),
-            _makerToken,
-            amount
         );
 
         ERC20Lib.checkAllowanceAndApprove(_makerToken, _receiver, amount);

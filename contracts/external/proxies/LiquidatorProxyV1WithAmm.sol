@@ -150,6 +150,8 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
         constants.dolomiteMargin = DOLOMITE_MARGIN;
         constants.solidAccount = _solidAccount;
         constants.liquidAccount = _liquidAccount;
+        constants.heldMarket = _heldMarket;
+        constants.owedMarket = _owedMarket;
 
         _checkConstants(constants, _expiry);
 
@@ -328,6 +330,7 @@ contract LiquidatorProxyV1WithAmm is ReentrancyGuard, LiquidatorProxyBase {
                 _constants.heldMarket,
                 address(_constants.expiryProxy),
                 _constants.expiry,
+                _cache.solidHeldUpdateWithReward,
                 _cache.owedWeiToLiquidate,
                 _cache.flipMarketsForExpiration
             );

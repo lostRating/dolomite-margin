@@ -406,7 +406,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market2, null, FailureType.WithMessage),
-          'ParaswapTraderProxyWithBackup: TestParaswapTransferProxy: insufficient balance',
+          'ParaswapTrader: TestParaswapTransferProxy: insufficient balance',
         );
       });
 
@@ -414,7 +414,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market1, market2, null, FailureType.Silently),
-          'ParaswapTraderProxyWithBackup: revert',
+          'ParaswapTrader: revert',
         );
       });
 
@@ -426,7 +426,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
 
         await expectThrow(
           liquidate(owedMarket, heldMarket, null, FailureType.TooLittleOutput),
-          `ParaswapTraderProxyWithBackup: insufficient output amount <1, ${owedAmount.toFixed()}>`,
+          `ParaswapTrader: insufficient output amount <1, ${owedAmount.toFixed()}>`,
         );
       });
 
@@ -434,7 +434,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         // Market2 (if held) cannot be liquidated by any contract
         await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
           market2,
-          ADDRESSES.ZERO,
+          ADDRESSES.ONE,
           { from: admin },
         );
         await setUpBasicBalances(isOverCollateralized);
@@ -695,7 +695,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         // Market2 (if held) cannot be liquidated by any contract
         await dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(
           market2,
-          ADDRESSES.ZERO,
+          ADDRESSES.ONE,
           { from: admin },
         );
         await setUpBasicBalances(isOverCollateralized);
@@ -793,24 +793,20 @@ async function liquidate(
   // possible. This liquidation case doesn't work this way because we're testing the flow. The integration test in the
   // other repository will cover this flow better.
   // Add 10 bps to account for interest accrual
-  const paraswapTrader = dolomiteMargin.contracts.testParaswapTrader.options.address;
   const paraswapCallData = dolomiteMargin.contracts.testParaswapAugustusRouter.methods.call(
     heldToken,
     heldAmount.toFixed(0),
     owedToken,
     owedAmount.toFixed(0),
   ).encodeABI();
-  const marketIdsForSaleActionsPath = [heldMarket, owedMarket];
-  const amountWeisForSaleActionsPath = [heldAmount, owedAmount];
   const txResult = await dolomiteMargin.liquidatorProxyV2WithExternalLiquidity.liquidate(
     solidOwner,
     solidNumber,
     liquidOwner,
     liquidNumber,
-    marketIdsForSaleActionsPath,
-    amountWeisForSaleActionsPath,
+    owedMarket,
+    heldMarket,
     expiry,
-    paraswapTrader,
     paraswapCallData,
     { from: operator },
   );
