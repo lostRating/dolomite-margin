@@ -24,6 +24,7 @@ import TestRecyclableToken from '../build/contracts/TestRecyclableToken.json';
 import TestSimpleCallee from '../build/contracts/TestSimpleCallee.json';
 import TestUniswapV3MultiRouter from '../build/contracts/TestUniswapV3MultiRouter.json';
 import TestToken from '../build/contracts/TestToken.json';
+import TestTrader from '../build/contracts/TestTrader.json';
 import TestWETH from '../build/contracts/TestWETH.json';
 import TokenA from '../build/contracts/TokenA.json';
 import TokenB from '../build/contracts/TokenB.json';
@@ -62,6 +63,7 @@ export default {
   TestSimpleCallee,
   TestUniswapV3MultiRouter,
   TestToken,
+  TestTrader,
   TestWETH,
   TokenA,
   TokenB,
