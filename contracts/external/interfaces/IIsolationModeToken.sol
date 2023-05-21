@@ -39,4 +39,9 @@ interface IIsolationModeToken {
      * @return  True if the token converter is currently enabled for use by this contract.
      */
     function isTokenConverterTrusted(address _tokenConverter) external view returns (bool);
+
+    /**
+     * @return True if the token is an isolation mode asset, false otherwise.
+     */
+    function isIsolationAsset() external view returns (bool);
 }

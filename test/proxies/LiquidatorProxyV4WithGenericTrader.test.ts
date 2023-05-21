@@ -58,7 +58,7 @@ const defaultIsClosing = false;
 const defaultIsRecyclable = false;
 const marketIdToTokenMap = {};
 
-describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
+describe('LiquidatorProxyV4WithGenericTrader', () => {
   before(async () => {
     const r = await getDolomiteMargin();
     dolomiteMargin = r.dolomiteMargin;
@@ -268,8 +268,8 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
           [par.plus(par.times('0.05')), zero, zero],
           [zero, zero, par3.minus(liquidPar3Sold_afterLiq2.abs())],
         );
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (1 owed, 2 held): ${txResult1.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (1 owed, 2 held): ${txResult2.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (1 owed, 2 held): ${txResult1.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (1 owed, 2 held): ${txResult2.gasUsed}`);
       });
 
       it('Succeeds for many owed, one held', async () => {
@@ -293,8 +293,8 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
           ],
           [zero, zero, par.times('7.5')],
         );
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (2 owed, 1 held): ${txResult1.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (2 owed, 1 held): ${txResult2.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (2 owed, 1 held): ${txResult1.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (2 owed, 1 held): ${txResult2.gasUsed}`);
       });
 
       it('Succeeds for many owed, many held', async () => {
@@ -357,9 +357,9 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
           ],
         );
 
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (2 owed, 2 held): ${txResult1.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken liquidation gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (2 owed, 2 held): ${txResult1.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader liquidation gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
       });
 
       it('Succeeds for liquid account collateralized but in liquid status', async () => {
@@ -602,8 +602,8 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
           [par.plus(par.times('0.05')), zero, zero],
           [zero, zero, par3.minus(solidPar3ToReceive)],
         );
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (1 owed, 2 held): ${txResult1.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (1 owed, 2 held): ${txResult2.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (1 owed, 2 held): ${txResult1.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (1 owed, 2 held): ${txResult2.gasUsed}`);
       });
 
       it('Succeeds for many owed, one held', async () => {
@@ -646,8 +646,8 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
             par3.minus(par.times('157.5')),
           ],
         );
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (2 owed, 1 held): ${txResult1.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (2 owed, 1 held): ${txResult2.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (2 owed, 1 held): ${txResult1.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (2 owed, 1 held): ${txResult2.gasUsed}`);
       });
 
       it('Succeeds for many owed, many held', async () => {
@@ -699,9 +699,9 @@ describe('LiquidatorProxyV3WithExternalLiquidityToken', () => {
           ],
         );
 
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (2 owed, 2 held): ${txResult1.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
-        console.log(`\tLiquidatorProxyV3WithExternalLiquidityToken expiration gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (2 owed, 2 held): ${txResult1.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (2 owed, 2 held): ${txResult2.gasUsed}`);
+        console.log(`\tLiquidatorProxyV4WithGenericTrader expiration gas used (2 owed, 2 held): ${txResult3.gasUsed}`);
       });
 
       it('Succeeds when there is a margin premium', async () => {

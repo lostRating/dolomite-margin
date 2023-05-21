@@ -17,7 +17,9 @@ import TestIsolationModeToken from '../build/contracts/TestIsolationModeToken.js
 import TestLib from '../build/contracts/TestLib.json';
 import TestLiquidationCallback from '../build/contracts/TestLiquidationCallback.json';
 import TestLiquidityTokenUnwrapperTrader from '../build/contracts/TestLiquidityTokenUnwrapperTrader.json';
+import TestLiquidityTokenWrapperTrader from '../build/contracts/TestLiquidityTokenWrapperTrader.json';
 import TestParaswapAugustusRouter from '../build/contracts/TestParaswapAugustusRouter.json';
+import TestParaswapTrader from '../build/contracts/TestParaswapTrader.json';
 import TestPolynomialInterestSetter from '../build/contracts/TestPolynomialInterestSetter.json';
 import TestPriceOracle from '../build/contracts/TestPriceOracle.json';
 import TestRecyclableToken from '../build/contracts/TestRecyclableToken.json';
@@ -56,7 +58,9 @@ export default {
   TestLib,
   TestLiquidationCallback,
   TestLiquidityTokenUnwrapperTrader,
+  TestLiquidityTokenWrapperTrader,
   TestParaswapAugustusRouter,
+  TestParaswapTrader,
   TestPolynomialInterestSetter,
   TestPriceOracle,
   TestRecyclableToken,

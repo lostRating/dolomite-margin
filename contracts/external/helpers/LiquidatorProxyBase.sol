@@ -201,8 +201,11 @@ contract LiquidatorProxyBase is HasLiquidatorRegistry {
     internal
     view
     {
+        // panic if the developer didn't set these variables already
         assert(address(_constants.dolomiteMargin) != address(0));
+        assert(_constants.solidAccount.owner != address(0));
         assert(_constants.liquidAccount.owner != address(0));
+
         Require.that(
             _constants.owedMarket != _constants.heldMarket,
             FILE,

@@ -43,7 +43,7 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
         uint256 amountWei;
     }
 
-    struct TransferCollateralParams {
+    struct TransferCollateralParam {
         /// @dev The account number from which collateral will be transferred.
         uint256 fromAccountNumber;
         /// @dev The account number to which collateral will be transferred.
@@ -52,7 +52,7 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
         TransferAmount[] transferAmounts;
     }
 
-    struct ExpiryParams {
+    struct ExpiryParam {
         /// @dev The market ID whose expiry will be updated.
         uint256 marketId;
         /// @dev The new expiry time delta for the market. Setting this to `0` will reset the expiration.
@@ -66,18 +66,18 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
      *          `_amountWeisPath[_amountWeisPath.length - 1]` of output.
      *
      * @param _tradeAccountNumber           The account number to use for msg.sender's trade
-     * @param _marketIdPath                 The path of market IDs to use for each trade action. Length should be equal
+     * @param _marketIdsPath                The path of market IDs to use for each trade action. Length should be equal
      *                                      to `_tradersPath.length + 1`.
      * @param _amountWeisPath               The path of amounts (in wei) to use for each trade action. Length should be
      *                                      equal to `_tradersPath.length + 1`. Setting a value to `uint(-1)` will use
      *                                      the user's full balance for the trade at that part in the path. Caution must
      *                                      be taken when using this parameter for frontends that call this function.
      * @param _tradersPath                  The path of traders to use for each trade action. Length should be equal to
-     *                                      `_marketIdPath.length - 1` and `_amountWeisPath.length - 1`.
+     *                                      `_marketIdsPath.length - 1` and `_amountWeisPath.length - 1`.
      */
     function swapExactInputForOutput(
         uint256 _tradeAccountNumber,
-        uint256[] calldata _marketIdPath,
+        uint256[] calldata _marketIdsPath,
         uint256[] calldata _amountWeisPath,
         IGenericTraderProxyBase.TraderParam[] calldata _tradersPath
     )
@@ -88,14 +88,14 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
      *          their position's expiration in the same transaction.
      *
      * @param _tradeAccountNumber           The account number to use for msg.sender's trade
-     * @param _marketIdPath                 The path of market IDs to use for each trade action. Length should be equal
+     * @param _marketIdsPath                The path of market IDs to use for each trade action. Length should be equal
      *                                      to `_tradersPath.length + 1`.
      * @param _amountWeisPath               The path of amounts (in wei) to use for each trade action. Length should be
      *                                      equal to `_tradersPath.length + 1`. Setting a value to `uint(-1)` will use
      *                                      the user's full balance for the trade at that part in the path. Caution must
      *                                      be taken when using this parameter for frontends that call this function.
      * @param _tradersPath                  The path of traders to use for each trade action. Length should be equal to
-     *                                      `_marketIdPath.length - 1` and `_amountWeisPath.length - 1`.
+     *                                      `_marketIdsPath.length - 1` and `_amountWeisPath.length - 1`.
      * @param _transferCollateralParams     The parameters for transferring collateral in/out of the
      *                                      `_tradeAccountNumber` once the trades settle. One of
      *                                      `_params.fromAccountNumber` or `_params.toAccountNumber` must be equal to
@@ -104,11 +104,11 @@ contract IGenericTraderProxyV1 is IGenericTraderProxyBase {
      */
     function swapExactInputForOutputAndModifyPosition(
         uint256 _tradeAccountNumber,
-        uint256[] calldata _marketIdPath,
+        uint256[] calldata _marketIdsPath,
         uint256[] calldata _amountWeisPath,
         IGenericTraderProxyBase.TraderParam[] calldata _tradersPath,
-        TransferCollateralParams calldata _transferCollateralParams,
-        ExpiryParams calldata _expiryParams
+        TransferCollateralParam calldata _transferCollateralParams,
+        ExpiryParam calldata _expiryParams
     )
         external;
 }

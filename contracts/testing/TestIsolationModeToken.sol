@@ -28,11 +28,26 @@ contract TestIsolationModeToken is IIsolationModeToken, CustomTestToken {
 
     mapping(address => bool) private trustedTokenConverters;
 
+    constructor(
+        string memory __name,
+        string memory __symbol,
+        uint8 __decimals
+    )
+    public
+    CustomTestToken(__name, __symbol, __decimals)
+    {
+        // solium-disable-previous-line no-empty-blocks
+    }
+
     function setTokenConverterTrusted(address _tokenConverter, bool _trusted) external {
         trustedTokenConverters[_tokenConverter] = _trusted;
     }
 
     function isTokenConverterTrusted(address _tokenConverter) external view returns (bool) {
         return trustedTokenConverters[_tokenConverter];
+    }
+
+    function isIsolationAsset() external view returns (bool) {
+        return true;
     }
 }

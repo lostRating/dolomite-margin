@@ -102,22 +102,25 @@ const TestWETH = artifacts.require('TestWETH');
 // Second-Layer Contracts
 const AmmRebalancerProxyV1 = artifacts.require('AmmRebalancerProxyV1');
 const AmmRebalancerProxyV2 = artifacts.require('AmmRebalancerProxyV2');
+const BorrowPositionProxyV1 = artifacts.require('BorrowPositionProxyV1');
+const BorrowPositionProxyV2 = artifacts.require('BorrowPositionProxyV2');
 const DepositWithdrawalProxy = artifacts.require('DepositWithdrawalProxy');
 const DolomiteAmmRouterProxy = artifacts.require('DolomiteAmmRouterProxy');
 const Expiry = artifacts.require('Expiry');
+const GenericTraderProxyV1 = artifacts.require('GenericTraderProxyV1');
 const LiquidatorAssetRegistry = artifacts.require('LiquidatorAssetRegistry');
 const LiquidatorProxyV1 = artifacts.require('LiquidatorProxyV1');
 const LiquidatorProxyV1WithAmm = artifacts.require('LiquidatorProxyV1WithAmm');
 const LiquidatorProxyV2WithExternalLiquidity = artifacts.require('LiquidatorProxyV2WithExternalLiquidity');
 const LiquidatorProxyV3WithLiquidityToken = artifacts.require('LiquidatorProxyV3WithLiquidityToken');
+const LiquidatorProxyV4WithGenericTrader = artifacts.require('LiquidatorProxyV4WithGenericTrader');
+const MarginPositionRegistry = artifacts.require('MarginPositionRegistry');
 const PayableProxy = artifacts.require('PayableProxy');
 const SignedOperationProxy = artifacts.require('SignedOperationProxy');
 const TestAmmRebalancerProxy = artifacts.require('TestAmmRebalancerProxy');
 const TestUniswapAmmRebalancerProxy = artifacts.require('TestUniswapAmmRebalancerProxy');
 const TestUniswapV3MultiRouter = artifacts.require('TestUniswapV3MultiRouter');
 const TransferProxy = artifacts.require('TransferProxy');
-const BorrowPositionProxyV1 = artifacts.require('BorrowPositionProxyV1');
-const BorrowPositionProxyV2 = artifacts.require('BorrowPositionProxyV2');
 
 // Interest Setters
 const DoubleExponentInterestSetter = artifacts.require('DoubleExponentInterestSetter');
@@ -491,6 +494,25 @@ async function deploySecondLayer(deployer, network, accounts) {
     await deployer.deploy(ammRebalancerProxyV2, getNoOverwriteParams());
   }
 
+  const marginPositionRegistry = MarginPositionRegistry;
+  if (shouldOverwrite(marginPositionRegistry, network)) {
+    await deployer.deploy(marginPositionRegistry, dolomiteMargin.address);
+  } else {
+    await deployer.deploy(marginPositionRegistry, getNoOverwriteParams());
+  }
+
+  const genericTraderProxyV1 = GenericTraderProxyV1;
+  if (shouldOverwrite(genericTraderProxyV1, network)) {
+    await deployer.deploy(
+      genericTraderProxyV1,
+      Expiry.address,
+      marginPositionRegistry.address,
+      dolomiteMargin.address
+    );
+  } else {
+    await deployer.deploy(genericTraderProxyV1, getNoOverwriteParams());
+  }
+
   const payableProxy = PayableProxy;
   if (shouldOverwrite(payableProxy, network)) {
     await deployer.deploy(payableProxy, dolomiteMargin.address, getWrappedCurrencyAddress(network, TestWETH));
@@ -567,6 +589,18 @@ async function deploySecondLayer(deployer, network, accounts) {
     );
   } else {
     await deployer.deploy(liquidatorProxyV3WithLiquidityToken, getNoOverwriteParams());
+  }
+
+  const liquidatorProxyV4WithGenericTrader = LiquidatorProxyV4WithGenericTrader;
+  if (shouldOverwrite(liquidatorProxyV4WithGenericTrader, network)) {
+    await deployer.deploy(
+      liquidatorProxyV4WithGenericTrader,
+      Expiry.address,
+      dolomiteMargin.address,
+      liquidatorAssetRegistry.address,
+    );
+  } else {
+    await deployer.deploy(liquidatorProxyV4WithGenericTrader, getNoOverwriteParams());
   }
 
   const signedOperationProxy = SignedOperationProxy;

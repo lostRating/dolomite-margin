@@ -189,7 +189,7 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
                 _v3Cache.liquidAccountId,
                 _constants.solidAccount.owner,
                 _constants.liquidAccount.owner,
-                _constants.owedMarket,
+                _v3Cache.initialOutputMarket,
                 _constants.heldMarket,
                 _proxyCache.owedWeiToLiquidate,
                 _proxyCache.solidHeldUpdateWithReward
@@ -228,5 +228,4 @@ contract LiquidatorProxyV3WithLiquidityToken is LiquidatorProxyV2WithExternalLiq
             );
         }
     }
-
 }

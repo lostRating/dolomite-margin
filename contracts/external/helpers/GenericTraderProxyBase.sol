@@ -26,60 +26,62 @@ import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
 import { Events } from "../../protocol/lib/Events.sol";
+import { ExcessivelySafeCall } from "../../protocol/lib/ExcessivelySafeCall.sol";
 import { Require } from "../../protocol/lib/Require.sol";
 
 import { OnlyDolomiteMargin } from "../helpers/OnlyDolomiteMargin.sol";
 
 import { IExpiry } from "../interfaces/IExpiry.sol";
 import { IGenericTraderProxyBase } from "../interfaces/IGenericTraderProxyBase.sol";
+import { IIsolationModeToken } from "../interfaces/IIsolationModeToken.sol";
 import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry.sol";
 import { ILiquidityTokenUnwrapperTrader } from "../interfaces/ILiquidityTokenUnwrapperTrader.sol";
 import { ILiquidityTokenWrapperTrader } from "../interfaces/ILiquidityTokenWrapperTrader.sol";
 import { IMarginPositionRegistry } from "../interfaces/IMarginPositionRegistry.sol";
-import { IIsolationModeToken } from "../interfaces/IIsolationModeToken.sol";
 
 import { AccountActionLib } from "../lib/AccountActionLib.sol";
-
-import { HasLiquidatorRegistry } from "./HasLiquidatorRegistry.sol";
 
 
 /**
  * @title   GenericTraderProxyBase
  * @author  Dolomite
  *
- * @dev Proxy contract for trading assets from msg.sender
+ * @dev Base contract with validation and utilities for trading any asset from an account
  */
-contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistry {
+contract GenericTraderProxyBase is IGenericTraderProxyBase {
 
     // ============ Constants ============
 
     bytes32 private constant FILE = "GenericTraderProxyBase";
 
+    /// @dev The index of the trade account in the accounts array (for executing an operation)
+    uint256 private constant TRADE_ACCOUNT_INDEX = 0;
+
     // ============ Internal Functions ============
 
-    function _validateMarketIdPath(uint256[] memory _marketIdPath) internal pure {
+    function _validateMarketIdPath(uint256[] memory _marketIdsPath) internal pure {
         Require.that(
-            _marketIdPath.length >= 2,
+            _marketIdsPath.length >= 2,
             FILE,
             "Invalid market path length"
         );
 
         Require.that(
-            _marketIdPath[0] != _marketIdPath[_marketIdPath.length - 1],
+            _marketIdsPath[0] != _marketIdsPath[_marketIdsPath.length - 1],
             FILE,
             "Duplicate markets in path"
         );
     }
 
     function _validateAmountWeisPath(
-        uint256[] memory _marketIdPath,
+        uint256[] memory _marketIdsPath,
         uint256[] memory _amountWeisPath
     )
         internal
         pure
     {
         Require.that(
-            _marketIdPath.length == _amountWeisPath.length,
+            _marketIdsPath.length == _amountWeisPath.length,
             FILE,
             "Invalid amounts path length"
         );
@@ -96,14 +98,14 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
 
     function _validateTraderParams(
         GenericTraderProxyCache memory _cache,
-        uint256[] memory _marketIdPath,
+        uint256[] memory _marketIdsPath,
         TraderParam[] memory _traderParamsPath
     )
         internal
         view
     {
         Require.that(
-            _marketIdPath.length == _traderParamsPath.length + 1,
+            _marketIdsPath.length == _traderParamsPath.length + 1,
             FILE,
             "Invalid traders params length"
         );
@@ -111,7 +113,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
         for (uint256 i = 0; i < _traderParamsPath.length; i++) {
             _validateTraderParam(
                 _cache,
-                _marketIdPath,
+                _marketIdsPath,
                 _traderParamsPath[i],
                 /* _index = */ i // solium-disable-line indentation
             );
@@ -120,7 +122,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
 
     function _validateTraderParam(
         GenericTraderProxyCache memory _cache,
-        uint256[] memory _marketIdPath,
+        uint256[] memory _marketIdsPath,
         TraderParam memory _traderParam,
         uint256 _index
     )
@@ -134,8 +136,45 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
             _index
         );
 
-        uint256 marketId = _marketIdPath[_index];
-        uint256 nextMarketId = _marketIdPath[_index];
+        uint256 marketId = _marketIdsPath[_index];
+        uint256 nextMarketId = _marketIdsPath[_index + 1];
+        if (_isIsolationModeMarket(_cache, marketId)) {
+            // If the current market is in isolation mode, the trader type must be for isolation mode assets
+            Require.that(
+                _traderParam.traderType == TraderType.IsolationModeUnwrapper,
+                FILE,
+                "Invalid isolation mode unwrapper",
+                marketId,
+                uint8(_traderParam.traderType)
+            );
+            // The user cannot unwrap into an isolation mode asset
+            Require.that(
+                !_isIsolationModeMarket(_cache, nextMarketId),
+                FILE,
+                "Can't unwrap into isolation mode",
+                marketId,
+                nextMarketId
+            );
+        } else if (_isIsolationModeMarket(_cache, nextMarketId)) {
+            // If the next market is in isolation mode, the trader must wrap the current asset into the isolation asset.
+            Require.that(
+                _traderParam.traderType == TraderType.IsolationModeWrapper,
+                FILE,
+                "Invalid isolation mode wrapper",
+                nextMarketId,
+                uint8(_traderParam.traderType)
+            );
+        } else {
+            // If neither asset is in isolation mode, the trader type must be for non-isolation mode assets
+            Require.that(
+                _traderParam.traderType == TraderType.ExternalLiquidity
+                    || _traderParam.traderType == TraderType.InternalLiquidity,
+                FILE,
+                "Invalid trader type",
+                uint8(_traderParam.traderType)
+            );
+        }
+
         if (TraderType.IsolationModeUnwrapper == _traderParam.traderType) {
             ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(_traderParam.trader);
             address isolationModeToken = _cache.dolomiteMargin.getMarketTokenAddress(marketId);
@@ -153,11 +192,10 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 _index + 1,
                 nextMarketId
             );
-
             Require.that(
                 IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                 FILE,
-                "Unwrapper converter not enabled",
+                "Unwrapper trader not enabled",
                 _traderParam.trader,
                 marketId
             );
@@ -178,11 +216,10 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 _index + 1,
                 nextMarketId
             );
-
             Require.that(
                 IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                 FILE,
-                "Wrapper converter not enabled",
+                "Wrapper trader not enabled",
                 _traderParam.trader,
                 nextMarketId
             );
@@ -238,7 +275,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
         Account.Info[] memory accounts = new Account.Info[](
             _cache.traderAccountStartIndex + _getAccountsLengthForTraderParams(_cache, _tradersPath)
         );
-        accounts[0] = Account.Info({
+        accounts[TRADE_ACCOUNT_INDEX] = Account.Info({
             owner: _tradeAccountOwner,
             number: _tradeAccountNumber
         });
@@ -268,7 +305,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
             }
         }
 
-        // reset the trader account cursor for the actions iteration
+        // reset the trader account cursor for the actions iteration later
         _cache.traderAccountCursor = _cache.traderAccountStartIndex;
     }
 
@@ -293,9 +330,10 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
     }
 
     function _appendTraderActions(
+        Account.Info[] memory _accounts,
         Actions.ActionArgs[] memory _actions,
         GenericTraderProxyCache memory _cache,
-        uint256[] memory _marketIdPath,
+        uint256[] memory _marketIdsPath,
         uint256[] memory _amountWeisPath,
         TraderParam[] memory _tradersPath,
         uint256 _traderActionsLength
@@ -303,12 +341,15 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
         internal
         view
     {
+        // Panic if the developer didn't reset the trader account cursor
+        assert(_cache.traderAccountCursor == _cache.traderAccountStartIndex);
+
         for (uint256 i = 0; i < _traderActionsLength; i++) {
             if (_tradersPath[i].traderType == TraderType.ExternalLiquidity) {
                 _actions[_cache.actionsCursor++] = AccountActionLib.encodeExternalSellAction(
-                    /* _fromAccountId = */ 0, // _tradeAccountNumber solium-disable-line indentation
-                    _marketIdPath[i],
-                    _marketIdPath[i + 1],
+                    TRADE_ACCOUNT_INDEX,
+                    _marketIdsPath[i],
+                    _marketIdsPath[i + 1],
                     _tradersPath[i].trader,
                     _amountWeisPath[i],
                     _amountWeisPath[i + 1],
@@ -316,10 +357,10 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 );
             } else if (_tradersPath[i].traderType == TraderType.InternalLiquidity) {
                 _actions[_cache.actionsCursor++] = AccountActionLib.encodeInternalTradeAction(
-                    /* _fromAccountId = */ 0, // _tradeAccountNumber solium-disable-line indentation
+                    TRADE_ACCOUNT_INDEX,
                     _cache.traderAccountCursor++,
-                    _marketIdPath[i],
-                    _marketIdPath[i + 1],
+                    _marketIdsPath[i],
+                    _marketIdsPath[i + 1],
                     _tradersPath[i].trader,
                     _amountWeisPath[i],
                     _amountWeisPath[i + 1]
@@ -327,12 +368,12 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
             } else if (_tradersPath[i].traderType == TraderType.IsolationModeUnwrapper) {
                 ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory unwrapperActions = unwrapperTrader.createActionsForUnwrapping(
-                    /* _primaryAccountId = */ 0,
-                    /* _otherAccountId = */ 0,
-                    /* _primaryAccountOwner = */ msg.sender,
-                    /* _otherAccountOwner = */ msg.sender,
-                    _marketIdPath[i + 1],
-                    _marketIdPath[i],
+                    TRADE_ACCOUNT_INDEX,
+                    TRADE_ACCOUNT_INDEX,
+                    _accounts[TRADE_ACCOUNT_INDEX].owner,
+                    _accounts[TRADE_ACCOUNT_INDEX].owner,
+                    _marketIdsPath[i + 1],
+                    _marketIdsPath[i],
                     _amountWeisPath[i + 1],
                     _amountWeisPath[i]
                 );
@@ -340,15 +381,17 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                     _actions[_cache.actionsCursor++] = unwrapperActions[j];
                 }
             } else {
+                // Panic if the developer messed up the `else` statement here
                 assert(_tradersPath[i].traderType == TraderType.IsolationModeWrapper);
+
                 ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory wrapperActions = wrapperTrader.createActionsForWrapping(
-                    /* _primaryAccountId = */ 0,
-                    /* _otherAccountId = */ 0,
-                    /* _primaryAccountOwner = */ msg.sender,
-                    /* _otherAccountOwner = */ msg.sender,
-                    _marketIdPath[i + 1],
-                    _marketIdPath[i],
+                    TRADE_ACCOUNT_INDEX,
+                    TRADE_ACCOUNT_INDEX,
+                    _accounts[TRADE_ACCOUNT_INDEX].owner,
+                    _accounts[TRADE_ACCOUNT_INDEX].owner,
+                    _marketIdsPath[i + 1],
+                    _marketIdsPath[i],
                     _amountWeisPath[i + 1],
                     _amountWeisPath[i]
                 );
@@ -357,5 +400,19 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase, HasLiquidatorRegistr
                 }
             }
         }
+    }
+
+    // ============ Private Functions ============
+
+    function _isIsolationModeMarket(
+        GenericTraderProxyCache memory _cache,
+        uint256 _marketId
+    ) private view returns (bool) {
+        (bool isSuccess, bytes memory returnData) = ExcessivelySafeCall.safeStaticCall(
+            _cache.dolomiteMargin.getMarketTokenAddress(_marketId),
+            IIsolationModeToken(address(0)).isIsolationAsset.selector,
+            bytes("")
+        );
+        return isSuccess && abi.decode(returnData, (bool));
     }
 }

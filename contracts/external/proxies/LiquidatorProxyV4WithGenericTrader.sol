@@ -42,13 +42,15 @@ import { LiquidatorProxyV2WithExternalLiquidity } from "./LiquidatorProxyV2WithE
 
 
 /**
- * @title LiquidatorProxyV4WithExternalLiquidityToken
+ * @title LiquidatorProxyV4WithGenericTrader
  * @author Dolomite
  *
  * Contract for liquidating accounts in DolomiteMargin using generic traders. This contract should presumably work with
- * any liquidation strategy due to its generic implementation.
+ * any liquidation strategy due to its generic implementation. As such, tremendous care should be taken to ensure that
+ * the `traders` array passed to the `liquidate` function is correct and will not result in any unexpected behavior
+ * for special assets like IsolationMode tokens.
  */
-contract LiquidatorProxyV4WithLiquidityToken is
+contract LiquidatorProxyV4WithGenericTrader is
     HasLiquidatorRegistry,
     LiquidatorProxyBase,
     GenericTraderProxyBase,
@@ -85,15 +87,15 @@ contract LiquidatorProxyV4WithLiquidityToken is
     function liquidate(
         Account.Info memory _solidAccount,
         Account.Info memory _liquidAccount,
-        uint256[] memory _marketIdPath,
+        uint256[] memory _marketIdsPath,
         uint256[] memory _amountWeisPath,
         TraderParam[] memory _tradersPath,
         uint256 _expiry
     )
         public
         nonReentrant
-        requireIsAssetWhitelistedForLiquidation(_marketIdPath[0])
-        requireIsAssetWhitelistedForLiquidation(_marketIdPath[_marketIdPath.length - 1])
+        requireIsAssetWhitelistedForLiquidation(_marketIdsPath[0])
+        requireIsAssetWhitelistedForLiquidation(_marketIdsPath[_marketIdsPath.length - 1])
     {
         GenericTraderProxyCache memory genericCache = GenericTraderProxyCache({
             dolomiteMargin: DOLOMITE_MARGIN,
@@ -113,17 +115,17 @@ contract LiquidatorProxyV4WithLiquidityToken is
             // unused for this function
             transferBalanceWeiBeforeOperate: Types.zeroWei()
         });
-        _validateMarketIdPath(_marketIdPath);
-        _validateAmountWeisPath(_marketIdPath, _amountWeisPath);
-        _validateTraderParams(genericCache, _marketIdPath, _tradersPath);
+        _validateMarketIdPath(_marketIdsPath);
+        _validateAmountWeisPath(_marketIdsPath, _amountWeisPath);
+        _validateTraderParams(genericCache, _marketIdsPath, _tradersPath);
 
         // put all values that will not change into a single struct
         LiquidatorProxyConstants memory constants;
         constants.dolomiteMargin = genericCache.dolomiteMargin;
         constants.solidAccount = _solidAccount;
         constants.liquidAccount = _liquidAccount;
-        constants.heldMarket = _marketIdPath[0];
-        constants.owedMarket = _marketIdPath[_marketIdPath.length - 1];
+        constants.heldMarket = _marketIdsPath[0];
+        constants.owedMarket = _marketIdsPath[_marketIdsPath.length - 1];
 
         _checkConstants(constants, _expiry);
 
@@ -156,9 +158,10 @@ contract LiquidatorProxyV4WithLiquidityToken is
         // `traderAccountCursor` index
         accounts[1] = _liquidAccount;
 
-        uint256 liquidationActionsLength = 1;
         uint256 traderActionsLength = _getActionsLengthForTraderParams(_tradersPath);
-        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](liquidationActionsLength + traderActionsLength);
+        Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](
+            /* liquidationActionsLength = */ 1 + traderActionsLength
+        );
         _appendLiquidationAction(
             actions,
             constants,
@@ -166,9 +169,10 @@ contract LiquidatorProxyV4WithLiquidityToken is
             genericCache
         );
         _appendTraderActions(
+            accounts,
             actions,
             genericCache,
-            _marketIdPath,
+            _marketIdsPath,
             _amountWeisPath,
             _tradersPath,
             traderActionsLength

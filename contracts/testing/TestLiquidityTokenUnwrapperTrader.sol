@@ -87,6 +87,12 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld 
             "Invalid input market",
             _inputMarket
         );
+        Require.that(
+            DOLOMITE_MARGIN.getMarketIdByTokenAddress(OUTPUT_TOKEN) == _outputMarket,
+            FILE,
+            "Invalid output market",
+            _outputMarket
+        );
         uint256 amountOut;
         uint256 inputPrice = DOLOMITE_MARGIN.getMarketPrice(_inputMarket).value;
         uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(_outputMarket).value;
