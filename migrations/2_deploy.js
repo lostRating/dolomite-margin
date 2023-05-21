@@ -620,9 +620,12 @@ async function deploySecondLayer(deployer, network, accounts) {
     dolomiteMargin.ownerSetGlobalOperator(BorrowPositionProxyV1.address, true),
     dolomiteMargin.ownerSetGlobalOperator(BorrowPositionProxyV2.address, true),
     dolomiteMargin.ownerSetGlobalOperator(DepositWithdrawalProxy.address, true),
+    dolomiteMargin.ownerSetGlobalOperator(GenericTraderProxyV1.address, true),
     dolomiteMargin.ownerSetGlobalOperator(LiquidatorProxyV1.address, true),
     dolomiteMargin.ownerSetGlobalOperator(LiquidatorProxyV1WithAmm.address, true),
     dolomiteMargin.ownerSetGlobalOperator(LiquidatorProxyV2WithExternalLiquidity.address, true),
+    dolomiteMargin.ownerSetGlobalOperator(LiquidatorProxyV3WithLiquidityToken.address, true),
+    dolomiteMargin.ownerSetGlobalOperator(LiquidatorProxyV4WithGenericTrader.address, true),
   ]);
 }
 

@@ -514,7 +514,7 @@ contract LiquidatorProxyBase is HasLiquidatorRegistry {
     ) private pure returns (MarketInfo memory) {
         uint len = endExclusive - beginInclusive;
         if (len == 0 || (len == 1 && markets[beginInclusive].marketId != marketId)) {
-            revert("LiquidatorProxyBase: market not found");
+            revert("LiquidatorProxyBase: Market not found");
         }
 
         uint mid = beginInclusive + len / 2;

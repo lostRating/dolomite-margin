@@ -25,7 +25,6 @@ import { IDolomiteMargin } from "../../protocol/interfaces/IDolomiteMargin.sol";
 
 import { Account } from "../../protocol/lib/Account.sol";
 import { Actions } from "../../protocol/lib/Actions.sol";
-import { Require } from "../../protocol/lib/Require.sol";
 import { Types } from "../../protocol/lib/Types.sol";
 
 import { GenericTraderProxyBase } from "../helpers/GenericTraderProxyBase.sol";
@@ -94,8 +93,6 @@ contract LiquidatorProxyV4WithGenericTrader is
     )
         public
         nonReentrant
-        requireIsAssetWhitelistedForLiquidation(_marketIdsPath[0])
-        requireIsAssetWhitelistedForLiquidation(_marketIdsPath[_marketIdsPath.length - 1])
     {
         GenericTraderProxyCache memory genericCache = GenericTraderProxyCache({
             dolomiteMargin: DOLOMITE_MARGIN,
@@ -128,6 +125,8 @@ contract LiquidatorProxyV4WithGenericTrader is
         constants.owedMarket = _marketIdsPath[_marketIdsPath.length - 1];
 
         _checkConstants(constants, _expiry);
+        _validateAssetForLiquidation(constants.heldMarket);
+        _validateAssetForLiquidation(constants.owedMarket);
 
         constants.liquidMarkets = constants.dolomiteMargin.getAccountMarketsWithBalances(constants.liquidAccount);
         constants.markets = _getMarketInfos(

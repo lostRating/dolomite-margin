@@ -17,7 +17,6 @@ import {
 } from '../../src/modules/GenericTraderProxyV1';
 import { deployContract } from '../helpers/Deploy';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
-import { setGlobalOperator } from '../helpers/DolomiteMarginHelpers';
 import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
 import { expectThrow } from '../helpers/Expect';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
@@ -82,7 +81,6 @@ describe('GenericTraderProxyV1', () => {
     traderOwner = dolomiteMargin.getDefaultAccount();
 
     await resetEVM();
-    await setGlobalOperator(dolomiteMargin, accounts, dolomiteMargin.genericTraderProxyV1.address);
     await setupMarkets();
 
     token1 = await dolomiteMargin.getters.getMarketTokenAddress(market1);

@@ -503,7 +503,7 @@ describe('LiquidatorProxyV1WithAmm', () => {
         ];
         await expectThrow(
           liquidate(market3, market2, tokenPath),
-          'LiquidatorProxyBase: market not found',
+          'LiquidatorProxyBase: Market not found',
         );
       });
 

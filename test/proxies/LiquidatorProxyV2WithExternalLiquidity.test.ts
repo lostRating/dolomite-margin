@@ -331,7 +331,7 @@ describe('LiquidatorProxyV2WithExternalLiquidity', () => {
         await setUpBasicBalances(isOverCollateralized);
         await expectThrow(
           liquidate(market3, market2),
-          'LiquidatorProxyBase: market not found',
+          'LiquidatorProxyBase: Market not found',
         );
       });
 
