@@ -22,7 +22,6 @@ pragma experimental ABIEncoderV2;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IInterestSetter } from "../../protocol/interfaces/IInterestSetter.sol";
 import { Interest } from "../../protocol/lib/Interest.sol";
-import { DolomiteMarginMath } from "../../protocol/lib/DolomiteMarginMath.sol";
 
 
 /**
@@ -61,7 +60,7 @@ contract AAVECopyCatAltCoinInterestSetter is IInterestSetter {
             });
         }
 
-       uint256 utilization = _borrowWei.mul(ONE_HUNDRED_PERCENT).div(_supplyWei);
+        uint256 utilization = _borrowWei.mul(ONE_HUNDRED_PERCENT).div(_supplyWei);
         if (utilization >= ONE_HUNDRED_PERCENT) {
             return Interest.Rate({
                 value: ONE_HUNDRED_PERCENT / SECONDS_IN_A_YEAR

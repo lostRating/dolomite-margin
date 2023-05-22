@@ -31,8 +31,7 @@ contract TestParaswapAugustusRouter {
     }
 
     /**
-     * This function is called blindly by `LiquidatorProxyV2WithExternalLiquidity` via the pass through
-     * `_paraswapCalldata` variable
+     * This function is called blindly via the pass-through `_paraswapCalldata` variable
      */
     function call(
         address tokenIn,

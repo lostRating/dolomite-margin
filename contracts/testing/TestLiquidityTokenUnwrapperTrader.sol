@@ -75,7 +75,7 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld 
         address,
         uint256 _outputMarket,
         uint256 _inputMarket,
-        uint256,
+        uint256 _minAmountOut,
         uint256 _inputAmount
     )
     external
@@ -97,6 +97,11 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld 
         uint256 inputPrice = DOLOMITE_MARGIN.getMarketPrice(_inputMarket).value;
         uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(_outputMarket).value;
         amountOut = DolomiteMarginMath.getPartial(inputPrice, _inputAmount, outputPrice);
+        Require.that(
+            amountOut >= _minAmountOut,
+            FILE,
+            "Insufficient output amount"
+        );
 
         Actions.ActionArgs[] memory actions = new Actions.ActionArgs[](ACTIONS_LENGTH);
         actions[0] = AccountActionLib.encodeExternalSellAction(

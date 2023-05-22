@@ -60,14 +60,14 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
     // ============ Internal Functions ============
 
     function _validateMarketIdPath(uint256[] memory _marketIdsPath) internal pure {
-        Require.that(
-            _marketIdsPath.length >= 2,
+        if (_marketIdsPath.length >= 2) { /* FOR COVERAGE TESTING */ }
+        Require.that(_marketIdsPath.length >= 2,
             FILE,
             "Invalid market path length"
         );
 
-        Require.that(
-            _marketIdsPath[0] != _marketIdsPath[_marketIdsPath.length - 1],
+        if (_marketIdsPath[0] != _marketIdsPath[_marketIdsPath.length - 1]) { /* FOR COVERAGE TESTING */ }
+        Require.that(_marketIdsPath[0] != _marketIdsPath[_marketIdsPath.length - 1],
             FILE,
             "Duplicate markets in path"
         );
@@ -80,15 +80,15 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         internal
         pure
     {
-        Require.that(
-            _marketIdsPath.length == _amountWeisPath.length,
+        if (_marketIdsPath.length == _amountWeisPath.length) { /* FOR COVERAGE TESTING */ }
+        Require.that(_marketIdsPath.length == _amountWeisPath.length,
             FILE,
             "Invalid amounts path length"
         );
 
         for (uint256 i = 0; i < _amountWeisPath.length; i++) {
-            Require.that(
-                _amountWeisPath[i] > 0,
+            if (_amountWeisPath[i] > 0) { /* FOR COVERAGE TESTING */ }
+            Require.that(_amountWeisPath[i] > 0,
                 FILE,
                 "Invalid amount at index",
                 i
@@ -105,8 +105,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         internal
         view
     {
-        Require.that(
-            _marketIdsPath.length == _traderParamsPath.length + 1,
+        if (_marketIdsPath.length == _traderParamsPath.length + 1) { /* FOR COVERAGE TESTING */ }
+        Require.that(_marketIdsPath.length == _traderParamsPath.length + 1,
             FILE,
             "Invalid traders params length"
         );
@@ -132,8 +132,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         internal
         view
     {
-        Require.that(
-            _traderParam.trader != address(0),
+        if (_traderParam.trader != address(0)) { /* FOR COVERAGE TESTING */ }
+        Require.that(_traderParam.trader != address(0),
             FILE,
             "Invalid trader at index",
             _index
@@ -143,8 +143,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         uint256 nextMarketId = _marketIdsPath[_index + 1];
         if (_isIsolationModeMarket(_cache, marketId)) {
             // If the current market is in isolation mode, the trader type must be for isolation mode assets
-            Require.that(
-                _traderParam.traderType == TraderType.IsolationModeUnwrapper,
+            if (_traderParam.traderType == TraderType.IsolationModeUnwrapper) { /* FOR COVERAGE TESTING */ }
+            Require.that(_traderParam.traderType == TraderType.IsolationModeUnwrapper,
                 FILE,
                 "Invalid isolation mode unwrapper",
                 marketId,
@@ -154,8 +154,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
             if (_isIsolationModeMarket(_cache, nextMarketId)) {
                 // If the user is unwrapping into an isolation mode asset, the next market must trust this trader
                 address isolationModeToken = _cache.dolomiteMargin.getMarketTokenAddress(nextMarketId);
-                Require.that(
-                    IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
+                if (IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader)) { /* FOR COVERAGE TESTING */ }
+                Require.that(IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                     FILE,
                     "Invalid unwrap sequence",
                     marketId,
@@ -164,8 +164,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
             }
         } else if (_isIsolationModeMarket(_cache, nextMarketId)) {
             // If the next market is in isolation mode, the trader must wrap the current asset into the isolation asset.
-            Require.that(
-                _traderParam.traderType == TraderType.IsolationModeWrapper,
+            if (_traderParam.traderType == TraderType.IsolationModeWrapper) { /* FOR COVERAGE TESTING */ }
+            Require.that(_traderParam.traderType == TraderType.IsolationModeWrapper,
                 FILE,
                 "Invalid isolation mode wrapper",
                 nextMarketId,
@@ -173,8 +173,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
             );
         } else {
             // If neither asset is in isolation mode, the trader type must be for non-isolation mode assets
-            Require.that(
-                _traderParam.traderType == TraderType.ExternalLiquidity
+            if (_traderParam.traderType == TraderType.ExternalLiquidity|| _traderParam.traderType == TraderType.InternalLiquidity) { /* FOR COVERAGE TESTING */ }
+            Require.that(_traderParam.traderType == TraderType.ExternalLiquidity
                     || _traderParam.traderType == TraderType.InternalLiquidity,
                 FILE,
                 "Invalid trader type",
@@ -185,22 +185,22 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         if (TraderType.IsolationModeUnwrapper == _traderParam.traderType) {
             ILiquidityTokenUnwrapperTrader unwrapperTrader = ILiquidityTokenUnwrapperTrader(_traderParam.trader);
             address isolationModeToken = _cache.dolomiteMargin.getMarketTokenAddress(marketId);
-            Require.that(
-                unwrapperTrader.token() == isolationModeToken,
+            if (unwrapperTrader.token() == isolationModeToken) { /* FOR COVERAGE TESTING */ }
+            Require.that(unwrapperTrader.token() == isolationModeToken,
                 FILE,
                 "Invalid input for unwrapper",
                 _index,
                 marketId
             );
-            Require.that(
-                unwrapperTrader.isValidOutputToken(_cache.dolomiteMargin.getMarketTokenAddress(nextMarketId)),
+            if (unwrapperTrader.isValidOutputToken(_cache.dolomiteMargin.getMarketTokenAddress(nextMarketId))) { /* FOR COVERAGE TESTING */ }
+            Require.that(unwrapperTrader.isValidOutputToken(_cache.dolomiteMargin.getMarketTokenAddress(nextMarketId)),
                 FILE,
                 "Invalid output for unwrapper",
                 _index + 1,
                 nextMarketId
             );
-            Require.that(
-                IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
+            if (IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader)) { /* FOR COVERAGE TESTING */ }
+            Require.that(IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                 FILE,
                 "Unwrapper trader not enabled",
                 _traderParam.trader,
@@ -209,22 +209,22 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         } else if (TraderType.IsolationModeWrapper == _traderParam.traderType) {
             ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_traderParam.trader);
             address isolationModeToken = _cache.dolomiteMargin.getMarketTokenAddress(nextMarketId);
-            Require.that(
-                wrapperTrader.isValidInputToken(_cache.dolomiteMargin.getMarketTokenAddress(marketId)),
+            if (wrapperTrader.isValidInputToken(_cache.dolomiteMargin.getMarketTokenAddress(marketId))) { /* FOR COVERAGE TESTING */ }
+            Require.that(wrapperTrader.isValidInputToken(_cache.dolomiteMargin.getMarketTokenAddress(marketId)),
                 FILE,
                 "Invalid input for wrapper",
                 _index,
                 marketId
             );
-            Require.that(
-                wrapperTrader.token() == isolationModeToken,
+            if (wrapperTrader.token() == isolationModeToken) { /* FOR COVERAGE TESTING */ }
+            Require.that(wrapperTrader.token() == isolationModeToken,
                 FILE,
                 "Invalid output for wrapper",
                 _index + 1,
                 nextMarketId
             );
-            Require.that(
-                IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
+            if (IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader)) { /* FOR COVERAGE TESTING */ }
+            Require.that(IIsolationModeToken(isolationModeToken).isTokenConverterTrusted(_traderParam.trader),
                 FILE,
                 "Wrapper trader not enabled",
                 _traderParam.trader,
@@ -234,8 +234,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
 
         if (TraderType.InternalLiquidity == _traderParam.traderType) {
             // The makerAccountOwner should be set if the traderType is InternalLiquidity
-            Require.that(
-                _traderParam.makerAccountIndex < _makerAccounts.length
+            if (_traderParam.makerAccountIndex < _makerAccounts.length&& _makerAccounts[_traderParam.makerAccountIndex].owner != address(0)) { /* FOR COVERAGE TESTING */ }
+            Require.that(_traderParam.makerAccountIndex < _makerAccounts.length
                     && _makerAccounts[_traderParam.makerAccountIndex].owner != address(0),
                 FILE,
                 "Invalid maker account owner",
@@ -243,8 +243,8 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
             );
         } else {
             // The makerAccountOwner and makerAccountNumber is not used if the traderType is not InternalLiquidity
-            Require.that(
-                _traderParam.makerAccountIndex == 0,
+            if (_traderParam.makerAccountIndex == 0) { /* FOR COVERAGE TESTING */ }
+            Require.that(_traderParam.makerAccountIndex == 0,
                 FILE,
                 "Invalid maker account owner",
                 _index
@@ -357,7 +357,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
                 }
             } else {
                 // Panic if the developer messed up the `else` statement here
-                assert(_tradersPath[i].traderType == TraderType.IsolationModeWrapper);
+              /*assert(_tradersPath[i].traderType == TraderType.IsolationModeWrapper);*/
 
                 ILiquidityTokenWrapperTrader wrapperTrader = ILiquidityTokenWrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory wrapperActions = wrapperTrader.createActionsForWrapping(

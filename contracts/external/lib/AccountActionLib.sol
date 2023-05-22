@@ -319,6 +319,28 @@ library AccountActionLib {
         });
     }
 
+    function encodeInternalTradeActionWithCustomData(
+        uint256 _fromAccountId,
+        uint256 _toAccountId,
+        uint256 _primaryMarketId,
+        uint256 _secondaryMarketId,
+        address _traderAddress,
+        uint256 _amountInWei,
+        bytes memory _orderData
+    ) internal pure returns (Actions.ActionArgs memory) {
+        return Actions.ActionArgs({
+            actionType : Actions.ActionType.Trade,
+            accountId : _fromAccountId,
+            // solium-disable-next-line arg-overflow
+            amount : Types.AssetAmount(true, Types.AssetDenomination.Wei, Types.AssetReference.Delta, _amountInWei),
+            primaryMarketId : _primaryMarketId,
+            secondaryMarketId : _secondaryMarketId,
+            otherAddress : _traderAddress,
+            otherAccountId : _toAccountId,
+            data : _orderData
+        });
+    }
+
     function encodeLiquidateAction(
         uint256 _solidAccountId,
         uint256 _liquidAccountId,

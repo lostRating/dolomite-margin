@@ -1,6 +1,6 @@
 import { toBytesNoPadding } from '../lib/BytesHelper';
 import { Contracts } from '../lib/Contracts';
-import { address, ContractCallOptions, Integer, TxResult } from '../types';
+import { AccountInfo, address, ContractCallOptions, Integer, TxResult } from '../types';
 
 export enum GenericTraderType {
   ExternalLiquidity = 0,
@@ -11,8 +11,7 @@ export enum GenericTraderType {
 
 export interface GenericTraderParam {
   traderType: GenericTraderType;
-  makerAccountOwner: address;
-  makerAccountNumber: Integer;
+  makerAccountIndex: number;
   trader: address;
   tradeData: string;
 }
@@ -35,8 +34,7 @@ export interface GenericExpiryParam {
 
 interface GenericTraderCalldata {
   traderType: number | string;
-  makerAccountOwner: string;
-  makerAccountNumber: number | string;
+  makerAccountIndex: number;
   trader: string;
   tradeData: (string | number[])[];
 }
@@ -71,8 +69,7 @@ export class GenericTraderProxyV1 {
   public static genericTraderParamsToCalldata(traderParams: GenericTraderParam[]): GenericTraderCalldata[] {
     return traderParams.map(traderParam => ({
       traderType: traderParam.traderType,
-      makerAccountOwner: traderParam.makerAccountOwner,
-      makerAccountNumber: traderParam.makerAccountNumber.toFixed(0),
+      makerAccountIndex: traderParam.makerAccountIndex,
       trader: traderParam.trader,
       tradeData: toBytesNoPadding(traderParam.tradeData),
     }));
@@ -110,6 +107,9 @@ export class GenericTraderProxyV1 {
    *                            amount and the last is the min output amount. The length should equal
    *                            `marketIdsPath.length`.
    * @param traderParams        The traders to be used for each action. The length should be `marketIdsPath.length - 1`.
+   * @param makerAccounts       The accounts that will be used as makers for each trade of type
+   *                            `TradeType.InternalLiquidity`. The length should be equal to the number of unique maker
+   *                            accounts needed to execute the trade with the provided `tradersPath`.
    * @param options             Additional options to be passed through to the web3 call.
    */
   public async swapExactInputForOutput(
@@ -117,6 +117,7 @@ export class GenericTraderProxyV1 {
     marketIdsPath: Integer[],
     amountWeisPath: Integer[],
     traderParams: GenericTraderParam[],
+    makerAccounts: AccountInfo[],
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
     return this.contracts.callContractFunction(
@@ -125,6 +126,7 @@ export class GenericTraderProxyV1 {
         marketIdsPath.map(marketId => marketId.toFixed(0)),
         amountWeisPath.map(amountWei => amountWei.toFixed(0)),
         GenericTraderProxyV1.genericTraderParamsToCalldata(traderParams),
+        makerAccounts,
       ),
       options,
     );
@@ -142,6 +144,9 @@ export class GenericTraderProxyV1 {
    *                                marketIdsPath.length.
    * @param traderParams            The traders to be used for each action. The length should be
    *                                `marketIdsPath.length - 1`.
+   * @param makerAccounts           The accounts that will be used as makers for each trade of type
+   *                                `TradeType.InternalLiquidity`. The length should be equal to the number of unique
+   *                                maker accounts needed to execute the trade with the provided `tradersPath`.
    * @param transferCollateralParam The transfers to be executed after the trades. The length of the amounts should be
    *                                non-zero.
    * @param expiryParam             The expirations to be executed after the trades. Expirations can only be set on
@@ -153,6 +158,7 @@ export class GenericTraderProxyV1 {
     marketIdsPath: Integer[],
     amountWeisPath: Integer[],
     traderParams: GenericTraderParam[],
+    makerAccounts: AccountInfo[],
     transferCollateralParam: GenericTransferCollateralParam,
     expiryParam: GenericExpiryParam,
     options: ContractCallOptions = {},
@@ -163,6 +169,7 @@ export class GenericTraderProxyV1 {
         marketIdsPath.map(marketId => marketId.toFixed(0)),
         amountWeisPath.map(amountWei => amountWei.toFixed(0)),
         GenericTraderProxyV1.genericTraderParamsToCalldata(traderParams),
+        makerAccounts,
         GenericTraderProxyV1.genericTransferParamToCalldata(transferCollateralParam),
         GenericTraderProxyV1.genericExpiryToCalldata(expiryParam),
       ),

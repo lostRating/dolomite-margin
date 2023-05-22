@@ -77,8 +77,8 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
     external
     view
     returns (Actions.ActionArgs[] memory) {
-        Require.that(
-            DOLOMITE_MARGIN.getMarketIdByTokenAddress(OUTPUT_TOKEN) == _outputMarket,
+        if (DOLOMITE_MARGIN.getMarketIdByTokenAddress(OUTPUT_TOKEN) == _outputMarket) { /* FOR COVERAGE TESTING */ }
+        Require.that(DOLOMITE_MARGIN.getMarketIdByTokenAddress(OUTPUT_TOKEN) == _outputMarket,
             FILE,
             "Invalid output market",
             _outputMarket
@@ -87,8 +87,8 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
         uint256 inputPrice = DOLOMITE_MARGIN.getMarketPrice(_inputMarket).value;
         uint256 outputPrice = DOLOMITE_MARGIN.getMarketPrice(_outputMarket).value;
         amountOut = DolomiteMarginMath.getPartial(inputPrice, _inputAmount, outputPrice);
-        Require.that(
-            amountOut >= _minAmountOut,
+        if (amountOut >= _minAmountOut) { /* FOR COVERAGE TESTING */ }
+        Require.that(amountOut >= _minAmountOut,
             FILE,
             "Insufficient output amount"
         );
@@ -116,8 +116,8 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
     )
     external
     returns (uint256) {
-        Require.that(
-            _makerToken == OUTPUT_TOKEN,
+        if (_makerToken == OUTPUT_TOKEN) { /* FOR COVERAGE TESTING */ }
+        Require.that(_makerToken == OUTPUT_TOKEN,
             FILE,
             "Maker token must be OUTPUT_TOKEN",
             _makerToken
@@ -138,8 +138,8 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
     external
     view
     returns (uint256) {
-        Require.that(
-            _takerToken == OUTPUT_TOKEN,
+        if (_takerToken == OUTPUT_TOKEN) { /* FOR COVERAGE TESTING */ }
+        Require.that(_takerToken == OUTPUT_TOKEN,
             FILE,
             "Taker token must be OUTPUT_TOKEN",
             _takerToken

@@ -1,6 +1,6 @@
 /*
 
-    Copyright 2020 Dolomite.
+    Copyright 2022 Dolomite.
 
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
@@ -18,18 +18,27 @@
 
 pragma solidity ^0.5.7;
 
+import { ILiquidatorAssetRegistry } from "../interfaces/ILiquidatorAssetRegistry.sol";
 
-/**
- * @title IArbitrumSys
- * @author Dolomite
- *
- * Arbitrum pre-compile for getting the latest L2 block number
- */
-interface IArbitrumSys {
 
-    /**
-    * @notice Get Arbitrum block number (distinct from L1 block number; Arbitrum genesis block has block number 0)
-    * @return block number as int
-     */
-    function arbBlockNumber() external view returns (uint);
+contract HasLiquidatorRegistry {
+
+    // ============ Constants ============
+
+    bytes32 private constant FILE = "HasLiquidatorRegistry";
+
+    // ============ Storage ============
+
+    ILiquidatorAssetRegistry public LIQUIDATOR_ASSET_REGISTRY;
+
+    // ============ Constructors ============
+
+    constructor(
+        address _liquidatorAssetRegistry
+    )
+    public
+    {
+        LIQUIDATOR_ASSET_REGISTRY = ILiquidatorAssetRegistry(_liquidatorAssetRegistry);
+    }
+
 }

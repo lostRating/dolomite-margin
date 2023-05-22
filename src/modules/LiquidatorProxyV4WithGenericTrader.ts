@@ -1,5 +1,5 @@
 import { Contracts } from '../lib/Contracts';
-import { address, ContractCallOptions, Integer, TxResult } from '../types';
+import { AccountInfo, address, ContractCallOptions, Integer, TxResult } from '../types';
 import { GenericTraderParam, GenericTraderProxyV1 } from './GenericTraderProxyV1';
 
 export class LiquidatorProxyV4WithGenericTrader {
@@ -29,6 +29,9 @@ export class LiquidatorProxyV4WithGenericTrader {
    *                          amount and the last is the min output amount. The length should equal
    *                          `marketIdsPath.length`.
    * @param tradersPath       The traders to be used for each action. The length should be `marketIdsPath.length - 1`.
+   * @param makerAccounts     The accounts that will be used as makers for each trade of type
+   *                          TradeType.InternalLiquidity. The length should be equal to the number of unique maker
+   *                          accounts needed to execute the trade with the provided `tradersPath`.
    * @param  expiry           The time at which the position expires, if this liquidation is for closing an expired
    *                          position. Else, 0.
    * @param options           Additional options to be passed through to the web3 call.
@@ -41,6 +44,7 @@ export class LiquidatorProxyV4WithGenericTrader {
     marketIdsPath: Integer[],
     amountWeisPath: Integer[],
     tradersPath: GenericTraderParam[],
+    makerAccounts: AccountInfo[],
     expiry: Integer | null,
     options: ContractCallOptions = {},
   ): Promise<TxResult> {
@@ -57,6 +61,7 @@ export class LiquidatorProxyV4WithGenericTrader {
         marketIdsPath.map(marketId => marketId.toFixed(0)),
         amountWeisPath.map(amountWei => amountWei.toFixed(0)),
         GenericTraderProxyV1.genericTraderParamsToCalldata(tradersPath),
+        makerAccounts,
         expiry ? expiry.toFixed(0) : '0',
       ),
       options,

@@ -239,18 +239,18 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         internal
         pure
     {
-        Require.that(
-            _param.transferAmounts.length > 0,
+        if (_param.transferAmounts.length > 0) { /* FOR COVERAGE TESTING */ }
+        Require.that(_param.transferAmounts.length > 0,
             FILE,
             "Invalid transfer amounts length"
         );
-        Require.that(
-            _param.fromAccountNumber != _param.toAccountNumber,
+        if (_param.fromAccountNumber != _param.toAccountNumber) { /* FOR COVERAGE TESTING */ }
+        Require.that(_param.fromAccountNumber != _param.toAccountNumber,
             FILE,
             "Cannot transfer to same account"
         );
-        Require.that(
-            _tradeAccountNumber == _param.fromAccountNumber ||  _tradeAccountNumber == _param.toAccountNumber,
+        if (_tradeAccountNumber == _param.fromAccountNumber ||  _tradeAccountNumber == _param.toAccountNumber) { /* FOR COVERAGE TESTING */ }
+        Require.that(_tradeAccountNumber == _param.fromAccountNumber ||  _tradeAccountNumber == _param.toAccountNumber,
             FILE,
             "Invalid trade account number"
         );
@@ -259,8 +259,8 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
             : _param.toAccountNumber;
 
         for (uint256 i = 0; i < _param.transferAmounts.length; i++) {
-            Require.that(
-                _param.transferAmounts[i].amountWei > 0,
+            if (_param.transferAmounts[i].amountWei > 0) { /* FOR COVERAGE TESTING */ }
+            Require.that(_param.transferAmounts[i].amountWei > 0,
                 FILE,
                 "Invalid transfer amount at index",
                 i
