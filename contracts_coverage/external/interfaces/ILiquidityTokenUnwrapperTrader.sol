@@ -28,7 +28,7 @@ import { IExchangeWrapper } from "../../protocol/interfaces/IExchangeWrapper.sol
  * @title   ILiquidityTokenUnwrapperTrader
  * @author  Dolomite
  *
- * Interface for a contract that can convert an LP token into an underlying token.
+ * Interface for a contract that can convert a wrapped/LP/isolation mode token into an underlying token.
  */
 contract ILiquidityTokenUnwrapperTrader is IExchangeWrapper {
 

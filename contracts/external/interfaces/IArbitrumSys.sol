@@ -28,8 +28,9 @@ pragma solidity ^0.5.7;
 interface IArbitrumSys {
 
     /**
-    * @notice Get Arbitrum block number (distinct from L1 block number; Arbitrum genesis block has block number 0)
-    * @return block number as int
+     * Get Arbitrum block number (distinct from L1 block number; Arbitrum genesis block has block number 0)
+     *
+     * @return block number as a uint
      */
     function arbBlockNumber() external view returns (uint);
 }

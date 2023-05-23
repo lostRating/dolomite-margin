@@ -52,7 +52,7 @@ import { SubgraphAPI } from './modules/SubgraphAPI';
 import { Token } from './modules/Token';
 import { TransferProxy } from './modules/TransferProxy';
 import { WalletLogin } from './modules/WalletLogin';
-import { Weth } from './modules/Weth';
+import { WETH } from './modules/WETH';
 import { address, DolomiteMarginOptions, EthereumAccount, Networks } from './types';
 
 export class DolomiteMargin {
@@ -90,7 +90,7 @@ export class DolomiteMargin {
   public token: Token;
   public transferProxy: TransferProxy;
   public walletLogin: WalletLogin;
-  public weth: Weth;
+  public weth: WETH;
 
   constructor(provider: Provider | string, networkId: number = Networks.ARBITRUM, options: DolomiteMarginOptions = {}) {
     let realProvider: Provider;
@@ -136,7 +136,7 @@ export class DolomiteMargin {
     this.token = new Token(this.contracts);
     this.transferProxy = new TransferProxy(this.contracts);
     this.walletLogin = new WalletLogin(this.web3, networkId);
-    this.weth = new Weth(this.contracts, this.token);
+    this.weth = new WETH(this.contracts, this.token);
 
     if (options.accounts) {
       options.accounts.forEach(a => this.loadAccount(a));

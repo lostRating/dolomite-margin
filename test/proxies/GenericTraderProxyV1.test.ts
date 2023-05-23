@@ -1698,6 +1698,26 @@ describe('GenericTraderProxyV1', () => {
         );
       });
 
+      it('should fail when the transfer account is not a trade account', async () => {
+        const transferParam: GenericTransferCollateralParam = {
+          fromAccountNumber: originalAccountNumber,
+          toAccountNumber: originalAccountNumber.plus(4),
+          transferAmounts: [defaultTransferAmount],
+        };
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+            tradeAccountNumber,
+            [market1, market2],
+            simpleAmountWeisPath,
+            [getDefaultParaswapTraderParam()],
+            [],
+            transferParam,
+            defaultExpiryParam,
+          ),
+          'GenericTraderProxyV1: Invalid trade account number',
+        );
+      });
+
       it('should fail when a transfer is is for an amount of 0', async () => {
         const transferAmount: GenericTransferCollateralAmounts = {
           marketId: market3,

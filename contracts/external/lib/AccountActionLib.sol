@@ -259,14 +259,7 @@ library AccountActionLib {
         bool _flipMarkets
     ) internal pure returns (Actions.ActionArgs memory) {
         Types.AssetAmount memory assetAmount;
-        if (_owedWeiToLiquidate == uint(-1)) {
-            assetAmount = Types.AssetAmount({
-                sign: false,
-                denomination: Types.AssetDenomination.Wei,
-                ref: Types.AssetReference.Target,
-                value: 0
-            });
-        } else if (!_flipMarkets) {
+        if (!_flipMarkets) {
             // Make the amount positive so the liquid account's owedMarket goes up (gets repaid).
             assetAmount = Types.AssetAmount({
                 sign: true,

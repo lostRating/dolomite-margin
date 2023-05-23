@@ -1,4 +1,4 @@
-import { address, Integer, INTEGERS } from '../../src';
+import { address, ADDRESSES, Integer, INTEGERS } from '../../src';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
 import { resetEVM, snapshot } from '../helpers/EVM';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
@@ -55,6 +55,15 @@ describe('LiquidatorAssetRegistry', () => {
         `OnlyDolomiteMargin: Only Dolomite owner can call <${user.toLowerCase()}>`,
       );
     });
+
+    it('should fail when not the liquidator is invalid', async () => {
+      await expectThrow(
+        dolomiteMargin.liquidatorAssetRegistry.addLiquidatorToAssetWhitelist(market1, ADDRESSES.ZERO, {
+          from: admin,
+        }),
+        'LiquidatorAssetRegistry: Invalid liquidator address',
+      );
+    });
   });
 
   describe('#ownerRemoveLiquidatorFromAssetWhitelist', () => {
@@ -104,6 +113,15 @@ describe('LiquidatorAssetRegistry', () => {
           from: user,
         }),
         `OnlyDolomiteMargin: Only Dolomite owner can call <${user.toLowerCase()}>`,
+      );
+    });
+
+    it('should fail when not the liquidator is invalid', async () => {
+      await expectThrow(
+        dolomiteMargin.liquidatorAssetRegistry.removeLiquidatorFromAssetWhitelist(market1, ADDRESSES.ZERO, {
+          from: admin,
+        }),
+        'LiquidatorAssetRegistry: Invalid liquidator address',
       );
     });
   });

@@ -23,7 +23,7 @@ pragma solidity ^0.5.7;
  * @title   ILiquidatorAssetRegistry
  * @author  Dolomite
  *
- * @notice  Interface for a registry that tracks which assets can be liquidated and by each contract
+ * Interface for a registry that tracks which assets can be liquidated and by each contract
  */
 interface ILiquidatorAssetRegistry {
 

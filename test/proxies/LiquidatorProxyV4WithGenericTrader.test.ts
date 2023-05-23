@@ -205,6 +205,46 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
     await resetEVM(snapshotId);
   });
 
+  describe('#MarginPositionRegistry', () => {
+    it('should fail when not called by a global operator', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callContractFunction(
+          dolomiteMargin.contracts.marginPositionRegistry.methods.emitMarginPositionOpen(
+            solidOwner,
+            solidNumber.toFixed(),
+            token1,
+            token2,
+            token2,
+            { deltaWei: { sign: false, value: 0 }, newPar: { sign: false, value: 0 } },
+            { deltaWei: { sign: false, value: 0 }, newPar: { sign: false, value: 0 } },
+            { deltaWei: { sign: false, value: 0 }, newPar: { sign: false, value: 0 } },
+          ),
+          { from: solidOwner },
+        ),
+        `OnlyDolomiteMargin: Only global operator can call <${solidOwner.toLowerCase()}>`
+      );
+    });
+
+    it('should fail when not called by a global operator', async () => {
+      await expectThrow(
+        dolomiteMargin.contracts.callContractFunction(
+          dolomiteMargin.contracts.marginPositionRegistry.methods.emitMarginPositionClose(
+            solidOwner,
+            solidNumber.toFixed(),
+            token1,
+            token2,
+            token2,
+            { deltaWei: { sign: false, value: 0 }, newPar: { sign: false, value: 0 } },
+            { deltaWei: { sign: false, value: 0 }, newPar: { sign: false, value: 0 } },
+            { deltaWei: { sign: false, value: 0 }, newPar: { sign: false, value: 0 } },
+          ),
+          { from: solidOwner },
+        ),
+        `OnlyDolomiteMargin: Only global operator can call <${solidOwner.toLowerCase()}>`
+      );
+    });
+  });
+
   describe('#liquidate', () => {
     const isOverCollateralized = false;
     const noExpiry = null;
@@ -246,6 +286,139 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
 
         expect(liquidMarket1Balance).to.eql(INTEGERS.ZERO);
         expect(liquidMarket2Balance).to.eql(par2.minus(amountWeisPath[0]));
+      });
+
+      it('should succeed for a simple swap when desired liquidation amount < max amount', async () => {
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar.times('2.25')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, INTEGERS.ZERO),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market4, INTEGERS.ZERO),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market5, INTEGERS.ZERO),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market6, INTEGERS.ZERO),
+        ]);
+        const marketPath = [market2, market1];
+        const amountWeisPath = [
+          par.times('52.5'), // heldAmountAdj
+          par.times('1'), // owedAmount - NOT adjusted
+        ];
+        await dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
+          solidOwner,
+          solidNumber,
+          liquidOwner,
+          liquidNumber,
+          marketPath,
+          amountWeisPath,
+          [
+            getParaswapTraderParam(
+              marketPath[0],
+              marketPath[1],
+              amountWeisPath[0],
+              amountWeisPath[0].times(price2).div(price1),
+            ),
+          ],
+          [],
+          noExpiry,
+          { from: operator },
+        );
+
+        const [solidMarket1Balance, solidMarket2Balance, liquidMarket1Balance, liquidMarket2Balance] =
+          await Promise.all([
+            dolomiteMargin.getters.getAccountWei(solidOwner, solidNumber, market1),
+            dolomiteMargin.getters.getAccountWei(solidOwner, solidNumber, market2),
+
+            dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, market1),
+            dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, market2),
+          ]);
+
+        expect(solidMarket1Balance).to.eql(par1.plus(par.times('1.05').minus(amountWeisPath[1])));
+        expect(solidMarket2Balance).to.eql(par2);
+
+        expect(liquidMarket1Balance).to.eql(par1.negated().div(2));
+        expect(liquidMarket2Balance).to.eql(par2.minus(amountWeisPath[0]));
+      });
+
+      it('should succeed when debt (adjusted) > collateral', async () => {
+        await Promise.all([
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, negPar.times('2.25')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, par2.div(2)),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market3, INTEGERS.ZERO),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market4, INTEGERS.ZERO),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market5, par.times('12.5')),
+          dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market6, INTEGERS.ZERO),
+        ]);
+
+        const marketPath1 = [market2, market1];
+        const amountWeisPath1 = [par2.div(2), INTEGERS.MAX_UINT];
+        await dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
+          solidOwner,
+          solidNumber,
+          liquidOwner,
+          liquidNumber,
+          marketPath1,
+          amountWeisPath1,
+          [
+            getParaswapTraderParam(
+              marketPath1[0],
+              marketPath1[1],
+              amountWeisPath1[0],
+              amountWeisPath1[0].times(price2).div(price1),
+            ),
+          ],
+          [],
+          noExpiry,
+          { from: operator },
+        );
+
+        // liquidAccount.balanceOfMarket2 = -1.059523809523809523
+        // 1.112499999999999999
+        const marketPath2 = [market5, market1];
+        const amountWeisPath2 = [par.times('11.125'), INTEGERS.MAX_UINT];
+        await dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
+          solidOwner,
+          solidNumber,
+          liquidOwner,
+          liquidNumber,
+          marketPath2,
+          amountWeisPath2,
+          [
+            getParaswapTraderParam(
+              marketPath2[0],
+              marketPath2[1],
+              amountWeisPath2[0],
+              amountWeisPath2[0].times(price5).div(price1),
+            ),
+          ],
+          [],
+          noExpiry,
+          { from: operator },
+        );
+
+        const [
+          solidMarket1Balance,
+          solidMarket2Balance,
+          solidMarket5Balance,
+          liquidMarket1Balance,
+          liquidMarket2Balance,
+          liquidMarket5Balance,
+        ] = await Promise.all([
+          dolomiteMargin.getters.getAccountWei(solidOwner, solidNumber, market1),
+          dolomiteMargin.getters.getAccountWei(solidOwner, solidNumber, market2),
+          dolomiteMargin.getters.getAccountWei(solidOwner, solidNumber, market5),
+
+          dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, market1),
+          dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, market2),
+          dolomiteMargin.getters.getAccountWei(liquidOwner, liquidNumber, market5),
+        ]);
+
+        // Profit = (reward_% * debt) + par1
+        // --> (0.05 * 2.25) + 2.5
+        expect(solidMarket1Balance).to.eql(par1.plus(par.times('0.1125')));
+        expect(solidMarket2Balance).to.eql(par2);
+        expect(solidMarket5Balance).to.eql(par.times('64.999999999999999991')); // rounding
+
+        expect(liquidMarket1Balance).to.eql(INTEGERS.ZERO);
+        expect(liquidMarket2Balance).to.eql(INTEGERS.ZERO);
+        expect(liquidMarket5Balance).to.eql(par.times('1.375000000000000009')); // rounding
       });
 
       it('should succeed for a simple swap using internal liquidity', async () => {
@@ -471,7 +644,9 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
 
         expect(solidMarket1Balance).to.eql(par1);
         expect(solidMarket2Balance).to.eql(par2);
-        expect(solidMarket5Balance).to.eql(par5.plus(amountWeisPath[amountWeisPath.length - 1].minus(par.times('22.5'))));
+        expect(solidMarket5Balance).to.eql(
+          par5.plus(amountWeisPath[amountWeisPath.length - 1].minus(par.times('22.5'))),
+        );
 
         expect(liquidMarket1Balance).to.eql(par1.minus(amountWeisPath[0]));
         expect(liquidMarket2Balance).to.eql(INTEGERS.ZERO);
@@ -551,7 +726,9 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         expect(solidMarket1Balance).to.eql(par1);
         expect(solidMarket2Balance).to.eql(par2);
         expect(solidMarket5Balance).to.eql(par5);
-        expect(solidMarket6Balance).to.eql(par6.plus(amountWeisPath[amountWeisPath.length - 1].minus(par.times('22.5'))));
+        expect(solidMarket6Balance).to.eql(
+          par6.plus(amountWeisPath[amountWeisPath.length - 1].minus(par.times('22.5'))),
+        );
 
         expect(liquidMarket1Balance).to.eql(par1.minus(amountWeisPath[0]));
         expect(liquidMarket2Balance).to.eql(INTEGERS.ZERO);
@@ -660,7 +837,9 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         expect(solidMarket2Balance).to.eql(par2);
         expect(solidMarket3Balance).to.eql(par3);
         expect(solidMarket5Balance).to.eql(par5);
-        expect(solidMarket6Balance).to.eql(par6.plus(amountWeisPath[amountWeisPath.length - 1].minus(par.times('22.5'))));
+        expect(solidMarket6Balance).to.eql(
+          par6.plus(amountWeisPath[amountWeisPath.length - 1].minus(par.times('22.5'))),
+        );
 
         expect(liquidMarket1Balance).to.eql(par1.minus(amountWeisPath[0]));
         expect(liquidMarket2Balance).to.eql(INTEGERS.ZERO);

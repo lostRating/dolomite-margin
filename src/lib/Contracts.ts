@@ -99,7 +99,7 @@ import { SignedOperationProxy } from '../../build/wrappers/SignedOperationProxy'
 import { SimpleFeeOwner } from '../../build/wrappers/SimpleFeeOwner';
 import { TestUniswapAmmRebalancerProxy } from '../../build/wrappers/TestUniswapAmmRebalancerProxy';
 import { TransferProxy } from '../../build/wrappers/TransferProxy';
-import { Weth } from '../../build/wrappers/Weth';
+import { WETH } from '../../build/wrappers/WETH';
 import {
   address,
   ConfirmationType,
@@ -150,7 +150,7 @@ export class Contracts {
   public simpleFeeOwner: SimpleFeeOwner;
   public testUniswapAmmRebalancer: TestUniswapAmmRebalancerProxy;
   public transferProxy: TransferProxy;
-  public weth: Weth;
+  public weth: WETH;
 
   // protected field variables
   protected provider: Provider;
@@ -226,7 +226,7 @@ export class Contracts {
       testUniswapAmmRebalancerJson.abi,
     ) as TestUniswapAmmRebalancerProxy;
     this.transferProxy = new this.web3.eth.Contract(transferProxyJson.abi) as TransferProxy;
-    this.weth = new this.web3.eth.Contract(wethJson.abi) as Weth;
+    this.weth = new this.web3.eth.Contract(wethJson.abi) as WETH;
 
     this.setProvider(provider, networkId);
     this.setDefaultAccount(this.web3.eth.defaultAccount);

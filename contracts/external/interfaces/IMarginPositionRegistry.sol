@@ -46,8 +46,8 @@ interface IMarginPositionRegistry {
      * @param marginDepositUpdate   The amount of depositToken that was deposited as collateral
      */
     event MarginPositionOpen(
-        address accountOwner,
-        uint256 accountNumber,
+        address indexed accountOwner,
+        uint256 indexed accountNumber,
         address inputToken,
         address outputToken,
         address depositToken,
@@ -69,8 +69,8 @@ interface IMarginPositionRegistry {
      * @param marginWithdrawalUpdate    The amount of withdrawalToken that was deposited as collateral
      */
     event MarginPositionClose(
-        address accountOwner,
-        uint256 accountNumber,
+        address indexed accountOwner,
+        uint256 indexed accountNumber,
         address inputToken,
         address outputToken,
         address withdrawalToken,
