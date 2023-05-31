@@ -19,28 +19,23 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { Actions } from "../../protocol/lib/Actions.sol";
-
 import { IExchangeWrapper } from "../../protocol/interfaces/IExchangeWrapper.sol";
+import { Actions } from "../../protocol/lib/Actions.sol";
 
 
 /**
- * @title   ILiquidityTokenUnwrapperTrader
+ * @title   IIsolationModeUnwrapperTraderOld
  * @author  Dolomite
  *
- * Interface for a contract that can convert a wrapped/LP/isolation mode token into an underlying token.
+ * Interface for a contract that can convert an LP token into an underlying token with an older interface that is only
+ * used with `LiquidatorProxyV3WithLiquidityToken`.
  */
-contract ILiquidityTokenUnwrapperTrader is IExchangeWrapper {
+contract IIsolationModeUnwrapperTraderForV3Liquidator is IExchangeWrapper {
 
     /**
-     * @return The liquidity token that this contract can unwrap (the input token).
+ * @return The isolation mode token that this contract can unwrap (the input token).
      */
     function token() external view returns (address);
-
-    /**
-     * @return True if the `_outputToken` is a valid output token for this contract, to be unwrapped by `token()`.
-     */
-    function isValidOutputToken(address _outputToken) external view returns (bool);
 
     /**
      * @return  The number of Actions used to unwrap the liquidity token.
@@ -65,7 +60,7 @@ contract ILiquidityTokenUnwrapperTrader is IExchangeWrapper {
      * @param _inputAmount          The amount of the `_inputMarket` that the _primaryAccountId must sell.
      * @return                      The actions that will be executed to unwrap the `_inputMarket` into `_outputMarket`.
      */
-    function createActionsForUnwrapping(
+    function createActionsForUnwrappingForLiquidation(
         uint256 _primaryAccountId,
         uint256 _otherAccountId,
         address _primaryAccountOwner,
@@ -75,7 +70,12 @@ contract ILiquidityTokenUnwrapperTrader is IExchangeWrapper {
         uint256 _minOutputAmount,
         uint256 _inputAmount
     )
-        external
-        view
-        returns (Actions.ActionArgs[] memory);
+    external
+    view
+    returns (Actions.ActionArgs[] memory);
+
+    /**
+     * @return The liquidity token that this contract can unwrap (the input token).
+     */
+    function outputMarketId() external view returns (uint256);
 }

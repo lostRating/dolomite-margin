@@ -26,7 +26,8 @@ import LiquidateOrVaporizeImpl from '../build/contracts/LiquidateOrVaporizeImpl.
 import IArbitrumGasInfo from '../build/contracts/IArbitrumGasInfo.json';
 import IERC20 from '../build/contracts/IERC20.json';
 import IInterestSetter from '../build/contracts/IInterestSetter.json';
-import ILiquidityTokenUnwrapperTrader from '../build/contracts/ILiquidityTokenUnwrapperTrader.json';
+import IIsolationModeUnwrapperTrader from '../build/contracts/IIsolationModeUnwrapperTrader.json';
+import IIsolationModeWrapperTrader from '../build/contracts/IIsolationModeWrapperTrader.json';
 import IPriceOracle from '../build/contracts/IPriceOracle.json';
 import LiquidatorAssetRegistry from '../build/contracts/LiquidatorAssetRegistry.json';
 import LiquidatorProxyV1 from '../build/contracts/LiquidatorProxyV1.json';
@@ -76,7 +77,8 @@ export default {
   IArbitrumGasInfo,
   IERC20,
   IInterestSetter,
-  ILiquidityTokenUnwrapperTrader,
+  IIsolationModeUnwrapperTrader,
+  IIsolationModeWrapperTrader,
   IPriceOracle,
   LiquidatorAssetRegistry,
   LiquidatorProxyV1,

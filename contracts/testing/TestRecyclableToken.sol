@@ -28,7 +28,7 @@ import { RecyclableTokenProxy } from "../external/proxies/RecyclableTokenProxy.s
 
 contract TestRecyclableToken is RecyclableTokenProxy, ICallee {
 
-    bytes32 internal constant FILE = "TestRecyclableTokenProxy";
+    bytes32 private constant FILE = "TestRecyclableTokenProxy";
 
     constructor (
         address dolomiteMargin,

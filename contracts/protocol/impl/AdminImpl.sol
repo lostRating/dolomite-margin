@@ -47,7 +47,7 @@ library AdminImpl {
 
     // ============ Constants ============
 
-    bytes32 constant FILE = "AdminImpl";
+    bytes32 private constant FILE = "AdminImpl";
 
     uint256 constant HEAD_POINTER = uint(-1);
 

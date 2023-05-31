@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import {ILiquidityTokenWrapperTrader} from "../external/interfaces/ILiquidityTokenWrapperTrader.sol";
+import {IIsolationModeWrapperTrader} from "../external/interfaces/IIsolationModeWrapperTrader.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -32,9 +32,9 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
+contract TestIsolationModeWrapperTrader is IIsolationModeWrapperTrader {
 
-    bytes32 constant FILE = "TestLiquidityTokenWrapper";
+    bytes32 private constant FILE = "TestIsolationModeWrapperTrader";
 
     uint256 constant public ACTIONS_LENGTH = 1;
 
@@ -72,7 +72,8 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
         uint256 _outputMarket,
         uint256 _inputMarket,
         uint256 _minAmountOut,
-        uint256 _inputAmount
+        uint256 _inputAmount,
+        bytes calldata _orderData
     )
     external
     view
@@ -101,7 +102,7 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
             address(this),
             _inputAmount,
             amountOut,
-            bytes("")
+            _orderData
         );
         return actions;
     }
@@ -124,6 +125,7 @@ contract TestLiquidityTokenWrapperTrader is ILiquidityTokenWrapperTrader {
         );
 
         (uint256 amountOut,) = abi.decode(_orderData, (uint256, bytes));
+
         TestToken(_makerToken).setBalance(address(this), amountOut);
         TestToken(_makerToken).approve(_receiver, amountOut);
         return amountOut;

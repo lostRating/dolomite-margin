@@ -19,7 +19,7 @@
 pragma solidity ^0.5.7;
 pragma experimental ABIEncoderV2;
 
-import { ILiquidityTokenUnwrapperTraderOld } from "../external/interfaces/ILiquidityTokenUnwrapperTraderOld.sol";
+import { IIsolationModeUnwrapperTrader } from "../external/interfaces/IIsolationModeUnwrapperTrader.sol";
 
 import { AccountActionLib } from "../external/lib/AccountActionLib.sol";
 
@@ -32,9 +32,9 @@ import { IDolomiteMargin } from "../protocol/interfaces/IDolomiteMargin.sol";
 import { TestToken } from "./TestToken.sol";
 
 
-contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld {
+contract TestIsolationModeUnwrapperTrader is IIsolationModeUnwrapperTrader {
 
-    bytes32 constant FILE = "TestLiquidityTokenUnwrapper";
+    bytes32 private constant FILE = "TestIsolationModeUnwrapperTrader";
 
     uint256 constant public ACTIONS_LENGTH = 1;
 
@@ -76,7 +76,8 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld 
         uint256 _outputMarket,
         uint256 _inputMarket,
         uint256 _minAmountOut,
-        uint256 _inputAmount
+        uint256 _inputAmount,
+        bytes calldata _orderData
     )
     external
     view
@@ -111,7 +112,7 @@ contract TestLiquidityTokenUnwrapperTrader is ILiquidityTokenUnwrapperTraderOld 
             address(this),
             _inputAmount,
             amountOut,
-            bytes("")
+            _orderData
         );
         return actions;
     }

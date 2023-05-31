@@ -80,7 +80,7 @@ contract RecyclableTokenProxy is IERC20Detailed, IRecyclable, OnlyDolomiteMargin
 
     // ============ Constants ============
 
-    bytes32 internal constant FILE = "RecyclableTokenProxy";
+    bytes32 private constant FILE = "RecyclableTokenProxy";
 
     // ============ Public Variables ============
 
