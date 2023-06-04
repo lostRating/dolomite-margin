@@ -177,9 +177,9 @@ contract TestIsolationModeUnwrapperTrader is IIsolationModeUnwrapperTrader, ICal
     // ========================= Public Functions =========================
 
     function callFunction(
-        address sender,
-        Account.Info memory accountInfo,
-        bytes memory data
+        address /* _sender */,
+        Account.Info memory,
+        bytes memory _data
     )
     public {
         Require.that(
@@ -189,7 +189,7 @@ contract TestIsolationModeUnwrapperTrader is IIsolationModeUnwrapperTrader, ICal
             msg.sender
         );
         Require.that(
-            data.length == 0,
+            _data.length == 0,
             FILE,
             "callFunction should be noop"
         );
