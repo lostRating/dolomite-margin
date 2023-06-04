@@ -33,7 +33,7 @@ import { IExchangeWrapper } from "../../protocol/interfaces/IExchangeWrapper.sol
 contract IIsolationModeWrapperTrader is IExchangeWrapper {
 
     /**
-     * @return The liquidity token that this contract can wrap
+     * @return The isolation mode token that this contract can wrap (the output token)
      */
     function token() external view returns (address);
 
@@ -43,8 +43,7 @@ contract IIsolationModeWrapperTrader is IExchangeWrapper {
     function isValidInputToken(address _inputToken) external view returns (bool);
 
     /**
-     * @return  The number of Actions used to wrap the LP token into `outputMarketId`. If `owedMarketId` equals
-     *          `outputMarketId`, there is no need to chain additional actions on, since the debt will be paid off.
+     * @return  The number of Actions used to wrap a valid input token into the this wrapper's Isolation Mode token.
      */
     function actionsLength() external pure returns (uint256);
 
