@@ -814,8 +814,8 @@
     "LiquidatorProxyV4WithGenericTrader": {
         "42161": {
             "links": {},
-            "address": "0xe409A91de00A8CEc8432e10E6b4cAd63383A8eA6",
-            "transactionHash": "0x430c9fa66e07bdb1ab4e03ed91266f4c3f058d6f2d2639dcac95893aa9600732"
+            "address": "0xac66E962A1C52B8a3B32AF432a60fFDBc99ebD0b",
+            "transactionHash": "0x9affadb1e77b8eda3adfb6ca2add356b754d7c0963c8d0943e83259cbba49bad"
         }
     }
 }
