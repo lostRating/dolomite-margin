@@ -177,9 +177,9 @@ contract TestIsolationModeUnwrapperTrader is IIsolationModeUnwrapperTrader, ICal
     // ========================= Public Functions =========================
 
     function callFunction(
-        address sender,
-        Account.Info memory accountInfo,
-        bytes memory data
+        address /* _sender */,
+        Account.Info memory,
+        bytes memory _data
     )
     public {
         if (msg.sender == address(DOLOMITE_MARGIN)) { /* FOR COVERAGE TESTING */ }
@@ -188,8 +188,8 @@ contract TestIsolationModeUnwrapperTrader is IIsolationModeUnwrapperTrader, ICal
             "Invalid caller",
             msg.sender
         );
-        if (data.length == 0) { /* FOR COVERAGE TESTING */ }
-        Require.that(data.length == 0,
+        if (_data.length == 0) { /* FOR COVERAGE TESTING */ }
+        Require.that(_data.length == 0,
             FILE,
             "callFunction should be noop"
         );
