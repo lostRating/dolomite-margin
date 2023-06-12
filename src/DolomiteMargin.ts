@@ -95,7 +95,7 @@ export class DolomiteMargin {
   public walletLogin: WalletLogin;
   public weth: WETH;
 
-  constructor(provider: Provider | string, networkId: number = Networks.ARBITRUM, options: DolomiteMarginOptions = {}) {
+  constructor(provider: Provider | string, networkId: number = Networks.ARBITRUM_ONE, options: DolomiteMarginOptions = {}) {
     let realProvider: Provider;
     if (typeof provider === 'string') {
       realProvider = new Web3.providers.HttpProvider(provider, options.ethereumNodeTimeout || 10000);
