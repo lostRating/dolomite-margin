@@ -37,7 +37,7 @@ async function deploy(): Promise<void> {
         dolomiteMargin.address,
       ],
     }),
-    { confirmationType: ConfirmationType.Confirmed, gas: '60000000', gasPrice: '100000000', from: deployer },
+    { confirmationType: ConfirmationType.Confirmed, gas: '60000000', gasPrice: '10000000000', from: deployer },
   );
 
   console.log(`Deployed ${contractName} to ${txResult.contractAddress}`);
