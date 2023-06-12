@@ -184,10 +184,6 @@ contract LiquidatorProxyV4WithGenericTrader is
         genericCache.dolomiteMargin.operate(accounts, actions);
     }
 
-    function otherAccountIndex() public pure returns (uint256) {
-        return 1;
-    }
-
     // ============ Internal Functions ============
 
     function _validateAmountForFirstIndex(
@@ -238,5 +234,9 @@ contract LiquidatorProxyV4WithGenericTrader is
                 _liquidatorCache.owedWeiToLiquidate
             );
         }
+    }
+
+    function _otherAccountIndex() internal pure returns (uint256) {
+        return 1;
     }
 }

@@ -227,11 +227,126 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         );
     }
 
-    function otherAccountIndex() public pure returns (uint256) {
-        return 0;
+    // ============ Internal Functions ============
+
+    function _logEvents(
+        GenericTraderProxyCache memory _cache,
+        Account.Info memory _tradeAccount,
+        uint256[] memory _marketIdsPath,
+        TransferCollateralParam memory _param
+    ) internal {
+        Events.BalanceUpdate memory inputBalanceUpdate;
+        // solium-disable indentation
+        {
+            Types.Wei memory inputBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
+                _tradeAccount,
+                /* _inputToken = */ _marketIdsPath[0]
+            );
+            inputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei: inputBalanceWeiAfter.sub(_cache.inputBalanceWeiBeforeOperate),
+                newPar: _cache.dolomiteMargin.getAccountPar(_tradeAccount, _marketIdsPath[0])
+            });
+        }
+        // solium-enable indentation
+
+        Events.BalanceUpdate memory outputBalanceUpdate;
+        // solium-disable indentation
+        {
+            Types.Wei memory outputBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
+                _tradeAccount,
+                /* _outputToken = */ _marketIdsPath[_marketIdsPath.length - 1]
+            );
+            outputBalanceUpdate = Events.BalanceUpdate({
+                deltaWei: outputBalanceWeiAfter.sub(_cache.outputBalanceWeiBeforeOperate),
+                newPar: _cache.dolomiteMargin.getAccountPar(_tradeAccount, _marketIdsPath[_marketIdsPath.length - 1])
+            });
+        }
+        // solium-enable indentation
+
+        Events.BalanceUpdate memory marginBalanceUpdate;
+        // solium-disable indentation
+        {
+            Types.Wei memory marginBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
+                _tradeAccount,
+                /* _transferToken = */_param.transferAmounts[0].marketId
+            );
+            marginBalanceUpdate = Events.BalanceUpdate({
+                deltaWei: marginBalanceWeiAfter.sub(_cache.transferBalanceWeiBeforeOperate),
+                newPar: _cache.dolomiteMargin.getAccountPar(
+                _tradeAccount,
+                _param.transferAmounts[0].marketId
+            )
+            });
+        }
+        // solium-enable indentation
+
+        if (_cache.isMarginDeposit) {
+            MARGIN_POSITION_REGISTRY.emitMarginPositionOpen(
+                _tradeAccount.owner,
+                _tradeAccount.number,
+                /* _inputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[0]),
+                /* _outputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[_marketIdsPath.length - 1]),
+                /* _depositToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_param.transferAmounts[0].marketId),
+                inputBalanceUpdate,
+                outputBalanceUpdate,
+                marginBalanceUpdate
+            );
+        } else {
+            MARGIN_POSITION_REGISTRY.emitMarginPositionClose(
+                _tradeAccount.owner,
+                _tradeAccount.number,
+                /* _inputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[0]),
+                /* _outputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[_marketIdsPath.length - 1]),
+                /* _withdrawalToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_param.transferAmounts[0].marketId),
+                inputBalanceUpdate,
+                outputBalanceUpdate,
+                marginBalanceUpdate
+            );
+        }
     }
 
-    // ============ Internal Functions ============
+    function _appendExpiryActions(
+        Actions.ActionArgs[] memory _actions,
+        GenericTraderProxyCache memory _cache,
+        ExpiryParam memory _param,
+        Account.Info memory _tradeAccount
+    )
+    internal
+    view
+    {
+        if (_param.expiryTimeDelta == 0) {
+            // Don't append it if there's no expiry
+            return;
+        }
+
+        _actions[_cache.actionsCursor++] = AccountActionLib.encodeExpirationAction(
+            _tradeAccount,
+            /* _accountId = */ 0, // solium-disable-line indentation
+            _param.marketId,
+            address(EXPIRY),
+            _param.expiryTimeDelta
+        );
+    }
+
+    function _snapshotBalancesInCache(
+        GenericTraderProxyCache memory _cache,
+        Account.Info memory _tradeAccount,
+        uint256[] memory _marketIdsPath,
+        TransferCollateralParam memory _param
+    ) internal view {
+        _cache.inputBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
+            _tradeAccount,
+            _marketIdsPath[0]
+        );
+        _cache.outputBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
+            _tradeAccount,
+            _marketIdsPath[_marketIdsPath.length - 1]
+        );
+        _cache.transferBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
+            _tradeAccount,
+            _param.transferAmounts[0].marketId
+        );
+    }
 
     function _validateTransferParams(
         GenericTraderProxyCache memory _cache,
@@ -321,122 +436,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         }
     }
 
-    function _appendExpiryActions(
-        Actions.ActionArgs[] memory _actions,
-        GenericTraderProxyCache memory _cache,
-        ExpiryParam memory _param,
-        Account.Info memory _tradeAccount
-    )
-        internal
-        view
-    {
-        if (_param.expiryTimeDelta == 0) {
-            // Don't append it if there's no expiry
-            return;
-        }
-
-        _actions[_cache.actionsCursor++] = AccountActionLib.encodeExpirationAction(
-            _tradeAccount,
-            /* _accountId = */ 0, // solium-disable-line indentation
-            _param.marketId,
-            address(EXPIRY),
-            _param.expiryTimeDelta
-        );
-    }
-
-    function _snapshotBalancesInCache(
-        GenericTraderProxyCache memory _cache,
-        Account.Info memory _tradeAccount,
-        uint256[] memory _marketIdsPath,
-        TransferCollateralParam memory _param
-    ) internal view {
-        _cache.inputBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
-            _tradeAccount,
-            _marketIdsPath[0]
-        );
-        _cache.outputBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
-            _tradeAccount,
-            _marketIdsPath[_marketIdsPath.length - 1]
-        );
-        _cache.transferBalanceWeiBeforeOperate = _cache.dolomiteMargin.getAccountWei(
-            _tradeAccount,
-            _param.transferAmounts[0].marketId
-        );
-    }
-
-    function _logEvents(
-        GenericTraderProxyCache memory _cache,
-        Account.Info memory _tradeAccount,
-        uint256[] memory _marketIdsPath,
-        TransferCollateralParam memory _param
-    ) internal {
-        Events.BalanceUpdate memory inputBalanceUpdate;
-        // solium-disable indentation
-        {
-            Types.Wei memory inputBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
-                _tradeAccount,
-                /* _inputToken = */ _marketIdsPath[0]
-            );
-            inputBalanceUpdate = Events.BalanceUpdate({
-                deltaWei: inputBalanceWeiAfter.sub(_cache.inputBalanceWeiBeforeOperate),
-                newPar: _cache.dolomiteMargin.getAccountPar(_tradeAccount, _marketIdsPath[0])
-            });
-        }
-        // solium-enable indentation
-
-        Events.BalanceUpdate memory outputBalanceUpdate;
-        // solium-disable indentation
-        {
-            Types.Wei memory outputBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
-                _tradeAccount,
-                /* _outputToken = */ _marketIdsPath[_marketIdsPath.length - 1]
-            );
-            outputBalanceUpdate = Events.BalanceUpdate({
-                deltaWei: outputBalanceWeiAfter.sub(_cache.outputBalanceWeiBeforeOperate),
-                newPar: _cache.dolomiteMargin.getAccountPar(_tradeAccount, _marketIdsPath[_marketIdsPath.length - 1])
-            });
-        }
-        // solium-enable indentation
-
-        Events.BalanceUpdate memory marginBalanceUpdate;
-        // solium-disable indentation
-        {
-            Types.Wei memory marginBalanceWeiAfter = _cache.dolomiteMargin.getAccountWei(
-                _tradeAccount,
-                /* _transferToken = */_param.transferAmounts[0].marketId
-            );
-            marginBalanceUpdate = Events.BalanceUpdate({
-                deltaWei: marginBalanceWeiAfter.sub(_cache.transferBalanceWeiBeforeOperate),
-                newPar: _cache.dolomiteMargin.getAccountPar(
-                    _tradeAccount,
-                    _param.transferAmounts[0].marketId
-                )
-            });
-        }
-        // solium-enable indentation
-
-        if (_cache.isMarginDeposit) {
-            MARGIN_POSITION_REGISTRY.emitMarginPositionOpen(
-                _tradeAccount.owner,
-                _tradeAccount.number,
-                /* _inputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[0]),
-                /* _outputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[_marketIdsPath.length - 1]),
-                /* _depositToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_param.transferAmounts[0].marketId),
-                inputBalanceUpdate,
-                outputBalanceUpdate,
-                marginBalanceUpdate
-            );
-        } else {
-            MARGIN_POSITION_REGISTRY.emitMarginPositionClose(
-                _tradeAccount.owner,
-                _tradeAccount.number,
-                /* _inputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[0]),
-                /* _outputToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_marketIdsPath[_marketIdsPath.length - 1]),
-                /* _withdrawalToken = */ _cache.dolomiteMargin.getMarketTokenAddress(_param.transferAmounts[0].marketId),
-                inputBalanceUpdate,
-                outputBalanceUpdate,
-                marginBalanceUpdate
-            );
-        }
+    function _otherAccountIndex() internal pure returns (uint256) {
+        return 0;
     }
 }

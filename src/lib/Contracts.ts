@@ -41,6 +41,7 @@ import dolomiteMarginJson from '../../build/published_contracts/DolomiteMargin.j
 import doubleExponentInterestSetterJson from '../../build/published_contracts/DoubleExponentInterestSetter.json';
 import erc20Json from '../../build/published_contracts/IERC20.json';
 import expiryJson from '../../build/published_contracts/Expiry.json';
+import expiryProxyJson from '../../build/published_contracts/ExpiryProxy.json';
 import genericTraderProxyV1Json from '../../build/published_contracts/GenericTraderProxyV1.json';
 import interestSetterJson from '../../build/published_contracts/IInterestSetter.json';
 import isolationModeUnwrapperJson from '../../build/published_contracts/IIsolationModeUnwrapperTrader.json';
@@ -79,6 +80,7 @@ import { DolomiteAmmRouterProxy } from '../../build/wrappers/DolomiteAmmRouterPr
 import { DolomiteMargin } from '../../build/wrappers/DolomiteMargin';
 import { DoubleExponentInterestSetter } from '../../build/wrappers/DoubleExponentInterestSetter';
 import { Expiry } from '../../build/wrappers/Expiry';
+import { ExpiryProxy } from '../../build/wrappers/ExpiryProxy';
 import { GenericTraderProxyV1 } from '../../build/wrappers/GenericTraderProxyV1';
 import { IArbitrumGasInfo } from '../../build/wrappers/IArbitrumGasInfo';
 import { IERC20 as ERC20 } from '../../build/wrappers/IERC20';
@@ -135,6 +137,7 @@ export class Contracts {
   public doubleExponentInterestSetter: DoubleExponentInterestSetter;
   public erc20: ERC20;
   public expiry: Expiry;
+  public expiryProxy: ExpiryProxy;
   public genericTraderProxyV1: GenericTraderProxyV1;
   public interestSetter: InterestSetter;
   public liquidatorAssetRegistry: LiquidatorAssetRegistry;
@@ -197,6 +200,7 @@ export class Contracts {
     ) as DoubleExponentInterestSetter;
     this.erc20 = new this.web3.eth.Contract(erc20Json.abi) as ERC20;
     this.expiry = new this.web3.eth.Contract(expiryJson.abi) as Expiry;
+    this.expiryProxy = new this.web3.eth.Contract(expiryProxyJson.abi) as ExpiryProxy;
     this.genericTraderProxyV1 = new this.web3.eth.Contract(genericTraderProxyV1Json.abi) as GenericTraderProxyV1;
     this.interestSetter = new this.web3.eth.Contract(interestSetterJson.abi) as InterestSetter;
     this.liquidatorAssetRegistry = new this.web3.eth.Contract(
@@ -299,6 +303,7 @@ export class Contracts {
       { contract: this.doubleExponentInterestSetter, json: doubleExponentInterestSetterJson },
       { contract: this.erc20, json: erc20Json },
       { contract: this.expiry, json: expiryJson },
+      { contract: this.expiryProxy, json: expiryProxyJson },
       { contract: this.genericTraderProxyV1, json: genericTraderProxyV1Json },
       { contract: this.interestSetter, json: interestSetterJson },
       { contract: this.liquidatorAssetRegistry, json: liquidatorAssetRegistryJson },
@@ -340,6 +345,7 @@ export class Contracts {
     this.doubleExponentInterestSetter.options.from = account;
     this.erc20.options.from = account;
     this.expiry.options.from = account;
+    this.expiryProxy.options.from = account;
     this.genericTraderProxyV1.options.from = account;
     this.interestSetter.options.from = account;
     this.liquidatorAssetRegistry.options.from = account;

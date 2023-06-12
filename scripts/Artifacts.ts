@@ -21,6 +21,7 @@ import DolomiteMargin from '../build/contracts/DolomiteMargin.json';
 import DoubleExponentInterestSetter from '../build/contracts/DoubleExponentInterestSetter.json';
 import Events from '../build/contracts/Events.json';
 import Expiry from '../build/contracts/Expiry.json';
+import ExpiryProxy from '../build/contracts/ExpiryProxy.json';
 import GenericTraderProxyV1 from '../build/contracts/GenericTraderProxyV1.json';
 import LiquidateOrVaporizeImpl from '../build/contracts/LiquidateOrVaporizeImpl.json';
 import IArbitrumGasInfo from '../build/contracts/IArbitrumGasInfo.json';
@@ -72,6 +73,7 @@ export default {
   DoubleExponentInterestSetter,
   Events,
   Expiry,
+  ExpiryProxy,
   GenericTraderProxyV1,
   LiquidateOrVaporizeImpl,
   IArbitrumGasInfo,
