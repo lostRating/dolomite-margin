@@ -1,6 +1,6 @@
-import { abi, bytecode, contractName } from '../build/contracts/ExpiryProxy.json';
+import { abi, bytecode, contractName } from '../build/contracts/GenericTraderProxyV1.json';
 import { ConfirmationType, DolomiteMargin } from '../src';
-import { ExpiryProxy } from '../build/wrappers/ExpiryProxy';
+import { GenericTraderProxyV1 } from '../build/wrappers/GenericTraderProxyV1';
 import { execSync } from 'child_process';
 import deployed from '../migrations/deployed.json';
 import { promisify } from 'es6-promisify';
@@ -27,17 +27,17 @@ async function deploy(): Promise<void> {
   const provider = truffle.networks[network].provider();
   const dolomiteMargin = new DolomiteMargin(provider, networkId);
   const deployer = (await dolomiteMargin.web3.eth.getAccounts())[0];
-  const contract = new dolomiteMargin.web3.eth.Contract(abi) as ExpiryProxy;
+  const contract = new dolomiteMargin.web3.eth.Contract(abi) as GenericTraderProxyV1;
   const txResult = await dolomiteMargin.contracts.callContractFunction(
     contract.deploy({
       data: bytecode,
       arguments: [
-        dolomiteMargin.liquidatorAssetRegistry.address,
         dolomiteMargin.expiry.address,
+        dolomiteMargin.contracts.marginPositionRegistry.options.address,
         dolomiteMargin.address,
       ],
     }),
-    { confirmationType: ConfirmationType.Confirmed, gas: '60000000', gasPrice: '10000000000', from: deployer },
+    { confirmationType: ConfirmationType.Confirmed, gas: '60000000', gasPrice: '1000000000', from: deployer },
   );
 
   console.log(`Deployed ${contractName} to ${txResult.contractAddress}`);
