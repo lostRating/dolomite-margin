@@ -307,9 +307,7 @@ contract LiquidatorProxyBase is HasLiquidatorRegistry {
         }
 
         if (_minOutputAmountWei == uint(-1)) {
-            // minOutputAmount is equal to the value at `length - 1` of the array. The amount being liquidated should
-            // always be covered by the sale of assets if the value was set to uint(-1). Setting the value to uint(-1)
-            // is analogous to saying "liquidate all"
+            // Setting the value to uint(-1) is analogous to saying "liquidate all"
             _newMinOutputAmountWei = _cache.owedWeiToLiquidate;
         } else {
             _newMinOutputAmountWei = _minOutputAmountWei;

@@ -113,7 +113,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
             // unused for this function
             otherAccountNumber: 0,
             // traders go right after the trade account and zap account
-            traderAccountStartIndex: 2,
+            traderAccountStartIndex: ZAP_ACCOUNT_ID + 1,
             actionsCursor: 0,
             // unused for this function
             inputBalanceWeiBeforeOperate: Types.zeroWei(),
@@ -188,7 +188,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
                 ? _transferCollateralParams.fromAccountNumber
                 : _transferCollateralParams.toAccountNumber,
             // traders go right after the trade account, the zap account, and the transfer account ("other account")
-            traderAccountStartIndex: 3,
+            traderAccountStartIndex: TRANSFER_ACCOUNT_ID + 1,
             actionsCursor: 0,
             inputBalanceWeiBeforeOperate: Types.zeroWei(),
             outputBalanceWeiBeforeOperate: Types.zeroWei(),

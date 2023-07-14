@@ -105,7 +105,7 @@ contract LiquidatorProxyV4WithGenericTrader is
             // unused for this function
             otherAccountNumber: 0,
             // traders go right after the liquid account ("other account")
-            traderAccountStartIndex: 2,
+            traderAccountStartIndex: LIQUID_ACCOUNT_ID + 1,
             actionsCursor: 0,
             // unused for this function
             inputBalanceWeiBeforeOperate: Types.zeroWei(),

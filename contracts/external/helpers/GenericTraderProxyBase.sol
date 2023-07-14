@@ -353,7 +353,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
         pure
         returns (uint256)
     {
-        uint256 actionsLength = 2; // start at 2 for the zap in/out of the zap account
+        uint256 actionsLength = 2; // start at 2 for the zap in/out of the zap account (2 transfer actions)
         for (uint256 i = 0; i < _tradersPath.length; i++) {
             if (TraderType.IsolationModeUnwrapper == _tradersPath[i].traderType) {
                 actionsLength += IIsolationModeUnwrapperTrader(_tradersPath[i].trader).actionsLength();
@@ -398,16 +398,30 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
                     _tradersPath[i].tradeData
                 );
             } else if (_tradersPath[i].traderType == TraderType.InternalLiquidity) {
+                (
+                    uint256 customInputAmountWei,
+                    bytes memory tradeData
+                ) = abi.decode(_tradersPath[i].tradeData, (uint256, bytes));
+                Require.that(
+                    (i == 0 && customInputAmountWei == _inputAmountWei) || i != 0,
+                    FILE,
+                    "Invalid custom input amount"
+                );
                 _actions[_cache.actionsCursor++] = AccountActionLib.encodeInternalTradeActionWithCustomData(
                     ZAP_ACCOUNT_ID,
                     /* _makerAccountId = */ _tradersPath[i].makerAccountIndex + _cache.traderAccountStartIndex,
                     _marketIdsPath[i],
                     _marketIdsPath[i + 1],
                     _tradersPath[i].trader,
-                    _getInputAmountWeiForIndex(_inputAmountWei, i),
-                    _tradersPath[i].tradeData
+                    customInputAmountWei,
+                    tradeData
                 );
             } else if (_tradersPath[i].traderType == TraderType.IsolationModeUnwrapper) {
+                Require.that(
+                    i == 0,
+                    FILE,
+                    "Unwrapper must be trader[0]"
+                );
                 IIsolationModeUnwrapperTrader unwrapperTrader = IIsolationModeUnwrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory unwrapperActions = unwrapperTrader.createActionsForUnwrapping(
                     ZAP_ACCOUNT_ID,
@@ -426,6 +440,11 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
             } else {
                 // Panic if the developer messed up the `else` statement here
                 assert(_tradersPath[i].traderType == TraderType.IsolationModeWrapper);
+                Require.that(
+                    i == _tradersPath.length - 1,
+                    FILE,
+                    "Wrapper must be the last trader"
+                );
 
                 IIsolationModeWrapperTrader wrapperTrader = IIsolationModeWrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory wrapperActions = wrapperTrader.createActionsForWrapping(

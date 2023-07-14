@@ -221,7 +221,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           ),
           { from: solidOwner },
         ),
-        `OnlyDolomiteMargin: Only global operator can call <${solidOwner.toLowerCase()}>`
+        `OnlyDolomiteMargin: Only global operator can call <${solidOwner.toLowerCase()}>`,
       );
     });
 
@@ -240,7 +240,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           ),
           { from: solidOwner },
         ),
-        `OnlyDolomiteMargin: Only global operator can call <${solidOwner.toLowerCase()}>`
+        `OnlyDolomiteMargin: Only global operator can call <${solidOwner.toLowerCase()}>`,
       );
     });
   });
@@ -265,7 +265,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[1],
           [getParaswapTraderParam(marketPath[0], marketPath[1], amountWeisPath[0], amountWeisPath[1])],
           [],
           noExpiry,
@@ -307,7 +308,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[1],
           [
             getParaswapTraderParam(
               marketPath[0],
@@ -355,7 +357,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath1,
-          amountWeisPath1,
+          amountWeisPath1[0],
+          amountWeisPath1[1],
           [
             getParaswapTraderParam(
               marketPath1[0],
@@ -379,7 +382,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath2,
-          amountWeisPath2,
+          amountWeisPath2[0],
+          amountWeisPath2[1],
           [
             getParaswapTraderParam(
               marketPath2[0],
@@ -438,8 +442,9 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath,
-          amountWeisPath,
-          [await getInternalTraderParamAsync(0, amountWeisPath[1], tradeId1)],
+          amountWeisPath[0],
+          amountWeisPath[1],
+          [await getInternalTraderParamAsync(0, amountWeisPath[0], amountWeisPath[1], tradeId1)],
           [{ owner: makerOwner, number: makerNumber1.toNumber() }],
           noExpiry,
           { from: operator },
@@ -471,7 +476,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         expect(makerMarket2Balance).to.eql(par2.plus(amountWeisPath[0]));
       });
 
-      it('should succeed when unwrapping and amounts[0] is set to sell all', async () => {
+      it('should succeed when unwrapping and inputAmountWei is set to sell all', async () => {
         await Promise.all([
           dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, INTEGERS.ZERO),
           dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, negPar.times('112.5')),
@@ -488,7 +493,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[1],
           [await getUnwrapperTraderParam()],
           [],
           noExpiry,
@@ -527,7 +533,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[1],
           [await getWrapperTraderParam()],
           [],
           noExpiry,
@@ -576,7 +583,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[1],
           [traderParam],
           [],
           noExpiry,
@@ -615,7 +623,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           path,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[2],
           [
             getParaswapTraderParam(path[0], path[1], amountWeisPath[0], amountWeisPath[1]),
             getParaswapTraderParam(path[1], path[2], amountWeisPath[1], amountWeisPath[2]),
@@ -670,11 +679,12 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [
-            await getInternalTraderParamAsync(0, amountWeisPath[1], tradeId1),
-            await getInternalTraderParamAsync(0, amountWeisPath[2], tradeId2),
-            await getInternalTraderParamAsync(1, amountWeisPath[3], tradeId3),
+            await getInternalTraderParamAsync(0, amountWeisPath[0], amountWeisPath[1], tradeId1),
+            await getInternalTraderParamAsync(0, amountWeisPath[1], amountWeisPath[2], tradeId2),
+            await getInternalTraderParamAsync(1, amountWeisPath[2], amountWeisPath[3], tradeId3),
           ],
           [
             { owner: makerOwner, number: makerNumber1.toNumber() },
@@ -755,14 +765,15 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market6, negPar.times('22.5')),
         ]);
 
-        const marketIdsPath = [market1, market2, market3, market2, market5, market6];
+        const marketIdsPath = [market2, market3, market1, market5, market6, market3, market2];
         const amountWeisPath = [
-          par.times('2.3625'),
           par.times('118.125'),
           par.times('236.25'),
+          par.times('2.3625'),
+          par.times('23.625'),
+          par.times('23.625'),
+          par.times('236.25'),
           par.times('118.125'),
-          par.times('23.625'),
-          par.times('23.625'),
         ];
         await dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
           solidOwner,
@@ -770,13 +781,14 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [
-            await getInternalTraderParamAsync(0, amountWeisPath[1], tradeId1),
-            await getWrapperTraderParam(),
             await getUnwrapperTraderParam(),
-            await getInternalTraderParamAsync(1, amountWeisPath[4], tradeId2),
-            await getParaswapTraderParam(market5, market6, amountWeisPath[4], amountWeisPath[5]),
+            await getInternalTraderParamAsync(0, amountWeisPath[1], amountWeisPath[2], tradeId1),
+            await getInternalTraderParamAsync(1, amountWeisPath[2], amountWeisPath[3], tradeId2),
+            await getParaswapTraderParam(market5, market6, amountWeisPath[3], amountWeisPath[4]),
+            await getWrapperTraderParam(),
           ],
           [
             { owner: makerOwner, number: makerNumber1.toNumber() },
@@ -870,7 +882,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -891,7 +904,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -915,7 +929,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -931,30 +946,6 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         );
       });
 
-      it('should fail when amounts do not match markets length', async () => {
-        await expectThrow(
-          dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
-            solidOwner,
-            solidNumber,
-            liquidOwner,
-            liquidNumber,
-            simpleMarketIdPath,
-            [par1],
-            [
-              getParaswapTraderParam(
-                simpleMarketIdPath[0],
-                simpleMarketIdPath[1],
-                simpleAmountWeisPath[0],
-                simpleAmountWeisPath[1],
-              ),
-            ],
-            [],
-            null,
-          ),
-          'GenericTraderProxyBase: Invalid amounts path length',
-        );
-      });
-
       it('should fail when amount at any index is 0', async () => {
         await expectThrow(
           dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
@@ -963,12 +954,13 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            [par1, INTEGERS.ZERO],
+            simpleAmountWeisPath[0],
+            INTEGERS.ZERO,
             [getParaswapTraderParam(simpleMarketIdPath[0], simpleMarketIdPath[1], par1, INTEGERS.ZERO)],
             [],
             null,
           ),
-          'GenericTraderProxyBase: Invalid amount at index <1>',
+          'GenericTraderProxyBase: Invalid minOutputAmountWei',
         );
         await expectThrow(
           dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
@@ -977,7 +969,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            [INTEGERS.ZERO, par2],
+            INTEGERS.ZERO,
+            par2,
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -989,7 +982,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             [],
             null,
           ),
-          'GenericTraderProxyBase: Invalid amount at index <0>',
+          'GenericTraderProxyBase: Invalid inputAmountWei',
         );
       });
 
@@ -1001,7 +994,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [],
             [],
             null,
@@ -1018,7 +1012,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderWithInvalidAddress],
             [],
             null,
@@ -1037,7 +1032,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderParam],
             [],
             null,
@@ -1054,7 +1050,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market3, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             null,
@@ -1071,7 +1068,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getParaswapTraderParam(market1, market4, par1, par4)],
             [],
             null,
@@ -1090,7 +1088,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             null,
@@ -1104,7 +1103,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             null,
@@ -1113,7 +1113,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         );
       });
 
-      it('should fail when amounts[0] for the unwrapper is invalid', async () => {
+      it('should fail when inputAmountWei for the unwrapper is invalid', async () => {
         await expectThrow(
           dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
             solidOwner,
@@ -1121,7 +1121,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             null,
@@ -1138,7 +1139,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market4, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             null,
@@ -1155,7 +1157,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market3, market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             null,
@@ -1173,7 +1176,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             null,
@@ -1190,7 +1194,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market3],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             null,
@@ -1207,12 +1212,51 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market2, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             null,
           ),
           `GenericTraderProxyBase: Invalid output for wrapper <1, ${market4.toFixed()}>`,
+        );
+      });
+
+      it('should fail when the unwrapper trader is not the first index', async () => {
+        await token3Contract.setTokenConverterTrusted(testIsolationModeWrapper.options.address, false);
+        await expectThrow(
+          dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
+            solidOwner,
+            solidNumber,
+            liquidOwner,
+            liquidNumber,
+            [market1, market2, market3],
+            par1,
+            par3,
+            [getParaswapTraderParam(market1, market2, par1, par2), getUnwrapperTraderParam()],
+            [],
+            null,
+          ),
+          'GenericTraderProxyBase: Unwrapper must be trader[0]',
+        );
+      });
+
+      it('should fail when the wrapper trader is not the last index', async () => {
+        await token3Contract.setTokenConverterTrusted(testIsolationModeWrapper.options.address, false);
+        await expectThrow(
+          dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
+            solidOwner,
+            solidNumber,
+            liquidOwner,
+            liquidNumber,
+            [market3, market2, market1],
+            par1,
+            par3,
+            [getWrapperTraderParam(), getParaswapTraderParam(market2, market1, par2, par1)],
+            [],
+            null,
+          ),
+          'GenericTraderProxyBase: Wrapper must be the last trader',
         );
       });
 
@@ -1225,7 +1269,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market2, market3],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             null,
@@ -1242,12 +1287,31 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market2],
-            simpleAmountWeisPath,
-            [await getInternalTraderParamAsync(0, par2, tradeId1)],
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [await getInternalTraderParamAsync(0, simpleAmountWeisPath[0], simpleAmountWeisPath[1], tradeId1)],
             [],
             null,
           ),
           'GenericTraderProxyBase: Invalid maker account owner <0>',
+        );
+      });
+
+      it('should fail when inputAmount does not match customInputAmount for index 0 and trade type is internal liquidity', async () => {
+        await expectThrow(
+          dolomiteMargin.liquidatorProxyV4WithGenericTrader.liquidate(
+            solidOwner,
+            solidNumber,
+            liquidOwner,
+            liquidNumber,
+            [market1, market2],
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [await getInternalTraderParamAsync(0, par2, simpleAmountWeisPath[1], tradeId1)],
+            [],
+            null,
+          ),
+          'GenericTraderProxyBase: Invalid custom input amount',
         );
       });
 
@@ -1261,7 +1325,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderParam],
             [],
             null,
@@ -1347,7 +1412,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [getParaswapTraderParam(marketPath[0], marketPath[1], amountWeisPath[0], amountWeisPath[1])],
           [],
           expiry,
@@ -1388,8 +1454,9 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketPath,
-          amountWeisPath,
-          [await getInternalTraderParamAsync(0, amountWeisPath[1], tradeId1)],
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
+          [await getInternalTraderParamAsync(0, amountWeisPath[0], amountWeisPath[1], tradeId1)],
           [{ owner: makerOwner, number: makerNumber1.toNumber() }],
           expiry,
           { from: operator },
@@ -1421,7 +1488,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         expect(makerMarket2Balance).to.eql(par2.plus(amountWeisPath[0]));
       });
 
-      it('should succeed when unwrapping and amounts[0] is set to sell all', async () => {
+      it('should succeed when unwrapping and inputAmountWei is set to sell all', async () => {
         await Promise.all([
           dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market1, INTEGERS.ZERO),
           dolomiteMargin.testing.setAccountBalance(liquidOwner, liquidNumber, market2, negPar.times('100')),
@@ -1439,7 +1506,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [await getUnwrapperTraderParam()],
           [],
           expiry,
@@ -1479,7 +1547,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [await getWrapperTraderParam()],
           [],
           expiry,
@@ -1529,7 +1598,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [traderParam],
           [],
           expiry,
@@ -1569,7 +1639,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           path,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [
             getParaswapTraderParam(path[0], path[1], amountWeisPath[0], amountWeisPath[1]),
             getParaswapTraderParam(path[1], path[2], amountWeisPath[1], amountWeisPath[2]),
@@ -1623,11 +1694,12 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [
-            await getInternalTraderParamAsync(0, amountWeisPath[1], tradeId1),
-            await getInternalTraderParamAsync(0, amountWeisPath[2], tradeId2),
-            await getInternalTraderParamAsync(1, amountWeisPath[3], tradeId3),
+            await getInternalTraderParamAsync(0, amountWeisPath[0], amountWeisPath[1], tradeId1),
+            await getInternalTraderParamAsync(0, amountWeisPath[1], amountWeisPath[2], tradeId2),
+            await getInternalTraderParamAsync(1, amountWeisPath[2], amountWeisPath[3], tradeId3),
           ],
           [
             { owner: makerOwner, number: makerNumber1.toNumber() },
@@ -1707,7 +1779,7 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
         ]);
 
         const expiry = await setUpExpiration(market6);
-        const marketIdsPath = [market1, market2, market3, market2, market5, market6];
+        const marketIdsPath = [market2, market3, market1, market2, market5, market6];
         const amountWeisPath = [
           par.times('2.1'),
           par.times('105'),
@@ -1722,13 +1794,14 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
           liquidOwner,
           liquidNumber,
           marketIdsPath,
-          amountWeisPath,
+          amountWeisPath[0],
+          amountWeisPath[amountWeisPath.length - 1],
           [
-            await getInternalTraderParamAsync(0, amountWeisPath[1], tradeId1),
-            await getWrapperTraderParam(),
             await getUnwrapperTraderParam(),
-            await getInternalTraderParamAsync(1, amountWeisPath[4], tradeId2),
-            await getParaswapTraderParam(market5, market6, amountWeisPath[4], amountWeisPath[5]),
+            await getInternalTraderParamAsync(0, amountWeisPath[1], amountWeisPath[2], tradeId1),
+            await getInternalTraderParamAsync(1, amountWeisPath[2], amountWeisPath[3], tradeId2),
+            await getParaswapTraderParam(market5, market6, amountWeisPath[3], amountWeisPath[4]),
+            await getWrapperTraderParam(),
           ],
           [
             { owner: makerOwner, number: makerNumber1.toNumber() },
@@ -1822,7 +1895,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -1848,7 +1922,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -1874,7 +1949,8 @@ describe('LiquidatorProxyV4WithGenericTrader', () => {
             liquidOwner,
             liquidNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [
               getParaswapTraderParam(
                 simpleMarketIdPath[0],
@@ -1922,6 +1998,7 @@ function getWrapperTraderParam(): GenericTraderParam {
 
 async function getInternalTraderParamAsync(
   makerAccountIndex: number,
+  amountIn: Integer,
   amountOut: Integer,
   tradeId: Integer,
 ): Promise<GenericTraderParam> {
@@ -1936,7 +2013,10 @@ async function getInternalTraderParamAsync(
     makerAccountIndex,
     traderType: GenericTraderType.InternalLiquidity,
     trader: dolomiteMargin.contracts.testAutoTrader.options.address,
-    tradeData: ethers.utils.defaultAbiCoder.encode(['uint256'], [tradeId.toFixed()]),
+    tradeData: ethers.utils.defaultAbiCoder.encode(
+      ['uint256', 'bytes'],
+      [amountIn.toFixed(), ethers.utils.defaultAbiCoder.encode(['uint256'], [tradeId.toFixed()])],
+    ),
   };
 }
 
@@ -2016,7 +2096,8 @@ async function liquidate(
     liquidOwner,
     liquidNumber,
     markets,
-    simpleAmountWeisPath,
+    simpleAmountWeisPath[0],
+    simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
     [
       getParaswapTraderParam(
         markets[0],
