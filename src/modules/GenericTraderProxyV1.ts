@@ -32,6 +32,11 @@ export interface GenericExpiryParam {
   expiryTimeDelta: Integer;
 }
 
+export interface GenericUserConfig {
+  deadline: number | string;
+  balanceCheckFlag: number | string;
+}
+
 interface GenericTraderCalldata {
   traderType: number | string;
   makerAccountIndex: number;
@@ -53,11 +58,6 @@ interface GenericTransferCollateralParamCalldata {
 interface GenericExpiryParamCalldata {
   marketId: number | string;
   expiryTimeDelta: number | string;
-}
-
-interface GenericUserConfig {
-  deadline: number | string;
-  balanceCheckFlag: number | string;
 }
 
 export class GenericTraderProxyV1 {

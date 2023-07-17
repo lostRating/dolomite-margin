@@ -68,12 +68,6 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
             FILE,
             "Invalid market path length"
         );
-
-        Require.that(
-            _marketIdsPath[0] != _marketIdsPath[_marketIdsPath.length - 1],
-            FILE,
-            "Duplicate markets in path"
-        );
     }
 
     function _validateAmountWeis(
@@ -394,7 +388,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
                     _marketIdsPath[i + 1],
                     _tradersPath[i].trader,
                     _getInputAmountWeiForIndex(_inputAmountWei, i),
-                    _getMinOutputAmountWeiForIndex(_minOutputAmountWei, i + 1, _tradersPath.length),
+                    _getMinOutputAmountWeiForIndex(_minOutputAmountWei, i, _tradersPath.length),
                     _tradersPath[i].tradeData
                 );
             } else if (_tradersPath[i].traderType == TraderType.InternalLiquidity) {
@@ -417,11 +411,11 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
                     tradeData
                 );
             } else if (_tradersPath[i].traderType == TraderType.IsolationModeUnwrapper) {
-                Require.that(
-                    i == 0,
-                    FILE,
-                    "Unwrapper must be trader[0]"
-                );
+                // We can't use a Require for the following assert, because there's already an invariant that enforces
+                // the trader is an `IsolationModeWrapper` if the market ID at `i + 1` is in isolation mode. Meaning,
+                // an unwrapper can never appear at the non-zero index because there is an invariant that checks the
+                // `IsolationModeWrapper` is the last index
+                assert(i == 0);
                 IIsolationModeUnwrapperTrader unwrapperTrader = IIsolationModeUnwrapperTrader(_tradersPath[i].trader);
                 Actions.ActionArgs[] memory unwrapperActions = unwrapperTrader.createActionsForUnwrapping(
                     ZAP_ACCOUNT_ID,
@@ -430,7 +424,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
                     _accounts[_otherAccountId()].owner,
                     /* _outputMarketId = */_marketIdsPath[i + 1], // solium-disable-line indentation
                     /* _inputMarketId = */ _marketIdsPath[i], // solium-disable-line indentation
-                    _getMinOutputAmountWeiForIndex(_minOutputAmountWei, i + 1, _tradersPath.length),
+                    _getMinOutputAmountWeiForIndex(_minOutputAmountWei, i, _tradersPath.length),
                     _getInputAmountWeiForIndex(_inputAmountWei, i),
                     _tradersPath[i].tradeData
                 );
@@ -454,7 +448,7 @@ contract GenericTraderProxyBase is IGenericTraderProxyBase {
                     _accounts[_otherAccountId()].owner,
                     /* _outputMarketId = */ _marketIdsPath[i + 1], // solium-disable-line indentation
                     /* _inputMarketId = */ _marketIdsPath[i], // solium-disable-line indentation
-                    _getMinOutputAmountWeiForIndex(_minOutputAmountWei, i + 1, _tradersPath.length),
+                    _getMinOutputAmountWeiForIndex(_minOutputAmountWei, i, _tradersPath.length),
                     _getInputAmountWeiForIndex(_inputAmountWei, i),
                     _tradersPath[i].tradeData
                 );

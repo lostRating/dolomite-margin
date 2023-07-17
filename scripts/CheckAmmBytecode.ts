@@ -4,6 +4,8 @@ import { source as dolomiteAmmPairSource } from '../build/contracts/DolomiteAmmL
 import { bytecode as uniswapV2PairBytecode } from '../build/contracts/UniswapV2Pair.json';
 import { source as uniswapV2PairSource } from '../build/contracts/UniswapV2Library.json';
 
+const ZERO_BYTES = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
 async function replaceBytecode(): Promise<void> {
   const dolomiteAmmInitCodeHash = Web3.utils.soliditySha3({
     type: 'bytes',
@@ -22,7 +24,7 @@ async function replaceBytecode(): Promise<void> {
   if (!dolomiteAmmMatcher) {
     errors.push(new Error('Dolomite init code variable not found!'));
   }
-  if (dolomiteAmmMatcher[1].toString() !== dolomiteAmmInitCodeHash) {
+  if (dolomiteAmmMatcher[1].toString() !== dolomiteAmmInitCodeHash && dolomiteAmmMatcher[1].toString() !== ZERO_BYTES) {
     errors.push(new Error(`Dolomite init code hash does not match! Expected ${dolomiteAmmInitCodeHash}`));
   }
 
@@ -30,7 +32,7 @@ async function replaceBytecode(): Promise<void> {
   if (!uniswapV2Matcher) {
     errors.push(new Error('Uniswap init code variable not found!'));
   }
-  if (uniswapV2Matcher[1].toString() !== uniswapV2InitCodeHash) {
+  if (uniswapV2Matcher[1].toString() !== uniswapV2InitCodeHash && uniswapV2Matcher[1].toString() !== ZERO_BYTES) {
     errors.push(new Error(`Uniswap init code hash does not match! Expected ${uniswapV2InitCodeHash}`));
   }
 

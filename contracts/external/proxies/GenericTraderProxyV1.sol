@@ -226,6 +226,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
         );
         // solium-disable indentation
         {
+            // To avoid the "stack too deep" error, we rearrange the stack
             uint256[] memory marketIdsPathForStackTooDeep = _marketIdsPath;
             uint256 inputAmountWeiForStackTooDeep = _inputAmountWei;
             uint256 minOutputAmountWeiForStackTooDeep = _minOutputAmountWei;
@@ -241,6 +242,7 @@ contract GenericTraderProxyV1 is IGenericTraderProxyV1, GenericTraderProxyBase, 
             );
         }
         {
+            // To avoid the "stack too deep" error, we rearrange the stack
             uint256 tradeAccountNumberForStackTooDeep = _tradeAccountNumber;
             _appendTransferActions(
                 actions,

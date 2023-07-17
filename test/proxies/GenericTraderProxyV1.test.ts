@@ -1,29 +1,39 @@
 import BigNumber from 'bignumber.js';
 import { ethers } from 'ethers';
+import * as testTokenJson from '../../build/contracts/CustomTestToken.json';
 import * as testIsolationModeTokenJson from '../../build/contracts/TestIsolationModeToken.json';
 import * as testIsolationModeUnwrapperTraderJson from '../../build/contracts/TestIsolationModeUnwrapperTrader.json';
 import * as testIsolationModeWrapperTraderJson from '../../build/contracts/TestIsolationModeWrapperTrader.json';
-import * as testTokenJson from '../../build/contracts/CustomTestToken.json';
 import { CustomTestToken as TestTokenContract } from '../../build/testing_wrappers/CustomTestToken';
 import { TestIsolationModeToken as TestIsolationModeTokenContract } from '../../build/testing_wrappers/TestIsolationModeToken';
 import { TestIsolationModeUnwrapperTrader } from '../../build/testing_wrappers/TestIsolationModeUnwrapperTrader';
 import { TestIsolationModeWrapperTrader } from '../../build/testing_wrappers/TestIsolationModeWrapperTrader';
-import { address, ADDRESSES, AmountDenomination, AmountReference, Integer, INTEGERS, TxResult } from '../../src';
+import {
+  address,
+  ADDRESSES,
+  AmountDenomination,
+  AmountReference,
+  BalanceCheckFlag,
+  Integer,
+  INTEGERS,
+  TxResult,
+} from '../../src';
 import {
   GenericExpiryParam,
   GenericTraderParam,
   GenericTraderType,
   GenericTransferCollateralAmounts,
   GenericTransferCollateralParam,
+  GenericUserConfig,
 } from '../../src/modules/GenericTraderProxyV1';
 import { deployContract } from '../helpers/Deploy';
 import { getDolomiteMargin } from '../helpers/DolomiteMargin';
-import { mineAvgBlock, resetEVM, snapshot } from '../helpers/EVM';
+import { setGlobalOperator } from '../helpers/DolomiteMarginHelpers';
+import { mineAvgBlock, resetEVM, setTime, snapshot } from '../helpers/EVM';
 import { expectThrow } from '../helpers/Expect';
 import { TestDolomiteMargin } from '../modules/TestDolomiteMargin';
 import { TestIsolationModeToken } from '../modules/TestIsolationModeToken';
 import { TestToken } from '../modules/TestToken';
-import { setGlobalOperator } from '../helpers/DolomiteMarginHelpers';
 
 let dolomiteMargin: TestDolomiteMargin;
 let accounts: address[];
@@ -77,6 +87,10 @@ const defaultIsClosing = false;
 const defaultIsRecyclable = false;
 const marketIdToTokenMap = {};
 const defaultExpiryTimeDelta = new BigNumber(60 * 60); // 1 hour
+const defaultUserConfig: GenericUserConfig = {
+  deadline: 123123123123,
+  balanceCheckFlag: BalanceCheckFlag.None,
+};
 
 const simpleMarketIdPath = [market1, market2];
 const simpleAmountWeisPath = [par1, par2];
@@ -155,12 +169,12 @@ describe('GenericTraderProxyV1', () => {
       token4Contract.issueTo(par4.times(1000), dolomiteMargin.address),
       token5Contract.issueTo(par5.times(1000), dolomiteMargin.address),
       token6Contract.issueTo(par6.times(1000), dolomiteMargin.address),
-      dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market1, par1),
-      dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market2, par2),
-      dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market3, par3),
-      dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market4, par4),
-      dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market5, par5),
-      dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market6, par6),
+      // dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market1, par1),
+      // dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market2, par2),
+      // dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market3, par3),
+      // dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market4, par4),
+      // dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market5, par5),
+      // dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, market6, par6),
       dolomiteMargin.testing.setAccountBalance(traderOwner, originalAccountNumber, market1, par1),
       dolomiteMargin.testing.setAccountBalance(traderOwner, originalAccountNumber, market2, par2),
       dolomiteMargin.testing.setAccountBalance(traderOwner, originalAccountNumber, market3, par3),
@@ -196,9 +210,10 @@ describe('GenericTraderProxyV1', () => {
     describe('Success cases', () => {
       it('should succeed for a simple swap using external liquidity', async () => {
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           simpleMarketIdPath,
-          simpleAmountWeisPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
           [
             getParaswapTraderParam(
               simpleMarketIdPath[0],
@@ -208,12 +223,69 @@ describe('GenericTraderProxyV1', () => {
             ),
           ],
           [],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
         const [market1Balance, market2Balance] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market1),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+        ]);
+
+        expect(market1Balance).to.eql(INTEGERS.ZERO);
+        expect(market2Balance).to.eql(par2.times(2));
+      });
+
+      it('should succeed for a simple swap when balance check flag is set to Both', async () => {
+        await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
+          originalAccountNumber,
+          simpleMarketIdPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+          [
+            getParaswapTraderParam(
+              simpleMarketIdPath[0],
+              simpleMarketIdPath[1],
+              simpleAmountWeisPath[0],
+              simpleAmountWeisPath[1],
+            ),
+          ],
+          [],
+          { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.Both },
+          { from: traderOwner },
+        );
+
+        const [market1Balance, market2Balance] = await Promise.all([
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+        ]);
+
+        expect(market1Balance).to.eql(INTEGERS.ZERO);
+        expect(market2Balance).to.eql(par2.times(2));
+      });
+
+      it('should succeed for a simple swap when balance check flag is set to From', async () => {
+        await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
+          originalAccountNumber,
+          simpleMarketIdPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+          [
+            getParaswapTraderParam(
+              simpleMarketIdPath[0],
+              simpleMarketIdPath[1],
+              simpleAmountWeisPath[0],
+              simpleAmountWeisPath[1],
+            ),
+          ],
+          [],
+          { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.From },
+          { from: traderOwner },
+        );
+
+        const [market1Balance, market2Balance] = await Promise.all([
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
         ]);
 
         expect(market1Balance).to.eql(INTEGERS.ZERO);
@@ -222,18 +294,20 @@ describe('GenericTraderProxyV1', () => {
 
       it('should succeed for a simple swap using internal liquidity', async () => {
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           simpleMarketIdPath,
-          simpleAmountWeisPath,
-          [await getInternalTraderParamAsync(0, simpleAmountWeisPath[1])],
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+          [await getInternalTraderParamAsync(0, simpleAmountWeisPath[0], simpleAmountWeisPath[1])],
           [{ owner: makerAccountOwner, number: makerAccountNumber1.toNumber() }],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
         const [traderMarket1Balance, traderMarket2Balance, makerMarket1Balance, makerMarket2Balance] =
           await Promise.all([
-            dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market1),
-            dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
+            dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+            dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
             dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber1, market1),
             dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber1, market2),
           ]);
@@ -247,17 +321,19 @@ describe('GenericTraderProxyV1', () => {
 
       it('should succeed for a simple swap using unwrapper', async () => {
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           [market3, market2],
-          [par3, par2],
+          par3,
+          par2,
           [await getUnwrapperTraderParam()],
           [],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
         const [traderMarket2Balance, traderMarket3Balance] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market3),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market3),
         ]);
 
         expect(traderMarket2Balance).to.eql(par2.plus(par3.div(2)));
@@ -266,17 +342,19 @@ describe('GenericTraderProxyV1', () => {
 
       it('should succeed for a simple swap using wrapper', async () => {
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           [market2, market3],
-          [par2, par3],
+          par2,
+          par3,
           [await getWrapperTraderParam()],
           [],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
         const [traderMarket2Balance, traderMarket3Balance] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market3),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market3),
         ]);
 
         expect(traderMarket2Balance).to.eql(INTEGERS.ZERO);
@@ -295,17 +373,19 @@ describe('GenericTraderProxyV1', () => {
         const traderParam = getUnwrapperTraderParam();
         traderParam.trader = freshUnwrapper.options.address;
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           [market3, market4],
-          [par3, par4],
+          par3,
+          par4,
           [traderParam],
           [],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
         const [traderMarket3Balance, traderMarket4Balance] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market3),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market4),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market3),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market4),
         ]);
 
         expect(traderMarket3Balance).to.eql(INTEGERS.ZERO);
@@ -316,21 +396,23 @@ describe('GenericTraderProxyV1', () => {
         const path = [market1, market2, market5];
         const amounts = [par1, par2, par5];
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           path,
-          amounts,
+          amounts[0],
+          amounts[amounts.length - 1],
           [
             getParaswapTraderParam(path[0], path[1], amounts[0], amounts[1]),
             getParaswapTraderParam(path[1], path[2], amounts[1], amounts[2]),
           ],
           [],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
         const [market1Balance, market2Balance, market5Balance] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market1),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market5),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market5),
         ]);
 
         expect(market1Balance).to.eql(INTEGERS.ZERO);
@@ -340,18 +422,20 @@ describe('GenericTraderProxyV1', () => {
 
       it('should succeed for a larger swap using internal liquidity', async () => {
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
+          originalAccountNumber,
           [market1, market2, market5, market6],
-          [par1, par2, par5, par6],
+          par1,
+          par6,
           [
-            await getInternalTraderParamAsync(0, par2, tradeId1),
-            await getInternalTraderParamAsync(0, par5, tradeId2),
-            await getInternalTraderParamAsync(1, par6, tradeId3),
+            await getInternalTraderParamAsync(0, par1, par2, tradeId1),
+            await getInternalTraderParamAsync(0, par2, par5, tradeId2),
+            await getInternalTraderParamAsync(1, par5, par6, tradeId3),
           ],
           [
             { owner: makerAccountOwner, number: makerAccountNumber1.toNumber() },
             { owner: makerAccountOwner, number: makerAccountNumber2.toNumber() },
           ],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
@@ -369,10 +453,10 @@ describe('GenericTraderProxyV1', () => {
           maker2Market5Balance,
           maker2Market6Balance,
         ] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market1),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market5),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market6),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market5),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market6),
 
           dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber1, market1),
           dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber1, market2),
@@ -403,20 +487,22 @@ describe('GenericTraderProxyV1', () => {
 
       it('should succeed for a mega swap using all forms of liquidity', async () => {
         await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-          tradeAccountNumber,
-          [market1, market2, market3, market2, market5, market6],
-          [par1, par2, par3, par2, par5, par6],
+          originalAccountNumber,
+          [market3, market2, market1, market5, market2, market3],
+          par3,
+          par3,
           [
-            await getInternalTraderParamAsync(0, par2, tradeId1),
-            await getWrapperTraderParam(),
             await getUnwrapperTraderParam(),
-            await getInternalTraderParamAsync(1, par5, tradeId2),
-            await getParaswapTraderParam(market5, market6, par5, par6),
+            await getInternalTraderParamAsync(0, par2, par1, tradeId1),
+            await getInternalTraderParamAsync(1, par1, par5, tradeId2),
+            await getParaswapTraderParam(market5, market2, par5, par2.times(1.1)),
+            await getWrapperTraderParam(),
           ],
           [
             { owner: makerAccountOwner, number: makerAccountNumber1.toNumber() },
             { owner: makerAccountOwner, number: makerAccountNumber2.toNumber() },
           ],
+          defaultUserConfig,
           { from: traderOwner },
         );
 
@@ -437,11 +523,11 @@ describe('GenericTraderProxyV1', () => {
           maker2Market5Balance,
           maker2Market6Balance,
         ] = await Promise.all([
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market1),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market2),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market3),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market5),
-          dolomiteMargin.getters.getAccountWei(traderOwner, tradeAccountNumber, market6),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market1),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market3),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market5),
+          dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market6),
 
           dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber1, market1),
           dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber1, market2),
@@ -456,20 +542,20 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber2, market6),
         ]);
 
-        expect(traderMarket1Balance).to.eql(INTEGERS.ZERO);
+        expect(traderMarket1Balance).to.eql(par1);
         expect(traderMarket2Balance).to.eql(par2);
-        expect(traderMarket3Balance).to.eql(par3);
+        expect(traderMarket3Balance).to.eql(par3.times(1.1));
         expect(traderMarket5Balance).to.eql(par5);
-        expect(traderMarket6Balance).to.eql(par6.times(2));
+        expect(traderMarket6Balance).to.eql(par6);
 
-        expect(maker1Market1Balance).to.eql(par1.times(2));
-        expect(maker1Market2Balance).to.eql(INTEGERS.ZERO);
+        expect(maker1Market1Balance).to.eql(INTEGERS.ZERO);
+        expect(maker1Market2Balance).to.eql(par2.times(2));
         expect(maker1Market3Balance).to.eql(par3);
         expect(maker1Market5Balance).to.eql(par5);
         expect(maker1Market6Balance).to.eql(par6);
 
-        expect(maker2Market1Balance).to.eql(par1);
-        expect(maker2Market2Balance).to.eql(par2.times(2));
+        expect(maker2Market1Balance).to.eql(par1.times(2));
+        expect(maker2Market2Balance).to.eql(par2);
         expect(maker2Market3Balance).to.eql(par3);
         expect(maker2Market5Balance).to.eql(INTEGERS.ZERO);
         expect(maker2Market6Balance).to.eql(par6);
@@ -477,14 +563,62 @@ describe('GenericTraderProxyV1', () => {
     });
 
     describe('Failure cases', () => {
+      it('should fail when deadline has passed', async () => {
+        const deadline = 1;
+        const timestamp = Date.now();
+        await setTime(timestamp);
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            { deadline, balanceCheckFlag: defaultUserConfig.balanceCheckFlag },
+          ),
+          `GenericTraderProxyV1: Deadline expired <${deadline}, ${Math.floor(timestamp / 1000)}>`,
+        );
+      });
+
+      it('should fail when balance goes negative for BalanceCheckFlags', async () => {
+        const accountString = `${traderOwner.toLowerCase()}, ${tradeAccountNumber.toFixed()}, ${simpleMarketIdPath[0].toFixed()}`;
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0].times(2),
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.From },
+          ),
+          `AccountBalanceLib: account cannot go negative <${accountString}>`,
+        );
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0].times(2),
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.Both },
+          ),
+          `AccountBalanceLib: account cannot go negative <${accountString}>`,
+        );
+      });
+
       it('should fail when marketId path < 2', async () => {
         await expectThrow(
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid market path length',
         );
@@ -492,60 +626,40 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid market path length',
         );
       });
 
-      it('should fail when first and last market are the same', async () => {
-        await expectThrow(
-          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-            tradeAccountNumber,
-            [market1, market1],
-            simpleAmountWeisPath,
-            [getDefaultParaswapTraderParam()],
-            [],
-          ),
-          'GenericTraderProxyBase: Duplicate markets in path',
-        );
-      });
-
-      it('should fail when amounts do not match markets length', async () => {
+      it('should fail when input or output amount is 0', async () => {
         await expectThrow(
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             simpleMarketIdPath,
-            [par1],
+            par1,
+            INTEGERS.ZERO,
             [getDefaultParaswapTraderParam()],
             [],
+            defaultUserConfig,
           ),
-          'GenericTraderProxyBase: Invalid amounts path length',
-        );
-      });
-
-      it('should fail when amount at any index is 0', async () => {
-        await expectThrow(
-          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
-            tradeAccountNumber,
-            simpleMarketIdPath,
-            [par1, INTEGERS.ZERO],
-            [getDefaultParaswapTraderParam()],
-            [],
-          ),
-          'GenericTraderProxyBase: Invalid amount at index <1>',
+          'GenericTraderProxyBase: Invalid minOutputAmountWei',
         );
         await expectThrow(
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             simpleMarketIdPath,
-            [INTEGERS.ZERO, par2],
+            INTEGERS.ZERO,
+            par2,
             [getDefaultParaswapTraderParam()],
             [],
+            defaultUserConfig,
           ),
-          'GenericTraderProxyBase: Invalid amount at index <0>',
+          'GenericTraderProxyBase: Invalid inputAmountWei',
         );
       });
 
@@ -554,9 +668,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [],
             [],
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid traders params length',
         );
@@ -567,9 +683,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderWithInvalidAddress],
             [],
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid trader at index <0>',
         );
@@ -582,9 +700,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderParam],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid isolation mode unwrapper <${market3.toFixed()}, ${traderParam.traderType}>`,
         );
@@ -595,9 +715,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market3, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid unwrap sequence <${market3.toFixed()}, ${market4.toFixed()}>`,
         );
@@ -608,9 +730,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid isolation mode wrapper <${market4.toFixed()}, ${
             GenericTraderType.ExternalLiquidity
@@ -623,9 +747,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid trader type <${GenericTraderType.IsolationModeUnwrapper}>`,
         );
@@ -633,9 +759,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid trader type <${GenericTraderType.IsolationModeWrapper}>`,
         );
@@ -646,9 +774,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market4, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid input for unwrapper <0, ${market4.toFixed()}>`,
         );
@@ -659,9 +789,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market3, market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid output for unwrapper <1, ${market1.toFixed()}>`,
         );
@@ -673,9 +805,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Unwrapper trader not enabled <${testLiquidityUnwrapper.options.address.toLowerCase()}, ${market3.toFixed()}>`,
         );
@@ -686,9 +820,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1, market3],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid input for wrapper <0, ${market1.toFixed()}>`,
         );
@@ -699,9 +835,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market2, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid output for wrapper <1, ${market4.toFixed()}>`,
         );
@@ -713,9 +851,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market2, market3],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Wrapper trader not enabled <${testLiquidityWrapper.options.address.toLowerCase()}, ${market3.toFixed()}>`,
         );
@@ -726,9 +866,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
-            [await getInternalTraderParamAsync(0, par2)],
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [await getInternalTraderParamAsync(0, simpleAmountWeisPath[0], simpleAmountWeisPath[1])],
             [{ owner: ADDRESSES.ZERO, number: makerAccountNumber1.toNumber() }],
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid maker account owner <0>',
         );
@@ -741,9 +883,11 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutput(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderParam],
             [],
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid maker account owner <0>',
         );
@@ -757,10 +901,17 @@ describe('GenericTraderProxyV1', () => {
         const expiryMarketId = simpleMarketIdPath[0];
         await dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, expiryMarketId, INTEGERS.ZERO);
         const expiryTimeDelta = INTEGERS.ONE_HOUR_IN_SECONDS;
+        await dolomiteMargin.testing.setAccountBalance(
+          traderOwner,
+          originalAccountNumber,
+          market2,
+          INTEGERS.ZERO,
+        );
         const txResult = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           simpleMarketIdPath,
-          simpleAmountWeisPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
           [
             getParaswapTraderParam(
               simpleMarketIdPath[0],
@@ -779,10 +930,17 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarketId,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(txResult, true, simpleMarketIdPath, simpleAmountWeisPath);
+        await checkMarginPositionLogs(
+          txResult,
+          true,
+          simpleMarketIdPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+        );
         await checkExpiry(txResult, expiryMarketId, expiryTimeDelta);
 
         const [traderMarket1Balance, traderMarket2Balance, transferMarket1Balance, transferMarket2Balance] =
@@ -795,18 +953,24 @@ describe('GenericTraderProxyV1', () => {
           ]);
 
         expect(traderMarket1Balance).to.eql(par1.negated());
-        expect(traderMarket2Balance).to.eql(par2.times(3));
+        expect(traderMarket2Balance).to.eql(par2.times(2));
 
         expect(transferMarket1Balance).to.eql(par1);
-        expect(transferMarket2Balance).to.eql(INTEGERS.ZERO);
+        expect(transferMarket2Balance).to.eql(par2.negated());
       });
 
       it('should succeed for a simple swap using external liquidity and no expiry', async () => {
-        await dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, simpleMarketIdPath[0], INTEGERS.ZERO);
+        await dolomiteMargin.testing.setAccountBalance(
+          traderOwner,
+          tradeAccountNumber,
+          simpleMarketIdPath[0],
+          INTEGERS.ZERO,
+        );
         const txResult = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           simpleMarketIdPath,
-          simpleAmountWeisPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
           [
             getParaswapTraderParam(
               simpleMarketIdPath[0],
@@ -825,10 +989,17 @@ describe('GenericTraderProxyV1', () => {
             marketId: INTEGERS.ZERO,
             expiryTimeDelta: INTEGERS.ZERO,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(txResult, true, simpleMarketIdPath, simpleAmountWeisPath);
+        await checkMarginPositionLogs(
+          txResult,
+          true,
+          simpleMarketIdPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+        );
         await checkNoExpiry(simpleMarketIdPath[0]);
 
         const [traderMarket1Balance, traderMarket2Balance, transferMarket1Balance, transferMarket2Balance] =
@@ -841,18 +1012,18 @@ describe('GenericTraderProxyV1', () => {
           ]);
 
         expect(traderMarket1Balance).to.eql(par1.negated());
-        expect(traderMarket2Balance).to.eql(par2.times(3));
+        expect(traderMarket2Balance).to.eql(par2.times(2));
 
         expect(transferMarket1Balance).to.eql(par1);
         expect(transferMarket2Balance).to.eql(INTEGERS.ZERO);
       });
 
       it('should succeed for a simple swap using external liquidity to close position and no expiry', async () => {
-        await dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, simpleMarketIdPath[0], INTEGERS.ZERO);
-        const txResult = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+        await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           simpleMarketIdPath,
-          simpleAmountWeisPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
           [
             getParaswapTraderParam(
               simpleMarketIdPath[0],
@@ -863,18 +1034,54 @@ describe('GenericTraderProxyV1', () => {
           ],
           [],
           {
-            fromAccountNumber: tradeAccountNumber,
-            toAccountNumber: originalAccountNumber,
-            transferAmounts: [{ amountWei: par2.times(2), marketId: market2 }],
+            fromAccountNumber: originalAccountNumber,
+            toAccountNumber: tradeAccountNumber,
+            transferAmounts: [{ amountWei: par2, marketId: market2 }],
           },
           {
             marketId: INTEGERS.ZERO,
             expiryTimeDelta: INTEGERS.ZERO,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(txResult, false, simpleMarketIdPath, simpleAmountWeisPath);
+        const marketIdsReversed = simpleMarketIdPath.map(marketId => marketId).reverse();
+        const amountWeisReversed = simpleAmountWeisPath.map(amount => amount).reverse();
+        const txResult = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+          tradeAccountNumber,
+          marketIdsReversed,
+          amountWeisReversed[0],
+          amountWeisReversed[amountWeisReversed.length - 1],
+          [
+            getParaswapTraderParam(
+              marketIdsReversed[0],
+              marketIdsReversed[1],
+              amountWeisReversed[0],
+              amountWeisReversed[1],
+            ),
+          ],
+          [],
+          {
+            fromAccountNumber: tradeAccountNumber,
+            toAccountNumber: originalAccountNumber,
+            transferAmounts: [{ amountWei: par2, marketId: market2 }],
+          },
+          {
+            marketId: INTEGERS.ZERO,
+            expiryTimeDelta: INTEGERS.ZERO,
+          },
+          defaultUserConfig,
+          { from: traderOwner },
+        );
+
+        await checkMarginPositionLogs(
+          txResult,
+          false,
+          marketIdsReversed,
+          amountWeisReversed[0],
+          amountWeisReversed[amountWeisReversed.length - 1],
+        );
         await checkNoExpiry(simpleMarketIdPath[0]);
 
         const [traderMarket1Balance, traderMarket2Balance, transferMarket1Balance, transferMarket2Balance] =
@@ -886,11 +1093,11 @@ describe('GenericTraderProxyV1', () => {
             dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market2),
           ]);
 
-        expect(traderMarket1Balance).to.eql(par1.negated());
+        expect(traderMarket1Balance).to.eql(INTEGERS.ZERO);
         expect(traderMarket2Balance).to.eql(INTEGERS.ZERO);
 
         expect(transferMarket1Balance).to.eql(par1);
-        expect(transferMarket2Balance).to.eql(par2.times(3));
+        expect(transferMarket2Balance).to.eql(par2);
       });
 
       it('should succeed for a simple swap using internal liquidity', async () => {
@@ -900,8 +1107,9 @@ describe('GenericTraderProxyV1', () => {
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           simpleMarketIdPath,
-          simpleAmountWeisPath,
-          [await getInternalTraderParamAsync(0, simpleAmountWeisPath[1])],
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+          [await getInternalTraderParamAsync(0, simpleAmountWeisPath[0], simpleAmountWeisPath[1])],
           [{ owner: makerAccountOwner, number: makerAccountNumber1.toNumber() }],
           {
             fromAccountNumber: originalAccountNumber,
@@ -912,10 +1120,17 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, simpleMarketIdPath, simpleAmountWeisPath);
+        await checkMarginPositionLogs(
+          result,
+          true,
+          simpleMarketIdPath,
+          simpleAmountWeisPath[0],
+          simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+        );
         await checkExpiry(result, expiryMarket, expiryTimeDelta);
 
         const [
@@ -935,7 +1150,7 @@ describe('GenericTraderProxyV1', () => {
         ]);
 
         expect(traderMarket1Balance).to.eql(par1.negated());
-        expect(traderMarket2Balance).to.eql(par2.times(3));
+        expect(traderMarket2Balance).to.eql(par2.times(2));
 
         expect(transferMarket1Balance).to.eql(par1);
         expect(transferMarket2Balance).to.eql(INTEGERS.ZERO);
@@ -953,7 +1168,8 @@ describe('GenericTraderProxyV1', () => {
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           marketPath,
-          amountsPath,
+          amountsPath[0],
+          amountsPath[amountsPath.length - 1],
           [await getUnwrapperTraderParam()],
           [],
           {
@@ -965,10 +1181,11 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, marketPath, amountsPath);
+        await checkMarginPositionLogs(result, true, marketPath, amountsPath[0], amountsPath[amountsPath.length - 1]);
         await checkExpiry(result, expiryMarket, expiryTimeDelta);
 
         const [traderMarket2Balance, traderMarket3Balance, transferMarket2Balance, transferMarket3Balance] =
@@ -979,7 +1196,7 @@ describe('GenericTraderProxyV1', () => {
             dolomiteMargin.getters.getAccountWei(traderOwner, originalAccountNumber, market3),
           ]);
 
-        expect(traderMarket2Balance).to.eql(par2.times(3)); // includes the transfer amount
+        expect(traderMarket2Balance).to.eql(par2.times(2)); // includes the transfer amount
         expect(traderMarket3Balance).to.eql(par3.negated());
 
         expect(transferMarket2Balance).to.eql(INTEGERS.ZERO);
@@ -995,7 +1212,8 @@ describe('GenericTraderProxyV1', () => {
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           marketPath,
-          amountsPath,
+          amountsPath[0],
+          amountsPath[amountsPath.length - 1],
           [await getWrapperTraderParam()],
           [],
           {
@@ -1007,10 +1225,11 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, marketPath, amountsPath);
+        await checkMarginPositionLogs(result, true, marketPath, amountsPath[0], amountsPath[amountsPath.length - 1]);
         await checkExpiry(result, expiryMarket, expiryTimeDelta);
 
         const [traderMarket2Balance, traderMarket3Balance, transferMarket2Balance, transferMarket3Balance] =
@@ -1023,7 +1242,7 @@ describe('GenericTraderProxyV1', () => {
           ]);
 
         expect(traderMarket2Balance).to.eql(par2.negated());
-        expect(traderMarket3Balance).to.eql(par3.times(3));
+        expect(traderMarket3Balance).to.eql(par3.times(2));
 
         expect(transferMarket2Balance).to.eql(par2);
         expect(transferMarket3Balance).to.eql(INTEGERS.ZERO);
@@ -1049,7 +1268,8 @@ describe('GenericTraderProxyV1', () => {
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           marketPath,
-          amountsPath,
+          amountsPath[0],
+          amountsPath[amountsPath.length - 1],
           [traderParam],
           [],
           {
@@ -1061,10 +1281,11 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, marketPath, amountsPath);
+        await checkMarginPositionLogs(result, true, marketPath, amountsPath[0], amountsPath[amountsPath.length - 1]);
         await checkExpiry(result, expiryMarket, expiryTimeDelta);
 
         const [traderMarket3Balance, traderMarket4Balance, transferMarket3Balance, transferMarket4Balance] =
@@ -1077,7 +1298,7 @@ describe('GenericTraderProxyV1', () => {
           ]);
 
         expect(traderMarket3Balance).to.eql(par3.negated());
-        expect(traderMarket4Balance).to.eql(par4.times(3));
+        expect(traderMarket4Balance).to.eql(par4.times(2));
 
         expect(transferMarket3Balance).to.eql(par3);
         expect(transferMarket4Balance).to.eql(INTEGERS.ZERO);
@@ -1092,7 +1313,8 @@ describe('GenericTraderProxyV1', () => {
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           marketPath,
-          amountsPath,
+          amountsPath[0],
+          amountsPath[amountsPath.length - 1],
           [
             getParaswapTraderParam(marketPath[0], marketPath[1], amountsPath[0], amountsPath[1]),
             getParaswapTraderParam(marketPath[1], marketPath[2], amountsPath[1], amountsPath[2]),
@@ -1107,10 +1329,11 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, marketPath, amountsPath);
+        await checkMarginPositionLogs(result, true, marketPath, amountsPath[0], amountsPath[amountsPath.length - 1]);
         await checkExpiry(result, expiryMarket, expiryTimeDelta);
 
         const [market1Balance, market2Balance, market5Balance] = await Promise.all([
@@ -1120,8 +1343,8 @@ describe('GenericTraderProxyV1', () => {
         ]);
 
         expect(market1Balance).to.eql(par1.negated());
-        expect(market2Balance).to.eql(par2);
-        expect(market5Balance).to.eql(par5.times(3));
+        expect(market2Balance).to.eql(INTEGERS.ZERO);
+        expect(market5Balance).to.eql(par5.times(2));
       });
 
       it('should succeed for a larger swap using internal liquidity', async () => {
@@ -1133,11 +1356,12 @@ describe('GenericTraderProxyV1', () => {
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           marketPath,
-          amountsPath,
+          amountsPath[0],
+          amountsPath[amountsPath.length - 1],
           [
-            await getInternalTraderParamAsync(0, par2, tradeId1),
-            await getInternalTraderParamAsync(0, par5, tradeId2),
-            await getInternalTraderParamAsync(1, par6, tradeId3),
+            await getInternalTraderParamAsync(0, par1, par2, tradeId1),
+            await getInternalTraderParamAsync(0, par2, par5, tradeId2),
+            await getInternalTraderParamAsync(1, par5, par6, tradeId3),
           ],
           [
             { owner: makerAccountOwner, number: makerAccountNumber1.toNumber() },
@@ -1152,10 +1376,11 @@ describe('GenericTraderProxyV1', () => {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, marketPath, amountsPath);
+        await checkMarginPositionLogs(result, true, marketPath, amountsPath[0], amountsPath[amountsPath.length - 1]);
         await checkExpiry(result, expiryMarket, expiryTimeDelta);
 
         const [
@@ -1198,9 +1423,9 @@ describe('GenericTraderProxyV1', () => {
         ]);
 
         expect(traderMarket1Balance).to.eql(par1.negated());
-        expect(traderMarket2Balance).to.eql(par2);
-        expect(traderMarket5Balance).to.eql(par5);
-        expect(traderMarket6Balance).to.eql(par6.times(3));
+        expect(traderMarket2Balance).to.eql(INTEGERS.ZERO);
+        expect(traderMarket5Balance).to.eql(INTEGERS.ZERO);
+        expect(traderMarket6Balance).to.eql(par6.times(2));
 
         expect(transferMarket1Balance).to.eql(par1);
         expect(transferMarket2Balance).to.eql(par2);
@@ -1219,21 +1444,20 @@ describe('GenericTraderProxyV1', () => {
       });
 
       it('should succeed for a mega swap using all forms of liquidity', async () => {
-        const expiryMarket = market1;
+        const expiryMarket = market3;
         const expiryTimeDelta = INTEGERS.ONE_HOUR_IN_SECONDS;
-        const marketPath = [market1, market2, market3, market2, market5, market6];
-        const amountsPath = [par1, par2, par3, par2, par5, par6];
-        await dolomiteMargin.testing.setAccountBalance(traderOwner, tradeAccountNumber, expiryMarket, INTEGERS.ZERO);
+        const marketPath = [market3, market2, market1, market5, market2, market3];
         const result = await dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
           tradeAccountNumber,
           marketPath,
-          amountsPath,
+          par3,
+          par3,
           [
-            await getInternalTraderParamAsync(0, par2, tradeId1),
-            await getWrapperTraderParam(),
             await getUnwrapperTraderParam(),
-            await getInternalTraderParamAsync(1, par5, tradeId2),
-            await getParaswapTraderParam(market5, market6, par5, par6),
+            await getInternalTraderParamAsync(0, par2, par1, tradeId1),
+            await getInternalTraderParamAsync(1, par1, par5, tradeId2),
+            await getParaswapTraderParam(market5, market2, par5, par2.times(1.1)),
+            await getWrapperTraderParam(),
           ],
           [
             { owner: makerAccountOwner, number: makerAccountNumber1.toNumber() },
@@ -1242,17 +1466,20 @@ describe('GenericTraderProxyV1', () => {
           {
             fromAccountNumber: originalAccountNumber,
             toAccountNumber: tradeAccountNumber,
-            transferAmounts: [{ amountWei: par6, marketId: market6 }],
+            transferAmounts: [{ amountWei: par3, marketId: market3 }],
           },
           {
             expiryTimeDelta,
             marketId: expiryMarket,
           },
+          defaultUserConfig,
           { from: traderOwner },
         );
 
-        await checkMarginPositionLogs(result, true, marketPath, amountsPath);
-        await checkExpiry(result, expiryMarket, expiryTimeDelta);
+        await checkMarginPositionLogs(result, true, marketPath, par3, par3.times(1.1));
+        const expiry = await dolomiteMargin.expiry.getExpiry(traderOwner, tradeAccountNumber, expiryMarket);
+        // The expiry should not be set because expiryMarket didn't go negative
+        expect(expiry).to.eql(INTEGERS.ZERO);
 
         const [
           traderMarket1Balance,
@@ -1301,26 +1528,26 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.getters.getAccountWei(makerAccountOwner, makerAccountNumber2, market6),
         ]);
 
-        expect(traderMarket1Balance).to.eql(par1.negated());
-        expect(traderMarket2Balance).to.eql(par2);
-        expect(traderMarket3Balance).to.eql(par3);
-        expect(traderMarket5Balance).to.eql(par5);
-        expect(traderMarket6Balance).to.eql(par6.times(3));
+        expect(traderMarket1Balance).to.eql(INTEGERS.ZERO);
+        expect(traderMarket2Balance).to.eql(INTEGERS.ZERO);
+        expect(traderMarket3Balance).to.eql(par3.times(1.1));
+        expect(traderMarket5Balance).to.eql(INTEGERS.ZERO);
+        expect(traderMarket6Balance).to.eql(INTEGERS.ZERO);
 
         expect(transferMarket1Balance).to.eql(par1);
         expect(transferMarket2Balance).to.eql(par2);
-        expect(transferMarket3Balance).to.eql(par3);
+        expect(transferMarket3Balance).to.eql(INTEGERS.ZERO);
         expect(transferMarket5Balance).to.eql(par5);
-        expect(transferMarket6Balance).to.eql(INTEGERS.ZERO);
+        expect(transferMarket6Balance).to.eql(par6);
 
-        expect(maker1Market1Balance).to.eql(par1.times(2));
-        expect(maker1Market2Balance).to.eql(INTEGERS.ZERO);
+        expect(maker1Market1Balance).to.eql(INTEGERS.ZERO);
+        expect(maker1Market2Balance).to.eql(par2.times(2));
         expect(maker1Market3Balance).to.eql(par3);
         expect(maker1Market5Balance).to.eql(par5);
         expect(maker1Market6Balance).to.eql(par6);
 
-        expect(maker2Market1Balance).to.eql(par1);
-        expect(maker2Market2Balance).to.eql(par2.times(2));
+        expect(maker2Market1Balance).to.eql(par1.times(2));
+        expect(maker2Market2Balance).to.eql(par2);
         expect(maker2Market3Balance).to.eql(par3);
         expect(maker2Market5Balance).to.eql(INTEGERS.ZERO);
         expect(maker2Market6Balance).to.eql(par6);
@@ -1344,16 +1571,95 @@ describe('GenericTraderProxyV1', () => {
         expiryTimeDelta: defaultExpiryTimeDelta,
       };
 
+      it('should fail when deadline has passed', async () => {
+        const deadline = 1;
+        const timestamp = Date.now();
+        await setTime(timestamp);
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            defaultTransferParam,
+            defaultExpiryParam,
+            { deadline, balanceCheckFlag: defaultUserConfig.balanceCheckFlag },
+          ),
+          `GenericTraderProxyV1: Deadline expired <${deadline}, ${Math.floor(timestamp / 1000)}>`,
+        );
+      });
+
+      it('should fail when trade balance goes negative for BalanceCheckFlags', async () => {
+        const accountString = `${traderOwner.toLowerCase()}, ${tradeAccountNumber.toFixed()}, ${simpleMarketIdPath[0].toFixed()}`;
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            defaultTransferParam,
+            defaultExpiryParam,
+            { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.From },
+          ),
+          `AccountBalanceLib: account cannot go negative <${accountString}>`,
+        );
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            defaultTransferParam,
+            defaultExpiryParam,
+            { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.Both },
+          ),
+          `AccountBalanceLib: account cannot go negative <${accountString}>`,
+        );
+      });
+
+      it('should fail when transfer balance goes negative for BalanceCheckFlags', async () => {
+        const transferMarket = defaultTransferAmount.marketId;
+        const accountString = `${traderOwner.toLowerCase()}, ${originalAccountNumber.toFixed()}, ${transferMarket.toFixed()}`;
+        await dolomiteMargin.testing.setAccountBalance(
+          traderOwner,
+          originalAccountNumber,
+          transferMarket,
+          INTEGERS.ZERO,
+        );
+        await expectThrow(
+          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
+            tradeAccountNumber,
+            simpleMarketIdPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [getDefaultParaswapTraderParam()],
+            [],
+            defaultTransferParam,
+            defaultExpiryParam,
+            { deadline: defaultUserConfig.deadline, balanceCheckFlag: BalanceCheckFlag.To },
+          ),
+          `AccountBalanceLib: account cannot go negative <${accountString}>`,
+        );
+      });
+
       it('should fail when marketId path < 2', async () => {
         await expectThrow(
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid market path length',
         );
@@ -1361,43 +1667,15 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid market path length',
-        );
-      });
-
-      it('should fail when first and last market are the same', async () => {
-        await expectThrow(
-          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
-            tradeAccountNumber,
-            [market1, market1],
-            simpleAmountWeisPath,
-            [getDefaultParaswapTraderParam()],
-            [],
-            defaultTransferParam,
-            defaultExpiryParam,
-          ),
-          'GenericTraderProxyBase: Duplicate markets in path',
-        );
-      });
-
-      it('should fail when amounts do not match markets length', async () => {
-        await expectThrow(
-          dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
-            tradeAccountNumber,
-            simpleMarketIdPath,
-            [par1],
-            [getDefaultParaswapTraderParam()],
-            [],
-            defaultTransferParam,
-            defaultExpiryParam,
-          ),
-          'GenericTraderProxyBase: Invalid amounts path length',
         );
       });
 
@@ -1406,25 +1684,29 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             simpleMarketIdPath,
-            [par1, INTEGERS.ZERO],
+            par1,
+            INTEGERS.ZERO,
             [getDefaultParaswapTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
-          'GenericTraderProxyBase: Invalid amount at index <1>',
+          'GenericTraderProxyBase: Invalid minOutputAmountWei',
         );
         await expectThrow(
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             simpleMarketIdPath,
-            [INTEGERS.ZERO, par2],
+            INTEGERS.ZERO,
+            par2,
             [getDefaultParaswapTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
-          'GenericTraderProxyBase: Invalid amount at index <0>',
+          'GenericTraderProxyBase: Invalid inputAmountWei',
         );
       });
 
@@ -1433,11 +1715,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid traders params length',
         );
@@ -1448,11 +1732,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             simpleMarketIdPath,
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderWithInvalidAddress],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid trader at index <0>',
         );
@@ -1465,11 +1751,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderParam],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid isolation mode unwrapper <${market3.toFixed()}, ${traderParam.traderType}>`,
         );
@@ -1480,11 +1768,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market3, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid unwrap sequence <${market3.toFixed()}, ${market4.toFixed()}>`,
         );
@@ -1495,11 +1785,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid isolation mode wrapper <${market4.toFixed()}, ${
             GenericTraderType.ExternalLiquidity
@@ -1512,11 +1804,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid trader type <${GenericTraderType.IsolationModeUnwrapper}>`,
         );
@@ -1524,11 +1818,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid trader type <${GenericTraderType.IsolationModeWrapper}>`,
         );
@@ -1539,11 +1835,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market4, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid input for unwrapper <0, ${market4.toFixed()}>`,
         );
@@ -1554,11 +1852,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market3, market1],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid output for unwrapper <1, ${market1.toFixed()}>`,
         );
@@ -1570,11 +1870,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market3, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getUnwrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Unwrapper trader not enabled <${testLiquidityUnwrapper.options.address.toLowerCase()}, ${market3.toFixed()}>`,
         );
@@ -1585,11 +1887,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market3],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid input for wrapper <0, ${market1.toFixed()}>`,
         );
@@ -1600,11 +1904,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market2, market4],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Invalid output for wrapper <1, ${market4.toFixed()}>`,
         );
@@ -1616,11 +1922,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market2, market3],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getWrapperTraderParam()],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           `GenericTraderProxyBase: Wrapper trader not enabled <${testLiquidityWrapper.options.address.toLowerCase()}, ${market3.toFixed()}>`,
         );
@@ -1631,11 +1939,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
-            [await getInternalTraderParamAsync(0, par2)],
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
+            [await getInternalTraderParamAsync(0, simpleAmountWeisPath[0], simpleAmountWeisPath[1])],
             [{ owner: ADDRESSES.ZERO, number: 0 }],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid maker account owner <0>',
         );
@@ -1648,11 +1958,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [traderParam],
             [],
             defaultTransferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyBase: Invalid maker account owner <0>',
         );
@@ -1668,11 +1980,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             transferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyV1: Invalid transfer amounts length',
         );
@@ -1688,11 +2002,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             transferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyV1: Cannot transfer to same account',
         );
@@ -1708,11 +2024,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             transferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyV1: Invalid trade account number',
         );
@@ -1732,11 +2050,13 @@ describe('GenericTraderProxyV1', () => {
           dolomiteMargin.genericTraderProxyV1.swapExactInputForOutputAndModifyPosition(
             tradeAccountNumber,
             [market1, market2],
-            simpleAmountWeisPath,
+            simpleAmountWeisPath[0],
+            simpleAmountWeisPath[simpleAmountWeisPath.length - 1],
             [getDefaultParaswapTraderParam()],
             [],
             transferParam,
             defaultExpiryParam,
+            defaultUserConfig,
           ),
           'GenericTraderProxyV1: Invalid transfer amount at index <0>',
         );
@@ -1774,6 +2094,7 @@ function getWrapperTraderParam(): GenericTraderParam {
 
 async function getInternalTraderParamAsync(
   makerAccountIndex: number,
+  amountIn: Integer,
   amountOut: Integer,
   tradeId: Integer = new BigNumber('4321'),
 ): Promise<GenericTraderParam> {
@@ -1788,7 +2109,10 @@ async function getInternalTraderParamAsync(
     makerAccountIndex,
     traderType: GenericTraderType.InternalLiquidity,
     trader: dolomiteMargin.contracts.testAutoTrader.options.address,
-    tradeData: ethers.utils.defaultAbiCoder.encode(['uint256'], [tradeId.toFixed()]),
+    tradeData: ethers.utils.defaultAbiCoder.encode(
+      ['uint256', 'bytes'],
+      [amountIn.toFixed(), ethers.utils.defaultAbiCoder.encode(['uint256'], [tradeId.toFixed()])],
+    ),
   };
 }
 
@@ -1879,8 +2203,11 @@ async function checkMarginPositionLogs(
   txResult: TxResult,
   isOpen: boolean,
   marketPath: Integer[],
-  amountPath: Integer[],
+  inputAmountWei: Integer,
+  outputAmountWei: Integer,
 ) {
+  const inputMarket = marketPath[0];
+  const outputMarket = marketPath[marketPath.length - 1];
   const logs = dolomiteMargin.logs.parseLogs(txResult).filter(log => {
     if (isOpen) {
       return log.name === 'MarginPositionOpen';
@@ -1892,29 +2219,34 @@ async function checkMarginPositionLogs(
   expect(logs[0].args.accountNumber).to.eql(tradeAccountNumber);
   expect(logs[0].args.inputToken).to.eql(marketIdToTokenMap[marketPath[0].toFixed()]);
   expect(logs[0].args.outputToken).to.eql(marketIdToTokenMap[marketPath[marketPath.length - 1].toFixed()]);
-  expect(
-    isOpen ? logs[0].args.depositToken : logs[0].args.withdrawalToken,
-  ).to.eql(marketIdToTokenMap[marketPath[marketPath.length - 1].toFixed()]);
+  expect(isOpen ? logs[0].args.depositToken : logs[0].args.withdrawalToken).to.eql(
+    marketIdToTokenMap[marketPath[isOpen ? marketPath.length - 1 : 0].toFixed()],
+  );
   expect(logs[0].args.inputBalanceUpdate).to.eql({
-    deltaWei: amountPath[0].negated(),
-    newPar: amountPath[0].negated(),
+    deltaWei: inputMarket.eq(outputMarket)
+      ? outputAmountWei
+      : isOpen
+      ? inputAmountWei.negated()
+      : inputAmountWei.negated().times(2),
+    newPar: inputMarket.eq(outputMarket) ? outputAmountWei : isOpen ? inputAmountWei.negated() : INTEGERS.ZERO,
   });
   if (isOpen) {
     expect(logs[0].args.outputBalanceUpdate).to.eql({
-      deltaWei: amountPath[amountPath.length - 1].times(2),
-      newPar: amountPath[amountPath.length - 1].times(3),
+      deltaWei: inputMarket.eq(outputMarket) ? outputAmountWei : outputAmountWei.times(2),
+      newPar: inputMarket.eq(outputMarket) ? outputAmountWei : outputAmountWei.times(2),
     });
     expect(logs[0].args.marginDepositUpdate).to.eql({
-      deltaWei: amountPath[amountPath.length - 1].times(2),
-      newPar: amountPath[amountPath.length - 1].times(3),
+      deltaWei: inputMarket.eq(outputMarket) ? outputAmountWei : outputAmountWei.times(2),
+      newPar: inputMarket.eq(outputMarket) ? outputAmountWei : outputAmountWei.times(2),
     });
   } else {
     expect(logs[0].args.outputBalanceUpdate).to.eql({
-      deltaWei: amountPath[amountPath.length - 1].times(-1),
+      deltaWei: outputAmountWei,
       newPar: INTEGERS.ZERO,
     });
+    // The tradeAmount + collateral are sold and transferred out
     expect(logs[0].args.marginWithdrawalUpdate).to.eql({
-      deltaWei: amountPath[amountPath.length - 1].times(-1),
+      deltaWei: inputAmountWei.times(2).negated(),
       newPar: INTEGERS.ZERO,
     });
   }
