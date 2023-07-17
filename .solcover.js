@@ -13,6 +13,8 @@ module.exports = {
     'external/lib/TypedSignature.sol',
     'external/lib/UQ112x112.sol',
     'external/multisig/',
+    'external/proxies/LiquidatorProxyV2WithExternalLiquidity.sol',
+    'external/proxies/LiquidatorProxyV3WithLiquidityToken.sol',
     'external/rebalancers/',
     'external/uniswap-v2/',
     'external/utils/MultiCall.sol',
