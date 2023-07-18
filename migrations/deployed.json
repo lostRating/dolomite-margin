@@ -840,8 +840,8 @@
     "GenericTraderProxyV1": {
         "42161": {
             "links": {},
-            "address": "0x9615e00fF9Bf025571aC66e385F095AA5b304C1A",
-            "transactionHash": "0x344d9e6592d71927ac8a8e26550e224d64822b26f03be6631586ca0d707a324a"
+            "address": "0x3E647e1242A8CE0cE013cb967fBfF742d7846242",
+            "transactionHash": "0x71c9cc8652df13b2e80b9465d4d2528bd709256da5e4c4c066fb1bb0642fc2cf"
         }
     }
 }
